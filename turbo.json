@@ -1,0 +1,35 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**"]
+    },
+    "circular-deps": {},
+    "clean": {
+      "cache": false
+    },
+    "docs": {
+      "dependsOn": ["^build"],
+      "outputs": ["docs/**"]
+    },
+    "format": {},
+    "format:fix": {},
+    "lint": {},
+    "lint:fix": {},
+    "lint:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "test": {},
+    "types": {},
+    "types:watch": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

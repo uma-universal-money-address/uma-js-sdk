@@ -1,0 +1,120 @@
+# Logs
+logs
+*.log
+stats.json
+test.logs
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Dependency directory
+node_modules/*
+**/node_modules/*
+
+.npmrc
+
+# https://yarnpkg.com/getting-started/qa#which-files-should-be-gitignored
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# Turbo
+.turbo
+
+# Users Environment Variables
+.lock-wscript
+
+# Eclipse projects
+.project
+.pydevproject
+.settings
+
+.vscode/
+!/.vscode/settings.json
+
+#Webstorm Editor
+.idea
+
+# OSX metadata
+.DS_Store
+
+# Configuration file
+test-config.yml
+
+# Extension temp files
+.__modules_tmp_index-*
+
+# Compiled outputs
+dist/
+build/
+lib/
+
+# Vim swap files
+*.swp
+
+# Flattened _locales files
+bin/locales
+
+# Docs
+packages/**/docs
+
+# Xcode for react-native projects
+build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+project.xcworkspace
+.xcode.env.local
+
+# CocoaPods for react-native projects
+/Pods/
+
+# Android/IntelliJ for react-native projects
+.classpath
+.cxx
+.gradle
+.idea
+.project
+.settings
+local.properties
+*.iml
+*.hprof
+
+# BUCK for react-native projects
+buck-out/
+\.buckd/
+android/app/libs
+android/keystores/debug.keystore
+
+# Ruby for react-native projects
+example/vendor/
+
+# Expo for react-native projects
+.expo/*
+
+# Bundle artifacts for react-native projects
+*.jsbundle
+
+# Temporary files created by Metro for react-native projects
+.metro-health-check*
+
+# Leave for public repo:
+*.code-workspace
