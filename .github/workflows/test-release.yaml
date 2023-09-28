@@ -134,6 +134,7 @@ jobs:
     needs: ["checks", "build"]
     permissions:
       contents: write
+      pull-requests: write
     if: "success() && github.event_name == 'push'"
     runs-on: ubuntu-latest
     environment: npm
@@ -154,9 +155,6 @@ jobs:
           cwd: "."
 
       - name: Create Release Pull Request or Publish to npm
-        permissions:
-          contents: write
-          pull-requests: write
         id: changesets
         uses: changesets/action@v1
         with:
