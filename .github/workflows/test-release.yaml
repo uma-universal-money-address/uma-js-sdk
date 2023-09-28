@@ -15,7 +15,7 @@ jobs:
     if: github.head_ref != 'changeset-release/main'
     name: "Update lock file for PRs before checks and build"
     permissions:
-      content: write
+      contents: write
     runs-on: "ubuntu-22.04"
     outputs:
       VERIFIED_LOCK_COMMIT: ${{ steps.sync-lock-file.outputs.VERIFIED_LOCK_COMMIT }}
