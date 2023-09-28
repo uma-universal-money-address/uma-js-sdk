@@ -20,7 +20,7 @@ module.exports = {
       extends: ["plugin:@typescript-eslint/recommended"],
       parser: "@typescript-eslint/parser",
       parserOptions: {
-        project: [path.join(process.cwd(), "tsconfig.json")],
+        project: [path.join(process.cwd(), "tsconfig-test.json")],
       },
       rules: {
         "@typescript-eslint/consistent-type-imports": [
