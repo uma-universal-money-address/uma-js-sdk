@@ -1,4 +1,4 @@
-name: Test, release, and sync
+name: Test and release
 
 on:
   pull_request:
@@ -132,6 +132,8 @@ jobs:
   release:
     name: Release
     needs: ["checks", "build"]
+    permissions:
+      contents: write
     if: "success() && github.event_name == 'push'"
     runs-on: ubuntu-latest
     environment: npm
