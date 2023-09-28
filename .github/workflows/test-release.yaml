@@ -155,6 +155,9 @@ jobs:
           cwd: "."
 
       - name: Create Release Pull Request or Publish to npm
+        permissions:
+          contents: write
+          pull-requests: write
         id: changesets
         uses: changesets/action@v1
         with:
