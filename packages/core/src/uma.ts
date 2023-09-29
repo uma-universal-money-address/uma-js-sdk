@@ -375,7 +375,7 @@ export async function getPayReqResponse({
   receiverNodePubKey,
   utxoCallback,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
-  const msatsAmount = query.amount * conversionRate;
+  const msatsAmount = query.amount * conversionRate + receiverFeesMillisats;
   const encodedPayerData = JSON.stringify(query.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice({
     amountMsats: msatsAmount,
