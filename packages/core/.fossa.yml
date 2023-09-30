@@ -1,0 +1,7 @@
+version: 3
+
+project:
+  id: uma-universal-money-address/uma-js-sdk
+  name: uma-js-sdk
+  url: https://github.com/uma-universal-money-address/uma-js-sdk
+
