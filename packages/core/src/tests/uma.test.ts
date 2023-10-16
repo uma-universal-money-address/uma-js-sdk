@@ -261,9 +261,18 @@ describe("uma", () => {
       minSendableSats: 1,
       maxSendableSats: 10_000_000,
       payerDataOptions: {
-        nameRequired: false,
-        emailRequired: false,
-        complianceRequired: true,
+        name: {
+          mandatory: false,
+        },
+        identifier: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+        compliance: {
+          mandatory: true,
+        },
       },
       currencyOptions: [
         {

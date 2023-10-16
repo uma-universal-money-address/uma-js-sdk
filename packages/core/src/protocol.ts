@@ -47,9 +47,9 @@ export const LnurlpResponseSchema = z.object({
   callback: z.string(),
   minSendable: z.number(),
   maxSendable: z.number(),
-  encodedMetadata: z.string(),
+  metadata: z.string(),
   currencies: z.array(CurrencySchema),
-  requiredPayerData: PayerDataOptionsSchema,
+  payerData: PayerDataOptionsSchema,
   compliance: LnurlpComplianceResponseSchema,
   // UmaVersion is the version of the UMA protocol that VASP2 has chosen for this transaction based on its own support and VASP1's specified preference in the LnurlpRequest. For the version negotiation flow, see https://static.swimlanes.io/87f5d188e080cb8e0494e46f80f2ae74.png
   umaVersion: z.string(),

@@ -490,9 +490,9 @@ export async function getLnurlpResponse({
     callback,
     minSendable: minSendableSats,
     maxSendable: maxSendableSats,
-    encodedMetadata,
+    metadata: encodedMetadata,
     currencies: currencyOptions,
-    requiredPayerData: payerDataOptions,
+    payerData: payerDataOptions,
     compliance: complianceResponse,
     umaVersion,
   };

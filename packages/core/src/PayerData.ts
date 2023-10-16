@@ -2,9 +2,18 @@ import { z } from "zod";
 import { KycStatus } from "./KycStatus.js";
 
 export const PayerDataOptionsSchema = z.object({
-  nameRequired: z.boolean(),
-  emailRequired: z.boolean(),
-  complianceRequired: z.boolean(),
+  identifier: z.object({
+    mandatory: z.boolean(),
+  }),
+  name: z.object({
+    mandatory: z.boolean(),
+  }),
+  email: z.object({
+    mandatory: z.boolean(),
+  }),
+  compliance: z.object({
+    mandatory: z.boolean(),
+  }),
 });
 
 export type PayerDataOptions = z.infer<typeof PayerDataOptionsSchema>;
@@ -36,12 +45,3 @@ export const PayerDataSchema = z.object({
 });
 
 export type PayerData = z.infer<typeof PayerDataSchema>;
-
-export function payerDataOptionsToJSON(p: PayerDataOptions): string {
-  return JSON.stringify({
-    identifier: { mandatory: true },
-    name: { mandatory: p.nameRequired },
-    email: { mandatory: p.emailRequired },
-    compliance: { mandatory: p.complianceRequired },
-  });
-}
