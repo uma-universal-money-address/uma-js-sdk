@@ -17,7 +17,7 @@ import {
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
-import UmaInvoiceCreator from "./UmaInvoiceCreator.js";
+import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import {
   isVersionSupported,
   selectLowerVersion,
