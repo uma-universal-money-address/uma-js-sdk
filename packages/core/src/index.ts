@@ -1,4 +1,4 @@
-export * from "./client.js";
+export * from "./UmaInvoiceCreator.js";
 export * from "./Currency.js";
 export * from "./KycStatus.js";
 export * from "./PayerData.js";
