@@ -1,6 +1,13 @@
 import { type PubKeyResponse } from "./protocol.js";
 
-export class PublicKeyCache {
+export interface PublicKeyCache {
+  fetchPublicKeyForVasp(vaspDomain: string): PubKeyResponse | undefined;
+  addPublicKeyForVasp(vaspDomain: string, pubKey: PubKeyResponse): void;
+  removePublicKeyForVasp(vaspDomain: string): void;
+  clear(): void;
+}
+
+export class InMemoryPublicKeyCache {
   cache: Map<string, PubKeyResponse>;
 
   constructor() {
