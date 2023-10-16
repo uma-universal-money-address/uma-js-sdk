@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.1.1
+
+### Patch Changes
+
+- ecf3515: Fix lnurlp response schema
+
 ## 0.1.0
 
 ### Minor Changes
