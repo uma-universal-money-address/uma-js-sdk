@@ -7,7 +7,10 @@ export class UnsupportedVersionError extends Error {
   unsupportedVersion: string;
   supportedMajorVersions: number[];
 
-  constructor(unsupportedVersion: string, supportedMajorVersions: number[]) {
+  constructor(
+    unsupportedVersion: string,
+    supportedMajorVersions: number[] = Array.from(getSupportedMajorVersions()),
+  ) {
     super(`unsupported version: ${unsupportedVersion}`);
     this.unsupportedVersion = unsupportedVersion;
     this.supportedMajorVersions = supportedMajorVersions;

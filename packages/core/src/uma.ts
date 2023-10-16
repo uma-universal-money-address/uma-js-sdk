@@ -22,6 +22,7 @@ import {
   isVersionSupported,
   selectLowerVersion,
   UmaProtocolVersion,
+  UnsupportedVersionError,
 } from "./version.js";
 
 export const createSha256Hash = async (
@@ -71,7 +72,7 @@ export function parseLnurlpRequest(url: URL) {
   const receiverAddress = pathParts[3] + "@" + url.host;
 
   if (!isVersionSupported(umaVersion)) {
-    throw new Error("unsupported uma version");
+    throw new UnsupportedVersionError(umaVersion);
   }
 
   return {
