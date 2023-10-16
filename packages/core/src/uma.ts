@@ -1,7 +1,6 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
-import { type UmaClient } from "./client.js";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
 import { type PayerDataOptions } from "./PayerData.js";
@@ -18,10 +17,12 @@ import {
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
+import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import {
   isVersionSupported,
   selectLowerVersion,
   UmaProtocolVersion,
+  UnsupportedVersionError,
 } from "./version.js";
 
 export const createSha256Hash = async (
@@ -71,7 +72,7 @@ export function parseLnurlpRequest(url: URL) {
   const receiverAddress = pathParts[3] + "@" + url.host;
 
   if (!isVersionSupported(umaVersion)) {
-    throw new Error("unsupported uma version");
+    throw new UnsupportedVersionError(umaVersion);
   }
 
   return {
@@ -102,16 +103,21 @@ export function generateNonce() {
   return String(crypto.getRandomValues(new Uint32Array(1)));
 }
 
-/* fetchPublicKeyForVasp fetches the public key for another VASP.
-
-If the public key is not in the cache, it will be fetched from the VASP's domain.
-The public key will be cached for future use. */
-
 type FetchPublicKeyForVaspArgs = {
-  cache: PublicKeyCache; // the domain of the VASP.
-  vaspDomain: string; // the PublicKeyCache cache to use. You can use the InMemoryPublicKeyCache struct, or implement your own persistent cache with any storage type.
+  cache: PublicKeyCache;
+  vaspDomain: string;
 };
 
+/**
+ * FetchPublicKeyForVasp fetches the public key for another VASP.
+ * If the public key is not in the cache, it will be fetched from the VASP's domain.
+ * The public key will be cached for future use.
+ *
+ * @param cache The PublicKeyCache cache to use. You can use the InMemoryPublicKeyCache class, or implement your own
+ *     persistent cache with any storage type.
+ * @param vaspDomain The domain of the VASP to fetch the public key for.
+ * @returns
+ */
 export async function fetchPublicKeyForVasp({
   cache,
   vaspDomain,
@@ -139,7 +145,6 @@ export async function fetchPublicKeyForVasp({
   return pubKeyResponse;
 }
 
-/* getSignedLnurlpRequestUrl Creates a signed uma request URL. */
 type GetSignedLnurlpRequestUrlArgs = {
   isSubjectToTravelRule: boolean; // whether the sending VASP is a financial institution that requires travel rule information.
   receiverAddress: string; // the address of the receiver of the payment (i.e. $bob@vasp2).
@@ -148,6 +153,9 @@ type GetSignedLnurlpRequestUrlArgs = {
   umaVersionOverride?: string | undefined; // the version of the UMA protocol to use. If not specified, the latest version will be used.
 };
 
+/**
+ * Creates a signed uma request URL.
+ */
 export async function getSignedLnurlpRequestUrl({
   isSubjectToTravelRule,
   receiverAddress,
@@ -249,22 +257,42 @@ export function getVaspDomainFromUmaAddress(umaAddress: string) {
   return addressParts[1];
 }
 
-/* getPayRequest Creates a signed uma pay request. */
 type GetPayRequestArgs = {
-  receiverEncryptionPubKey: Uint8Array; // the public key of the receiver that will be used to encrypt the travel rule information.
-  sendingVaspPrivateKey: Uint8Array; // the private key of the VASP that is sending the payment. This will be used to sign the request.
-  currencyCode: string; // the code of the currency that the receiver will receive for this payment.
-  amount: number; // the amount of the payment in the smallest unit of the specified currency (i.e. cents for USD).
-  payerIdentifier: string; // the identifier of the sender. For example, $alice@vasp1.com
-  payerName?: string | undefined; // the name of the sender (optional).
-  payerEmail?: string | undefined; // the email of the sender (optional).
-  trInfo: string | undefined; // the travel rule information. This will be encrypted before sending to the receiver.
-  payerKycStatus: KycStatus; // whether the sender is a KYC'd customer of the sending VASP.
-  payerUtxos?: string[] | undefined; // the list of UTXOs of the sender's channels that might be used to fund the payment.
-  payerNodePubKey?: string | undefined; // If known, the public key of the sender's node. If supported by the receiving VASP's compliance provider, this will be used to pre-screen the sender's UTXOs for compliance purposes.
-  utxoCallback: string; // the URL that the receiver will call to send UTXOs of the channel that the receiver used to receive the payment once it completes.
+  /** The public key of the receiver that will be used to encrypt the travel rule information. */
+  receiverEncryptionPubKey: Uint8Array;
+  /** The private key of the VASP that is sending the payment. This will be used to sign the request. */
+  sendingVaspPrivateKey: Uint8Array;
+  /** The code of the currency that the receiver will receive for this payment. */
+  currencyCode: string;
+  /** The amount of the payment in the smallest unit of the specified currency (i.e. cents for USD). */
+  amount: number;
+  /** The identifier of the sender. For example, $alice@vasp1.com */
+  payerIdentifier: string;
+  /** The name of the sender (optional). */
+  payerName?: string | undefined;
+  /** The email of the sender (optional). */
+  payerEmail?: string | undefined;
+  /** The travel rule information. This will be encrypted before sending to the receiver. */
+  trInfo: string | undefined;
+  /** Whether the sender is a KYC'd customer of the sending VASP. */
+  payerKycStatus: KycStatus;
+  /** The list of UTXOs of the sender's channels that might be used to fund the payment. */
+  payerUtxos?: string[] | undefined;
+  /**
+   * If known, the public key of the sender's node. If supported by the receiving VASP's compliance provider,
+   * this will be used to pre-screen the sender's UTXOs for compliance purposes.
+   */
+  payerNodePubKey?: string | undefined;
+  /**
+   * The URL that the receiver will call to send UTXOs of the channel that the receiver used to receive the
+   * payment once it completes.
+   */
+  utxoCallback: string;
 };
 
+/**
+ * Creates a signed uma pay request.
+ */
 export async function getPayRequest({
   amount,
   currencyCode,
@@ -353,15 +381,39 @@ function encryptTrInfo(
 }
 
 type PayRequestResponseArgs = {
-  query: PayRequest; // the uma pay request.
-  conversionRate: number; // milli-satoshis per the smallest unit of the specified currency. This rate is committed to by the receiving VASP until the invoice expires.
-  currencyCode: string; // the code of the currency that the receiver will receive for this payment.
-  invoiceCreator: UmaClient; // UmaClient that calls createUmaInvoice using your provider.
-  metadata: string; // the metadata that will be added to the invoice's metadata hash field. Note that this should not include the extra payer data. That will be appended automatically.
-  receiverChannelUtxos: string[]; // the list of UTXOs of the receiver's channels that might be used to fund the payment.
-  receiverFeesMillisats: number; // the fees charged (in millisats) by the receiving VASP to convert to the target currency. This is separate from the conversion rate.
-  receiverNodePubKey?: string | undefined; // If known, the public key of the receiver's node. If supported by the sending VASP's compliance provider, this will be used to pre-screen the receiver's UTXOs for compliance purposes.
-  utxoCallback: string; // the URL that the receiving VASP will call to send UTXOs of the channel that the receiver used to receive the payment once it completes.
+  /** The uma pay request. */
+  query: PayRequest;
+  /**
+   * Milli-satoshis per the smallest unit of the specified currency. This rate is committed to by the receiving
+   * VASP until the invoice expires.
+   */
+  conversionRate: number;
+  /** The code of the currency that the receiver will receive for this payment. */
+  currencyCode: string;
+  /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
+  invoiceCreator: UmaInvoiceCreator;
+  /**
+   * The metadata that will be added to the invoice's metadata hash field. Note that this should not include the
+   * extra payer data. That will be appended automatically.
+   */
+  metadata: string;
+  /** The list of UTXOs of the receiver's channels that might be used to fund the payment. */
+  receiverChannelUtxos: string[];
+  /**
+   * The fees charged (in millisats) by the receiving VASP to convert to the target currency. This is separate from
+   * the conversion rate.
+   */
+  receiverFeesMillisats: number;
+  /**
+   * If known, the public key of the receiver's node. If supported by the sending VASP's compliance provider, this
+   * will be used to pre-screen the receiver's UTXOs for compliance purposes.
+   */
+  receiverNodePubKey?: string | undefined;
+  /**
+   * The URL that the receiving VASP will call to send UTXOs of the channel that the receiver used to receive the
+   * payment once it completes.
+   */
+  utxoCallback: string;
 };
 
 export async function getPayReqResponse({
@@ -377,13 +429,16 @@ export async function getPayReqResponse({
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
   const msatsAmount = query.amount * conversionRate + receiverFeesMillisats;
   const encodedPayerData = JSON.stringify(query.payerData);
-  const encodedInvoice = await invoiceCreator.createUmaInvoice({
-    amountMsats: msatsAmount,
-    metadataHash: metadata + "{" + encodedPayerData + "}",
-  });
+  const encodedInvoice = await invoiceCreator.createUmaInvoice(
+    msatsAmount,
+    metadata + "{" + encodedPayerData + "}",
+  );
+  if (!encodedInvoice) {
+    throw new Error("failed to create invoice");
+  }
 
   return {
-    encodedInvoice: encodedInvoice.data.encodedPaymentRequest,
+    encodedInvoice: encodedInvoice,
     routes: [],
     compliance: {
       utxos: receiverChannelUtxos,
