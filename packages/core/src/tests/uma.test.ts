@@ -1,7 +1,6 @@
 import { randomBytes } from "crypto";
 import { decrypt, PrivateKey } from "eciesjs";
 import secp256k1 from "secp256k1";
-import { UmaClient } from "../client.js";
 import { isError } from "../errors.js";
 import { KycStatus } from "../KycStatus.js";
 import {
@@ -64,21 +63,12 @@ async function createLnurlpRequest(
 
 describe("uma", () => {
   it("should construct the UMA client", () => {
-    const provider = {
+    const invoiceCreator = {
       createUmaInvoice: async () => {
-        return {
-          data: {
-            encodedPaymentRequest: "abcdefg123456",
-          },
-        };
+        return "abcdefg123456";
       },
     };
-    const umaClient = new UmaClient({
-      provider,
-      receiverNodeId: "1234",
-      invoiceExpirySeconds: 60,
-    });
-    expect(umaClient).toBeTruthy();
+    expect(invoiceCreator).toBeTruthy();
   });
 
   it("parses a valid lnurlp request", () => {
@@ -313,26 +303,17 @@ describe("uma", () => {
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
     });
 
-    const provider = {
+    const invoiceCreator = {
       createUmaInvoice: async () => {
-        return {
-          data: {
-            encodedPaymentRequest: "abcdefg123456",
-          },
-        };
+        return "abcdefg123456";
       },
     };
-    const umaClient = new UmaClient({
-      provider,
-      receiverNodeId: "abcdefg123456",
-      invoiceExpirySeconds: 60,
-    });
 
     const metadata = createMetadataForBob();
 
     const payreqResponse = await getPayReqResponse({
       query: payreq,
-      invoiceCreator: umaClient,
+      invoiceCreator: invoiceCreator,
       metadata,
       currencyCode: "USD",
       conversionRate: 34_150,

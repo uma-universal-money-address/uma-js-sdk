@@ -1,7 +1,6 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
-import { type UmaClient } from "./client.js";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
 import { type PayerDataOptions } from "./PayerData.js";
@@ -18,6 +17,7 @@ import {
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
+import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import {
   isVersionSupported,
   selectLowerVersion,
@@ -390,8 +390,8 @@ type PayRequestResponseArgs = {
   conversionRate: number;
   /** The code of the currency that the receiver will receive for this payment. */
   currencyCode: string;
-  /** UmaClient that calls createUmaInvoice using your provider. */
-  invoiceCreator: UmaClient;
+  /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
+  invoiceCreator: UmaInvoiceCreator;
   /**
    * The metadata that will be added to the invoice's metadata hash field. Note that this should not include the
    * extra payer data. That will be appended automatically.
@@ -429,13 +429,16 @@ export async function getPayReqResponse({
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
   const msatsAmount = query.amount * conversionRate + receiverFeesMillisats;
   const encodedPayerData = JSON.stringify(query.payerData);
-  const encodedInvoice = await invoiceCreator.createUmaInvoice({
-    amountMsats: msatsAmount,
-    metadataHash: metadata + "{" + encodedPayerData + "}",
-  });
+  const encodedInvoice = await invoiceCreator.createUmaInvoice(
+    msatsAmount,
+    metadata + "{" + encodedPayerData + "}",
+  );
+  if (!encodedInvoice) {
+    throw new Error("failed to create invoice");
+  }
 
   return {
-    encodedInvoice: encodedInvoice.data.encodedPaymentRequest,
+    encodedInvoice: encodedInvoice,
     routes: [],
     compliance: {
       utxos: receiverChannelUtxos,
