@@ -93,8 +93,8 @@ export function isUmaLnurlpQuery(url: URL) {
   let query: null | ParsedLnurlpRequest = null;
   try {
     query = parseLnurlpRequest(url);
-  } catch {
-    return false;
+  } catch (e) {
+    return e instanceof UnsupportedVersionError;
   }
   return query !== null;
 }
