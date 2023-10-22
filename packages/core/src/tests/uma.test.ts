@@ -309,6 +309,7 @@ describe("uma", () => {
       receiverEncryptionPubKey: receiverEncryptionPublicKey,
       sendingVaspPrivateKey: senderSigningPrivateKey,
       trInfo: trInfo,
+      travelRuleFormat: "fake_format@1.0",
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
     });
 
