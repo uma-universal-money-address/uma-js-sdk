@@ -3,7 +3,10 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
-import { CompliancePayerData, type PayerDataOptions } from "./PayerData.js";
+import {
+  type CompliancePayerData,
+  type PayerDataOptions,
+} from "./PayerData.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
