@@ -3,7 +3,10 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
-import { type PayerDataOptions } from "./PayerData.js";
+import {
+  type CompliancePayerData,
+  type PayerDataOptions,
+} from "./PayerData.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
@@ -93,8 +96,8 @@ export function isUmaLnurlpQuery(url: URL) {
   let query: null | ParsedLnurlpRequest = null;
   try {
     query = parseLnurlpRequest(url);
-  } catch {
-    return false;
+  } catch (e) {
+    return e instanceof UnsupportedVersionError;
   }
   return query !== null;
 }
@@ -273,7 +276,12 @@ type GetPayRequestArgs = {
   /** The email of the sender (optional). */
   payerEmail?: string | undefined;
   /** The travel rule information. This will be encrypted before sending to the receiver. */
-  trInfo: string | undefined;
+  trInfo?: string | undefined;
+  /**
+   * An optional standardized format of the travel rule information (e.g. IVMS). Null indicates raw json or a custom format.
+   * This field is formatted as <standardized format>@<version> (e.g. ivms@101.2023). Version is optional.
+   */
+  travelRuleFormat?: string | undefined;
   /** Whether the sender is a KYC'd customer of the sending VASP. */
   payerKycStatus: KycStatus;
   /** The list of UTXOs of the sender's channels that might be used to fund the payment. */
@@ -305,6 +313,7 @@ export async function getPayRequest({
   receiverEncryptionPubKey,
   sendingVaspPrivateKey,
   trInfo,
+  travelRuleFormat,
   utxoCallback,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
@@ -312,6 +321,7 @@ export async function getPayRequest({
     sendingVaspPrivateKey,
     payerIdentifier,
     trInfo,
+    travelRuleFormat,
     payerKycStatus,
     payerUtxos,
     payerNodePubKey,
@@ -335,11 +345,12 @@ async function getSignedCompliancePayerData(
   sendingVaspPrivateKeyBytes: Uint8Array,
   payerIdentifier: string,
   trInfo: string | undefined,
+  travelRuleFormat: string | undefined,
   payerKycStatus: KycStatus,
   payerUtxos: string[] | undefined,
   payerNodePubKey: string | undefined,
   utxoCallback: string,
-) {
+): Promise<CompliancePayerData> {
   const signatureTimestamp = Date.now();
   const signatureNonce = generateNonce();
 
@@ -358,6 +369,7 @@ async function getSignedCompliancePayerData(
   );
   return {
     encryptedTravelRuleInfo,
+    travelRuleFormat,
     kycStatus: payerKycStatus,
     utxos: payerUtxos,
     nodePubKey: payerNodePubKey,

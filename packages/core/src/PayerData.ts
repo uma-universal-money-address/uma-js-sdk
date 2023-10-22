@@ -27,6 +27,11 @@ const CompliancePayerDataSchema = z.object({
   kycStatus: z.nativeEnum(KycStatus),
   // EncryptedTravelRuleInfo is the travel rule information of the sender. This is encrypted with the receiver's public encryption key.
   encryptedTravelRuleInfo: z.optional(z.string()),
+  /**
+   * An optional standardized format of the travel rule information (e.g. IVMS). Null indicates raw json or a custom format.
+   * This field is formatted as <standardized format>@<version> (e.g. ivms@101.2023). Version is optional.
+   */
+  travelRuleFormat: z.optional(z.string()),
   // Signature is the base64-encoded signature of sha256(ReceiverAddress|Nonce|Timestamp).
   signature: z.string(),
   signatureNonce: z.string(),
