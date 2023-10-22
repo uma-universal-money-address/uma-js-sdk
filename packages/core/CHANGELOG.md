@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 0.1.2
+
+### Patch Changes
+
+- 1f67f71: - Minor versioning negotiation fix
+  - Adding the travelRuleFormat field to payreq
+
 ## 0.1.1
 
 ### Patch Changes
