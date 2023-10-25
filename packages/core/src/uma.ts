@@ -197,7 +197,7 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
   const hashedPayload = await createSha256Hash(encodedPayload);
 
   const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
-  return uint8ArrayToHexString(signature);
+  return uint8ArrayToHexString(secp256k1.signatureExport(signature));
 }
 
 export async function verifyUmaLnurlpQuerySignature(
@@ -220,7 +220,9 @@ function verifySignature(
   signature: string,
   otherVaspPubKey: Uint8Array,
 ) {
-  const decodedSignature = Buffer.from(signature, "hex");
+  const decodedSignature = secp256k1.signatureImport(
+    Buffer.from(signature, "hex"),
+  );
 
   const verified = secp256k1.ecdsaVerify(
     decodedSignature,
