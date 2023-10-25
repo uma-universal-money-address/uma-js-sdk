@@ -220,7 +220,9 @@ function verifySignature(
   signature: string,
   otherVaspPubKey: Uint8Array,
 ) {
-  const decodedSignature = secp256k1.signatureImport(Buffer.from(signature, "hex"));
+  const decodedSignature = secp256k1.signatureImport(
+    Buffer.from(signature, "hex"),
+  );
 
   const verified = secp256k1.ecdsaVerify(
     decodedSignature,
