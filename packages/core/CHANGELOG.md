@@ -1,5 +1,13 @@
 # @uma-sdk/core
 
+## 0.1.3
+
+### Patch Changes
+
+- 4c08ea8: - Switch to DER for signature encoding
+- 4c08ea8: - Minor versioning negotiation fix
+  - Adding the travelRuleFormat field to payreq
+
 ## 0.1.2
 
 ### Patch Changes
