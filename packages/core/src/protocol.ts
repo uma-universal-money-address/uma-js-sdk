@@ -63,7 +63,7 @@ export function parseLnurlpResponse(jsonStr: string): LnurlpResponse {
   try {
     validated = LnurlpResponseSchema.parse(parsed);
   } catch (e) {
-    throw new Error("invalid lnurlp response");
+    throw new Error("invalid lnurlp response", { cause: e });
   }
   return validated;
 }
@@ -186,7 +186,7 @@ export function parsePayRequest(payRequest: string): PayRequest {
   try {
     validated = PayRequestSchema.parse(parsed);
   } catch (e) {
-    throw new Error("invalid pay request");
+    throw new Error("invalid pay request", { cause: e });
   }
   return validated;
 }
@@ -197,7 +197,7 @@ export function parsePayReqResponse(jsonStr: string): PayReqResponse {
   try {
     validated = PayReqResponseSchema.parse(parsed);
   } catch (e) {
-    throw new Error("invalid pay request response");
+    throw new Error("invalid pay request response", { cause: e });
   }
   return validated;
 }
