@@ -331,7 +331,7 @@ export async function getPayRequest({
   );
 
   return {
-    currencyCode,
+    currency: currencyCode,
     amount,
     payerData: {
       name: payerName,
