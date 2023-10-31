@@ -129,6 +129,24 @@ jobs:
 
       - run: "yarn build"
 
+  reset-develop-to-main:
+    name: Hard reset develop to sync to main
+    if: "github.event_name == 'push'"
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Reset develop to main
+        run: |
+          git checkout develop
+          git reset --hard origin/main
+          git push origin develop --force
+
   release:
     name: Release
     needs: ["checks", "build"]
