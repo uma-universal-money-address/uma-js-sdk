@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.1.5
+
+### Patch Changes
+
+- 12f6467: - Fix null parsing for optional fields
+
 ## 0.1.4
 
 ### Patch Changes
