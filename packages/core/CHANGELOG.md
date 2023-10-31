@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 0.1.4
+
+### Patch Changes
+
+- 7a14f8b: - Add cause to a few errors.
+  - Fix the parsing of payReq due to a bad field name.
+
 ## 0.1.3
 
 ### Patch Changes
