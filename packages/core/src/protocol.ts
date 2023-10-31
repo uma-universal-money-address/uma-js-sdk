@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { PayerDataOptionsSchema, PayerDataSchema } from "./PayerData.js";
+import { optionalIgnoringNull } from "./zodUtils.js";
 
 /** LnurlpRequest is the first request in the UMA protocol. It is sent by the VASP that is sending the payment to find out information about the receiver. */
 export type LnurlpRequest = {
@@ -104,7 +105,7 @@ export type Route = z.infer<typeof RouteSchema>;
 
 export const PayReqResponseComplianceSchema = z.object({
   /** nodePubKey is the public key of the receiver's node if known. */
-  nodePubKey: z.string().optional(),
+  nodePubKey: optionalIgnoringNull(z.string()),
   /** utxos is a list of UTXOs of channels over which the receiver will likely receive the payment. */
   utxos: z.array(z.string()),
   /** utxoCallback is the URL that the sender VASP will call to send UTXOs of the channel that the sender used to send the payment once it completes. */
