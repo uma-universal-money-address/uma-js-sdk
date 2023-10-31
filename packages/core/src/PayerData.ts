@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { optionalIgnoringNull } from "./zodUtils.js";
 import { KycStatus } from "./KycStatus.js";
+import { optionalIgnoringNull } from "./zodUtils.js";
 
 export const PayerDataOptionsSchema = z.object({
   identifier: z.object({
