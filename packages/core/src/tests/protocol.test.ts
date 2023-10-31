@@ -6,7 +6,7 @@ describe("uma protocol", () => {
     /* Missing payerData: */
     await expect(() =>
       PayRequestSchema.parse({
-        currencyCode: "USD",
+        currency: "USD",
         amount: 100,
       }),
     ).toThrow(/.*payerData.*/g);
@@ -14,7 +14,7 @@ describe("uma protocol", () => {
     /* Invalid compliance: */
     await expect(() =>
       PayRequestSchema.parse({
-        currencyCode: "USD",
+        currency: "USD",
         amount: 100,
         payerData: {
           name: "Bob",
@@ -37,7 +37,7 @@ describe("uma protocol", () => {
     /* Valid request: */
     await expect(() =>
       PayRequestSchema.parse({
-        currencyCode: "USD",
+        currency: "USD",
         amount: 100,
         payerData: {
           name: "Bob",
