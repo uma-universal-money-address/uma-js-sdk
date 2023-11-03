@@ -452,7 +452,7 @@ export async function getPayReqResponse({
   }
 
   return {
-    encodedInvoice: encodedInvoice,
+    pr: encodedInvoice,
     routes: [],
     compliance: {
       utxos: receiverChannelUtxos,
