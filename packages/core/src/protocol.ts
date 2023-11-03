@@ -131,8 +131,8 @@ export type PayReqResponsePaymentInfo = z.infer<
 
 /** PayReqResponse is the response sent by the receiver to the sender to provide an invoice. */
 export const PayReqResponseSchema = z.object({
-  /** encodedInvoice is the BOLT11 invoice that the sender will pay. */
-  encodedInvoice: z.string(),
+  /** The BOLT11 invoice that the sender will pay. */
+  pr: z.string(),
   /** routes is usually just an empty list from legacy LNURL, which was replaced by route hints in the BOLT11 invoice. */
   routes: z.array(RouteSchema),
   compliance: PayReqResponseComplianceSchema,
