@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.2.0
+
+### Minor Changes
+
+- ec6269a: Fix the name of the pr field in the payreq response.
+
 ## 0.1.5
 
 ### Patch Changes
