@@ -7,7 +7,7 @@ export const CurrencySchema = z.object({
   code: z.string(),
 
   /**
-   * The full currency name, eg. "US Dollars".
+   * The full currency name in plural form, eg. "US Dollars".
    */
   name: z.string(),
 
