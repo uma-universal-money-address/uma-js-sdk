@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.3.0
+
+### Minor Changes
+
+- 21d6f3a: - Add displayDecimals to the currency object. This helps the sender display the receiving currency amount correctly in their UI.
+
 ## 0.2.0
 
 ### Minor Changes
