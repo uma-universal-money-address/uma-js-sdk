@@ -297,7 +297,7 @@ type GetPayRequestArgs = {
    * The URL that the receiver will call to send UTXOs of the channel that the receiver used to receive the
    * payment once it completes.
    */
-  utxoCallback: string;
+  utxoCallback?: string | undefined;
 };
 
 /**
@@ -351,7 +351,7 @@ async function getSignedCompliancePayerData(
   payerKycStatus: KycStatus,
   payerUtxos: string[] | undefined,
   payerNodePubKey: string | undefined,
-  utxoCallback: string,
+  utxoCallback: string | undefined,
 ): Promise<CompliancePayerData> {
   const signatureTimestamp = Date.now();
   const signatureNonce = generateNonce();
@@ -427,7 +427,7 @@ type PayRequestResponseArgs = {
    * The URL that the receiving VASP will call to send UTXOs of the channel that the receiver used to receive the
    * payment once it completes.
    */
-  utxoCallback: string;
+  utxoCallback?: string | undefined;
 };
 
 export async function getPayReqResponse({

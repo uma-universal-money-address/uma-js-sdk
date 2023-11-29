@@ -28,6 +28,8 @@ jobs:
           fetch-depth: 2
       - name: "Setup Node"
         uses: "actions/setup-node@v3"
+        env:
+          SKIP_YARN_COREPACK_CHECK: true
         with:
           node-version-file: ".nvmrc"
 
@@ -69,6 +71,8 @@ jobs:
 
       - name: "Setup Node"
         uses: "actions/setup-node@v3"
+        env:
+          SKIP_YARN_COREPACK_CHECK: true
         with:
           node-version-file: ".nvmrc"
           cache: "yarn"
@@ -106,6 +110,8 @@ jobs:
 
       - name: "Setup Node"
         uses: "actions/setup-node@v3"
+        env:
+          SKIP_YARN_COREPACK_CHECK: true
         with:
           node-version-file: ".nvmrc"
           cache: "yarn"
@@ -162,6 +168,8 @@ jobs:
 
       - name: "Setup Node"
         uses: "actions/setup-node@v3"
+        env:
+          SKIP_YARN_COREPACK_CHECK: true
         with:
           node-version-file: ".nvmrc"
           cache: "yarn"
