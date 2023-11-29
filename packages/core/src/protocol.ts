@@ -109,7 +109,7 @@ export const PayReqResponseComplianceSchema = z.object({
   /** utxos is a list of UTXOs of channels over which the receiver will likely receive the payment. */
   utxos: z.array(z.string()),
   /** utxoCallback is the URL that the sender VASP will call to send UTXOs of the channel that the sender used to send the payment once it completes. */
-  utxoCallback: z.string(),
+  utxoCallback: optionalIgnoringNull(z.string()),
 });
 
 export type PayReqResponseCompliance = z.infer<
