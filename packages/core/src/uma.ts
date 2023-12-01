@@ -225,7 +225,7 @@ function verifySignature(
   );
 
   const verified = secp256k1.ecdsaVerify(
-    decodedSignature,
+    secp256k1.signatureNormalize(decodedSignature),
     hashedPayload,
     otherVaspPubKey,
   );
