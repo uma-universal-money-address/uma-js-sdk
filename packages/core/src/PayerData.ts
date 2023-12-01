@@ -44,7 +44,7 @@ const CompliancePayerDataSchema = z.object({
   signatureNonce: z.string(),
   signatureTimestamp: z.number(),
   /** UtxoCallback is the URL that the receiver will call to send UTXOs of the channel that the receiver used to receive the payment once it completes. */
-  utxoCallback: z.string(),
+  utxoCallback: optionalIgnoringNull(z.string()),
 });
 
 export type CompliancePayerData = z.infer<typeof CompliancePayerDataSchema>;
