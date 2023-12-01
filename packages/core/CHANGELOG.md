@@ -1,5 +1,15 @@
 # @uma-sdk/core
 
+## 0.4.0
+
+### Minor Changes
+
+- 480f4d7: Make utxoCallback optional
+
+### Patch Changes
+
+- 480f4d7: Normalize high signatures before verifying.
+
 ## 0.3.0
 
 ### Minor Changes
