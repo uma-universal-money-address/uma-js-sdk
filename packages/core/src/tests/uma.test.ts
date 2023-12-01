@@ -203,8 +203,13 @@ describe("uma", () => {
   });
 
   it("should verify high signatures", async () => {
-    const publicKey = Buffer.from("047d37ce263a855ff49eb2a537a77a369a861507687bfde1df40062c8774488d644455a44baeb5062b79907d2e6f9692dd5b7bd7c37a3721ba21378d3594672063", "hex");
-    const queryUrl = new URL("https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=0.1&vaspDomain=api.ltng.bakkt.com");
+    const publicKey = Buffer.from(
+      "047d37ce263a855ff49eb2a537a77a369a861507687bfde1df40062c8774488d644455a44baeb5062b79907d2e6f9692dd5b7bd7c37a3721ba21378d3594672063",
+      "hex",
+    );
+    const queryUrl = new URL(
+      "https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=0.1&vaspDomain=api.ltng.bakkt.com",
+    );
 
     const query = parseLnurlpRequest(queryUrl);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
