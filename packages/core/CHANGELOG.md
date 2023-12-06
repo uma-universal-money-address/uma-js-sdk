@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.5.0
+
+### Minor Changes
+
+- 9f9fc22: Rename displayDecimals -> decimals to better match a LUD-21 proposal
+
 ## 0.4.0
 
 ### Minor Changes
