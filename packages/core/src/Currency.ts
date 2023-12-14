@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { optionalIgnoringNull } from "zodUtils.js";
 
 export const CurrencySchema = z.object({
   /**
@@ -40,7 +41,7 @@ export const CurrencySchema = z.object({
    * is only for display purposes. The sender should assume zero if this field is omitted, unless
    * they know the proper display format of the target currency.
    */
-  decimals: z.optional(z.number()),
+  decimals: optionalIgnoringNull(z.number()),
 });
 
 export type Currency = z.infer<typeof CurrencySchema>;
