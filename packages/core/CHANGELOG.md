@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.5.1
+
+### Patch Changes
+
+- 636e2ca: Ignore nulls in currency decimals field
+
 ## 0.5.0
 
 ### Minor Changes
