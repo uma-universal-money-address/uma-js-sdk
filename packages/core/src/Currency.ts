@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalIgnoringNull } from "zodUtils.js";
+import { optionalIgnoringNull } from "./zodUtils.js";
 
 export const CurrencySchema = z.object({
   /**
