@@ -81,10 +81,10 @@ describe("uma", () => {
       nonce: "12345",
       timestamp: expectedTime,
       vaspDomain: "vasp1",
-      umaVersion: "0.1",
+      umaVersion: "0.2",
     };
     const urlString =
-      "https://vasp2/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=" +
+      "https://vasp2/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=" +
       timeSec;
     const urlObj = new URL(urlString);
     const query = parseLnurlpRequest(urlObj);
@@ -93,14 +93,14 @@ describe("uma", () => {
 
   it("validates uma queries", () => {
     const umaQuery =
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678";
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678";
     expect(isUmaLnurlpQuery(new URL(umaQuery))).toBeTruthy();
   });
 
   it("returns expected result for missing query params", () => {
     // Missing signature
     let url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
@@ -112,25 +112,25 @@ describe("uma", () => {
 
     // Missing nonce
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     // Missing vaspDomain
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.1&nonce=12345&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.2&nonce=12345&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.1&nonce=12345&vaspDomain=vasp1.com&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.2&nonce=12345&vaspDomain=vasp1.com&timestamp=12345678",
     );
     // IsSubjectToTravelRule is optional
     expect(isUmaLnurlpQuery(url)).toBe(true);
 
     // Missing timestamp
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
@@ -141,17 +141,17 @@ describe("uma", () => {
 
   it("should be invalid uma query when url path is invalid", () => {
     let url = new URL(
-      "https://vasp2.com/.well-known/lnurla/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurla/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.1&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.2&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
   });
@@ -208,7 +208,7 @@ describe("uma", () => {
       "hex",
     );
     const queryUrl = new URL(
-      "https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=0.1&vaspDomain=api.ltng.bakkt.com",
+      "https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=0.2&vaspDomain=api.ltng.bakkt.com",
     );
 
     const query = parseLnurlpRequest(queryUrl);
