@@ -1,5 +1,16 @@
 # @uma-sdk/core
 
+## 0.6.0
+
+### Minor Changes
+
+- 0d2a8ba: Tweak conversion mechanics to be more explicit and safe:
+
+  - Make the decimals field on Currency required and change its description to include more details about its use.
+  - See https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md for details on why this is needed.
+
+  NOTE: For JS, this is not a breaking change, but it is for other languages that need to switch from int to float for the multiplier field. Given that we are not yet at UMA 1.0, we are bumping the protocol version here to 0.2 to indicate the bump and to be able to tell what version the counterparty is using for debugging.
+
 ## 0.5.1
 
 ### Patch Changes
