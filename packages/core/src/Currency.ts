@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { optionalIgnoringNull } from "./zodUtils.js";
 
 export const CurrencySchema = z.object({
   /**
@@ -35,13 +34,15 @@ export const CurrencySchema = z.object({
   maxSendable: z.number(),
 
   /**
-   * Number of digits after the decimal point for display on the sender side. For example,
-   * in USD, by convention, there are 2 digits for cents - $5.95. in this case, `decimals`
-   * would be 2. Note that the multiplier is still always in the smallest unit (cents). This field
-   * is only for display purposes. The sender should assume zero if this field is omitted, unless
-   * they know the proper display format of the target currency.
+   * The number of digits after the decimal point for display on the sender side, and to add clarity
+   * around what the "smallest unit" of the currency is. For example, in USD, by convention, there are 2 digits for
+   * cents - $5.95. In this case, `decimals` would be 2. Note that the multiplier is still always in the smallest
+   * unit (cents). In addition to display purposes, this field can be used to resolve ambiguity in what the multiplier
+   * means. For example, if the currency is "BTC" and the multiplier is 1000, really we're exchanging in SATs, so
+   * `decimals` would be 8.
+   * For details on edge cases and examples, see https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md.
    */
-  decimals: optionalIgnoringNull(z.number()),
+  decimals: z.number(),
 });
 
 export type Currency = z.infer<typeof CurrencySchema>;
