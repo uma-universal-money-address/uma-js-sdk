@@ -500,8 +500,8 @@ export async function getLnurlpResponse({
   return {
     tag: "payRequest",
     callback,
-    minSendable: minSendableSats,
-    maxSendable: maxSendableSats,
+    minSendable: minSendableSats * 1000,
+    maxSendable: maxSendableSats * 1000,
     metadata: encodedMetadata,
     currencies: currencyOptions,
     payerData: payerDataOptions,
