@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.6.1
+
+### Patch Changes
+
+- a7dcb96: Fix the min/maxSendable fields. They should be in msats.
+
 ## 0.6.0
 
 ### Minor Changes
