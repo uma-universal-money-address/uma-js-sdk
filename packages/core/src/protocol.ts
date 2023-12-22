@@ -79,7 +79,7 @@ export function parseLnurlpResponse(jsonStr: string): LnurlpResponse {
  * PayRequest is the request sent by the sender to the receiver to retrieve an invoice.
  */
 export const PayRequestSchema = z.object({
-  /** The ISO 3-digit currency code that the receiver will receive for this payment. */
+  /** The 3-character currency code that the receiver will receive for this payment. */
   currency: z.string(),
   /** The amount that the receiver will receive for this payment in the smallest unit of the specified currency (i.e. cents for USD). */
   amount: z.number(),
@@ -119,6 +119,14 @@ export type PayReqResponseCompliance = z.infer<
 export const PayReqResponsePaymentInfoSchema = z.object({
   /** currencyCode is the ISO 3-digit currency code that the receiver will receive for this payment. */
   currencyCode: z.string(),
+  /**
+   * Number of digits after the decimal point for the receiving currency. For example, in USD, by
+   * convention, there are 2 digits for cents - $5.95. In this case, `decimals` would be 2. This should align with
+   * the currency's `decimals` field in the LNURLP response. It is included here for convenience. See
+   * [UMAD-04](https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md) for
+   * details, edge cases, and examples.
+   */
+  decimals: z.number(),
   /** multiplier is the conversion rate. It is the number of millisatoshis that the receiver will receive for 1 unit of the specified currency. */
   multiplier: z.number(),
   /** exchangeFeesMillisatoshi is the fees charged (in millisats) by the receiving VASP for this transaction. This is separate from the Multiplier. */
