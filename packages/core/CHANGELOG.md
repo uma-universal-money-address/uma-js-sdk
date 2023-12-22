@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.7.1
+
+### Patch Changes
+
+- fc4d5db: Actually commit the protocol version bump. This got unintentionally dropped from the previous commit.
+
 ## 0.7.0
 
 ### Minor Changes
