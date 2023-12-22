@@ -342,6 +342,7 @@ describe("uma", () => {
       invoiceCreator: invoiceCreator,
       metadata,
       currencyCode: "USD",
+      currencyDecimals: 2,
       conversionRate: 34_150,
       receiverFeesMillisats: 100_000,
       receiverChannelUtxos: ["abcdef12345"],

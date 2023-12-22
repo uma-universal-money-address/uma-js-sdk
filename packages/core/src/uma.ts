@@ -402,6 +402,14 @@ type PayRequestResponseArgs = {
   conversionRate: number;
   /** The code of the currency that the receiver will receive for this payment. */
   currencyCode: string;
+  /**
+   * Number of digits after the decimal point for the receiving currency. For example, in USD, by
+   * convention, there are 2 digits for cents - $5.95. In this case, `decimals` would be 2. This should align with
+   * the currency's `decimals` field in the LNURLP response. It is included here for convenience. See
+   * [UMAD-04](https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md) for
+   * details, edge cases, and examples.
+   */
+  currencyDecimals: number;
   /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
   invoiceCreator: UmaInvoiceCreator;
   /**
@@ -431,6 +439,7 @@ type PayRequestResponseArgs = {
 export async function getPayReqResponse({
   conversionRate,
   currencyCode,
+  currencyDecimals,
   invoiceCreator,
   metadata,
   query,
@@ -439,7 +448,9 @@ export async function getPayReqResponse({
   receiverNodePubKey,
   utxoCallback,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
-  const msatsAmount = query.amount * conversionRate + receiverFeesMillisats;
+  const msatsAmount = Math.round(
+    query.amount * conversionRate + receiverFeesMillisats,
+  );
   const encodedPayerData = JSON.stringify(query.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
@@ -459,6 +470,7 @@ export async function getPayReqResponse({
     },
     paymentInfo: {
       currencyCode,
+      decimals: currencyDecimals,
       multiplier: conversionRate,
       exchangeFeesMillisatoshi: receiverFeesMillisats,
     },
