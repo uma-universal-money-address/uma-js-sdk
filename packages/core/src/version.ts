@@ -1,5 +1,5 @@
 export const MAJOR_VERSION = 0;
-export const MINOR_VERSION = 2;
+export const MINOR_VERSION = 3;
 
 export const UmaProtocolVersion = `${MAJOR_VERSION}.${MINOR_VERSION}`;
 
