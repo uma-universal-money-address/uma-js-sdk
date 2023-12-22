@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 0.7.0
+
+### Minor Changes
+
+- 80f559b: - Add the decimals field to payreq paymentinfo for convenience
+  - Bump the protocol version to 0.3
+
 ## 0.6.1
 
 ### Patch Changes
