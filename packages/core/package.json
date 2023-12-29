@@ -61,7 +61,6 @@
   },
   "license": "Apache-2.0",
   "dependencies": {
-    "crypto": "^1.0.1",
     "eciesjs": "^0.4.4",
     "secp256k1": "^5.0.0",
     "zod": "^3.22.2"
