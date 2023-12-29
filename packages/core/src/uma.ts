@@ -103,7 +103,7 @@ export function isUmaLnurlpQuery(url: URL) {
 }
 
 export function generateNonce() {
-  return String(crypto.getRandomValues(new Uint32Array(1)));
+  return String(crypto.webcrypto.getRandomValues(new Uint32Array(1)));
 }
 
 type FetchPublicKeyForVaspArgs = {
