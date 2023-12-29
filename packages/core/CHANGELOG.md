@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.7.2
+
+### Patch Changes
+
+- 1a61c73: Use crypto.webcrypto for nonces to support node 16
+
 ## 0.7.1
 
 ### Patch Changes
