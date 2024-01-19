@@ -1,8 +1,8 @@
-import { isDomainLocalhost } from "urlUtils.js";
 import { z } from "zod";
 import { CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { PayerDataOptionsSchema, PayerDataSchema } from "./PayerData.js";
+import { isDomainLocalhost } from "./urlUtils.js";
 import { optionalIgnoringNull } from "./zodUtils.js";
 
 /** LnurlpRequest is the first request in the UMA protocol. It is sent by the VASP that is sending the payment to find out information about the receiver. */

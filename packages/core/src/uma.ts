@@ -1,7 +1,6 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
-import { isDomainLocalhost } from "urlUtils.js";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
 import {
@@ -22,6 +21,7 @@ import {
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
+import { isDomainLocalhost } from "./urlUtils.js";
 import {
   isVersionSupported,
   selectLowerVersion,
