@@ -1,6 +1,7 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
+import { isDomainLocalhost } from "urlUtils.js";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
 import {
@@ -131,7 +132,7 @@ export async function fetchPublicKeyForVasp({
   }
 
   let scheme = "https://";
-  if (vaspDomain.startsWith("localhost:")) {
+  if (isDomainLocalhost(vaspDomain)) {
     scheme = "http://";
   }
 
