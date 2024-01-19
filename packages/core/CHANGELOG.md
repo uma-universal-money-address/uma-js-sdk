@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.7.3
+
+### Patch Changes
+
+- a24cdd2: \* Use http for more localhost formats
+
 ## 0.7.2
 
 ### Patch Changes
