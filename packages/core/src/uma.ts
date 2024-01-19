@@ -21,6 +21,7 @@ import {
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
+import { isDomainLocalhost } from "./urlUtils.js";
 import {
   isVersionSupported,
   selectLowerVersion,
@@ -131,7 +132,7 @@ export async function fetchPublicKeyForVasp({
   }
 
   let scheme = "https://";
-  if (vaspDomain.startsWith("localhost:")) {
+  if (isDomainLocalhost(vaspDomain)) {
     scheme = "http://";
   }
 

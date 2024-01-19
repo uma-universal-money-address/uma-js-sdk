@@ -2,6 +2,7 @@ import { z } from "zod";
 import { CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { PayerDataOptionsSchema, PayerDataSchema } from "./PayerData.js";
+import { isDomainLocalhost } from "./urlUtils.js";
 import { optionalIgnoringNull } from "./zodUtils.js";
 
 /** LnurlpRequest is the first request in the UMA protocol. It is sent by the VASP that is sending the payment to find out information about the receiver. */
@@ -142,7 +143,7 @@ export const PayReqResponseSchema = z.object({
   /** The BOLT11 invoice that the sender will pay. */
   pr: z.string(),
   /** routes is usually just an empty list from legacy LNURL, which was replaced by route hints in the BOLT11 invoice. */
-  routes: z.array(RouteSchema),
+  routes: optionalIgnoringNull(z.array(RouteSchema)),
   compliance: PayReqResponseComplianceSchema,
   paymentInfo: PayReqResponsePaymentInfoSchema,
 });
@@ -176,9 +177,7 @@ export function encodeToUrl(q: LnurlpRequest): URL {
   if (receiverAddressParts.length !== 2) {
     throw new Error("invalid receiver address");
   }
-  const scheme = receiverAddressParts[1].startsWith("localhost:")
-    ? "http"
-    : "https";
+  const scheme = isDomainLocalhost(receiverAddressParts[1]) ? "http" : "https";
   const lnurlpUrl = new URL(
     `${scheme}://${receiverAddressParts[1]}/.well-known/lnurlp/${receiverAddressParts[0]}`,
   );
