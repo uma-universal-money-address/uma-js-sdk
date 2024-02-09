@@ -3,6 +3,7 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
+import { type NonceValidator } from "./NonceValidator.js";
 import {
   type CompliancePayerData,
   type PayerDataOptions,
@@ -20,7 +21,6 @@ import {
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
-import { type NonceValidator } from "./NonceValidator.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
@@ -205,8 +205,15 @@ export async function verifyUmaLnurlpQuerySignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
-  if (!nonceValidator.checkAndSaveNonce(query.nonce, query.timestamp)) {
-    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  if (
+    !nonceValidator.checkAndSaveNonce(
+      query.nonce,
+      query.timestamp.getTime() / 1000,
+    )
+  ) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
   }
   const payload = getSignableLnurlpRequestPayload(query);
   const encoder = new TextEncoder();
@@ -560,8 +567,15 @@ export async function verifyUmaLnurlpResponseSignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
-  if (!nonceValidator.checkAndSaveNonce(response.compliance.signatureNonce, response.compliance.signatureTimestamp)) {
-    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  if (
+    !nonceValidator.checkAndSaveNonce(
+      response.compliance.signatureNonce,
+      response.compliance.signatureTimestamp,
+    )
+  ) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
   }
   const encoder = new TextEncoder();
   const encodedResponse = encoder.encode(
@@ -581,15 +595,18 @@ export async function verifyPayReqSignature(
   nonceValidator: NonceValidator,
 ) {
   const compliance = query.payerData.compliance;
-  if (!nonceValidator.checkAndSaveNonce(compliance.signatureNonce, compliance.signatureTimestamp)) {
-    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  if (
+    !nonceValidator.checkAndSaveNonce(
+      compliance.signatureNonce,
+      compliance.signatureTimestamp,
+    )
+  ) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
   }
   const encoder = new TextEncoder();
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
-  return verifySignature(
-    hashedPayload,
-    compliance.signature,
-    otherVaspPubKey,
-  );
+  return verifySignature(hashedPayload, compliance.signature, otherVaspPubKey);
 }

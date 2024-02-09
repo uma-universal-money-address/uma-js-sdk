@@ -3,6 +3,7 @@ import { decrypt, PrivateKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { isError } from "../errors.js";
 import { KycStatus } from "../KycStatus.js";
+import { InMemoryNonceValidator } from "../NonceValidator.js";
 import {
   dateToUnixSeconds,
   parseLnurlpResponse,
@@ -24,7 +25,6 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
-import { InMemoryNonceValidator } from "../NonceValidator.js";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -200,7 +200,81 @@ describe("uma", () => {
 
     const query = parseLnurlpRequest(queryUrl);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
-    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey, new InMemoryNonceValidator(oneWeekAgo));
+    const verified = await verifyUmaLnurlpQuerySignature(
+      query,
+      publicKey,
+      new InMemoryNonceValidator(oneWeekAgo),
+    );
+    expect(verified).toBe(true);
+  });
+
+  it("should throw for duplicate nonce when verifying signature", async () => {
+    const { privateKey, publicKey } = await generateKeypair();
+    const queryUrl = await getSignedLnurlpRequestUrl({
+      signingPrivateKey: privateKey,
+      receiverAddress: "$bob@vasp2.com",
+      senderVaspDomain: "vasp1.com",
+      isSubjectToTravelRule: true,
+    });
+
+    const query = parseLnurlpRequest(queryUrl);
+    const nonceCache = new InMemoryNonceValidator(1);
+    nonceCache.checkAndSaveNonce(query.nonce, 2);
+    try {
+      await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache);
+    } catch (e) {
+      if (!isError(e)) {
+        throw new Error("Invalid error type");
+      }
+      expect(e.message).toMatch(
+        /Invalid response nonce. Already seen this nonce or the timestamp is too old./,
+      );
+    }
+  });
+
+  it("should throw too old nonce when verifying signature", async () => {
+    const { privateKey, publicKey } = await generateKeypair();
+    const queryUrl = await getSignedLnurlpRequestUrl({
+      signingPrivateKey: privateKey,
+      receiverAddress: "$bob@vasp2.com",
+      senderVaspDomain: "vasp1.com",
+      isSubjectToTravelRule: true,
+    });
+
+    const query = parseLnurlpRequest(queryUrl);
+    const nonceCache = new InMemoryNonceValidator(
+      query.timestamp.getTime() / 1000 + 1000,
+    );
+    try {
+      await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache);
+    } catch (e) {
+      if (!isError(e)) {
+        throw new Error("Invalid error type");
+      }
+      expect(e.message).toMatch(
+        /Invalid response nonce. Already seen this nonce or the timestamp is too old./,
+      );
+    }
+  });
+
+  it("should verify purge older nonces and cache new nonce", async () => {
+    const { privateKey, publicKey } = await generateKeypair();
+    const queryUrl = await getSignedLnurlpRequestUrl({
+      signingPrivateKey: privateKey,
+      receiverAddress: "$bob@vasp2.com",
+      senderVaspDomain: "vasp1.com",
+      isSubjectToTravelRule: true,
+    });
+
+    const query = parseLnurlpRequest(queryUrl);
+    const nonceCache = new InMemoryNonceValidator(1000); // milliseconds
+    nonceCache.checkAndSaveNonce(query.nonce, 2); // seconds
+    nonceCache.purgeNoncesOlderThan(3000); // milliseconds
+    const verified = await verifyUmaLnurlpQuerySignature(
+      query,
+      publicKey,
+      nonceCache,
+    );
     expect(verified).toBe(true);
   });
 
@@ -215,7 +289,11 @@ describe("uma", () => {
 
     const query = parseLnurlpRequest(queryUrl);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
-    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey, new InMemoryNonceValidator(oneWeekAgo));
+    const verified = await verifyUmaLnurlpQuerySignature(
+      query,
+      publicKey,
+      new InMemoryNonceValidator(oneWeekAgo),
+    );
     expect(verified).toBe(true);
   });
 
@@ -253,7 +331,11 @@ describe("uma", () => {
     /* see https://bit.ly/3Zov3ZA */
     publicKey[0] = 0x01;
     try {
-      await verifyUmaLnurlpQuerySignature(query, publicKey);
+      await verifyUmaLnurlpQuerySignature(
+        query,
+        publicKey,
+        new InMemoryNonceValidator(oneWeekAgo),
+      );
     } catch (e) {
       if (!isError(e)) {
         throw new Error("Invalid error type");
