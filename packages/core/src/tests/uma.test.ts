@@ -24,6 +24,7 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
+import { InMemoryNonceValidator } from "../NonceValidator.js";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -38,6 +39,7 @@ const generateKeypair = async () => {
     publicKey,
   };
 };
+const oneWeekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
 
 function createMetadataForBob(): string {
   const metadata = [
@@ -198,7 +200,7 @@ describe("uma", () => {
 
     const query = parseLnurlpRequest(queryUrl);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
-    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey);
+    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey, new InMemoryNonceValidator(oneWeekAgo));
     expect(verified).toBe(true);
   });
 
@@ -213,7 +215,7 @@ describe("uma", () => {
 
     const query = parseLnurlpRequest(queryUrl);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
-    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey);
+    const verified = await verifyUmaLnurlpQuerySignature(query, publicKey, new InMemoryNonceValidator(oneWeekAgo));
     expect(verified).toBe(true);
   });
 
@@ -232,6 +234,7 @@ describe("uma", () => {
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
       incorrectPublicKey,
+      new InMemoryNonceValidator(oneWeekAgo),
     );
     expect(verified).toBe(false);
   });
@@ -308,6 +311,7 @@ describe("uma", () => {
     const verified = verifyUmaLnurlpResponseSignature(
       parsedResponse,
       receiverSigningPublicKey,
+      new InMemoryNonceValidator(oneWeekAgo),
     );
     expect(verified).toBeTruthy();
   });
@@ -383,6 +387,7 @@ describe("uma", () => {
     const verified = await verifyPayReqSignature(
       parsedPayreq,
       senderSigningPublicKey,
+      new InMemoryNonceValidator(oneWeekAgo),
     );
     expect(verified).toBe(true);
 

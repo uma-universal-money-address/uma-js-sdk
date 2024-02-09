@@ -20,6 +20,7 @@ import {
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
+import { type NonceValidator } from "./NonceValidator.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
@@ -202,7 +203,11 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  if (!nonceValidator.checkAndSaveNonce(query.nonce, query.timestamp)) {
+    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  }
   const payload = getSignableLnurlpRequestPayload(query);
   const encoder = new TextEncoder();
   const encodedPayload = encoder.encode(payload);
@@ -553,7 +558,11 @@ async function getSignedLnurlpComplianceResponse({
 export async function verifyUmaLnurlpResponseSignature(
   response: LnurlpResponse,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  if (!nonceValidator.checkAndSaveNonce(response.compliance.signatureNonce, response.compliance.signatureTimestamp)) {
+    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  }
   const encoder = new TextEncoder();
   const encodedResponse = encoder.encode(
     getSignableLnurlpResponsePayload(response),
@@ -569,13 +578,18 @@ export async function verifyUmaLnurlpResponseSignature(
 export async function verifyPayReqSignature(
   query: PayRequest,
   otherVaspPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const compliance = query.payerData.compliance;
+  if (!nonceValidator.checkAndSaveNonce(compliance.signatureNonce, compliance.signatureTimestamp)) {
+    throw new Error("Invalid response nonce. Already seen this nonce or the timestamp is too old.")
+  }
   const encoder = new TextEncoder();
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
   return verifySignature(
     hashedPayload,
-    query.payerData.compliance.signature,
+    compliance.signature,
     otherVaspPubKey,
   );
 }
