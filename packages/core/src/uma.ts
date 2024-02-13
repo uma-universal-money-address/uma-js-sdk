@@ -205,12 +205,11 @@ export async function verifyUmaLnurlpQuerySignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
-  if (
-    !nonceValidator.checkAndSaveNonce(
-      query.nonce,
-      query.timestamp.getTime() / 1000,
-    )
-  ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    query.nonce,
+    query.timestamp.getTime() / 1000,
+  );
+  if (!isNonceValid) {
     throw new Error(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );
@@ -567,12 +566,11 @@ export async function verifyUmaLnurlpResponseSignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
-  if (
-    !nonceValidator.checkAndSaveNonce(
-      response.compliance.signatureNonce,
-      response.compliance.signatureTimestamp,
-    )
-  ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    response.compliance.signatureNonce,
+    response.compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
     throw new Error(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );
@@ -595,12 +593,11 @@ export async function verifyPayReqSignature(
   nonceValidator: NonceValidator,
 ) {
   const compliance = query.payerData.compliance;
-  if (
-    !nonceValidator.checkAndSaveNonce(
-      compliance.signatureNonce,
-      compliance.signatureTimestamp,
-    )
-  ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    compliance.signatureNonce,
+    compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
     throw new Error(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );

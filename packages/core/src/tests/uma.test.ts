@@ -39,7 +39,10 @@ const generateKeypair = async () => {
     publicKey,
   };
 };
-const oneWeekAgo = Date.now() - 1000 * 60 * 60 * 24 * 7;
+
+function getOneWeekAgoTsMs(): number {
+  return Date.now() - 1000 * 60 * 60 * 24 * 7;
+}
 
 function createMetadataForBob(): string {
   const metadata = [
@@ -203,7 +206,7 @@ describe("uma", () => {
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
       publicKey,
-      new InMemoryNonceValidator(oneWeekAgo),
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
   });
@@ -221,14 +224,15 @@ describe("uma", () => {
     const nonceCache = new InMemoryNonceValidator(1);
     nonceCache.checkAndSaveNonce(query.nonce, 2);
     try {
-      await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache);
+      expect(
+        await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache),
+      ).toThrow(
+        "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      );
     } catch (e) {
       if (!isError(e)) {
         throw new Error("Invalid error type");
       }
-      expect(e.message).toMatch(
-        /Invalid response nonce. Already seen this nonce or the timestamp is too old./,
-      );
     }
   });
 
@@ -246,14 +250,15 @@ describe("uma", () => {
       query.timestamp.getTime() / 1000 + 1000,
     );
     try {
-      await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache);
+      expect(
+        await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache),
+      ).toThrow(
+        "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      );
     } catch (e) {
       if (!isError(e)) {
         throw new Error("Invalid error type");
       }
-      expect(e.message).toMatch(
-        /Invalid response nonce. Already seen this nonce or the timestamp is too old./,
-      );
     }
   });
 
@@ -292,7 +297,7 @@ describe("uma", () => {
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
       publicKey,
-      new InMemoryNonceValidator(oneWeekAgo),
+      new InMemoryNonceValidator(1000),
     );
     expect(verified).toBe(true);
   });
@@ -312,7 +317,7 @@ describe("uma", () => {
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
       incorrectPublicKey,
-      new InMemoryNonceValidator(oneWeekAgo),
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(false);
   });
@@ -331,16 +336,17 @@ describe("uma", () => {
     /* see https://bit.ly/3Zov3ZA */
     publicKey[0] = 0x01;
     try {
-      await verifyUmaLnurlpQuerySignature(
-        query,
-        publicKey,
-        new InMemoryNonceValidator(oneWeekAgo),
-      );
+      expect(
+        await verifyUmaLnurlpQuerySignature(
+          query,
+          publicKey,
+          new InMemoryNonceValidator(getOneWeekAgoTsMs()),
+        ),
+      ).toThrow("Public Key could not be parsed");
     } catch (e) {
       if (!isError(e)) {
         throw new Error("Invalid error type");
       }
-      expect(e.message).toMatch(/Public Key could not be parsed/);
     }
   });
 
@@ -393,7 +399,7 @@ describe("uma", () => {
     const verified = verifyUmaLnurlpResponseSignature(
       parsedResponse,
       receiverSigningPublicKey,
-      new InMemoryNonceValidator(oneWeekAgo),
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBeTruthy();
   });
@@ -469,7 +475,7 @@ describe("uma", () => {
     const verified = await verifyPayReqSignature(
       parsedPayreq,
       senderSigningPublicKey,
-      new InMemoryNonceValidator(oneWeekAgo),
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
 

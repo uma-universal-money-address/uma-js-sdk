@@ -15,7 +15,8 @@ export interface NonceValidator {
 
 /**
  * A simple in-memory nonce validator which caches seen nonce values and rejects any which have been seen before
- * or which are older than a specified limit timestamp.
+ * or which are older than a specified limit timestamp. It is not recommended to use this in production, as it will not
+ * persist across restarts. You likely want to implement your own validator that persists to a database of some sort.
  */
 export class InMemoryNonceValidator implements NonceValidator {
   constructor(private oldestValidTimestampMs: number) {}
@@ -35,8 +36,7 @@ export class InMemoryNonceValidator implements NonceValidator {
   }
 
   /**
-   * Note - this isn't used in practice, but is provided as an example of how you might purge old nonces
-   * from the cache after some amount of time has elapsed.
+   * Purges all nonces older than the given timestamp. This allows the cache to be pruned.
    *
    * @param timestamp A timestamp value in ms before which all nonces should be purged.
    */
