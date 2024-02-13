@@ -5,6 +5,7 @@ import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
 import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
 import { type CompliancePayerData } from "./PayerData.js";
+import { type NonceValidator } from "./NonceValidator.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
@@ -205,7 +206,17 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    query.nonce,
+    query.timestamp.getTime() / 1000,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const payload = getSignableLnurlpRequestPayload(query);
   const encoder = new TextEncoder();
   const encodedPayload = encoder.encode(payload);
@@ -659,7 +670,17 @@ export async function getPostTransactionCallback({
 export async function verifyUmaLnurlpResponseSignature(
   response: LnurlpResponse,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    response.compliance.signatureNonce,
+    response.compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const encoder = new TextEncoder();
   const encodedResponse = encoder.encode(
     getSignableLnurlpResponsePayload(response),
@@ -675,7 +696,18 @@ export async function verifyUmaLnurlpResponseSignature(
 export async function verifyPayReqSignature(
   query: PayRequest,
   otherVaspPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const compliance = query.payerData.compliance;
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    compliance.signatureNonce,
+    compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const encoder = new TextEncoder();
   const complianceData = query.payerData.compliance;
   if (!complianceData) {
