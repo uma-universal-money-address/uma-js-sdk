@@ -387,7 +387,7 @@ describe("uma", () => {
     expect(verified).toBe(true);
 
     const encryptedTrInfo =
-      parsedPayreq.payerData.compliance.encryptedTravelRuleInfo;
+      parsedPayreq.payerData.compliance?.encryptedTravelRuleInfo;
     if (!encryptedTrInfo) {
       throw new Error("encryptedTrInfo is undefined");
     }

@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
-import { PayerDataOptionsSchema, PayerDataSchema } from "./PayerData.js";
+import { PayeeDataSchema } from "./PayeeData.js";
+import { PayerDataSchema } from "./PayerData.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import { optionalIgnoringNull } from "./zodUtils.js";
 
@@ -25,6 +26,26 @@ export type LnurlpRequest = {
    */
   umaVersion: string;
 };
+
+export const CounterPartyDataOptionSchema = z.object({
+  mandatory: z.boolean(),
+});
+
+export type CounterPartyDataOption = z.infer<
+  typeof CounterPartyDataOptionSchema
+>;
+
+/**
+ * CounterPartyDataOptions describes which fields a vasp needs to know about the sender or receiver.
+ * Used for payerData and payeeData.
+ */
+export const CounterPartyDataOptionsSchema = z.record(
+  CounterPartyDataOptionSchema,
+);
+
+export type CounterPartyDataOptions = z.infer<
+  typeof CounterPartyDataOptionsSchema
+>;
 
 /** LnurlComplianceResponse is the `compliance` field  of the LnurlpResponse. */
 export const LnurlpComplianceResponseSchema = z.object({
@@ -54,7 +75,7 @@ export const LnurlpResponseSchema = z.object({
   maxSendable: z.number(),
   metadata: z.string(),
   currencies: z.array(CurrencySchema),
-  payerData: PayerDataOptionsSchema,
+  payerData: CounterPartyDataOptionsSchema,
   compliance: LnurlpComplianceResponseSchema,
   /**
    * The version of the UMA protocol that VASP2 has chosen for this transaction based on its own support and VASP1's specified preference in the LnurlpRequest.
@@ -104,19 +125,6 @@ export const RouteSchema = z.object({
 
 export type Route = z.infer<typeof RouteSchema>;
 
-export const PayReqResponseComplianceSchema = z.object({
-  /** nodePubKey is the public key of the receiver's node if known. */
-  nodePubKey: optionalIgnoringNull(z.string()),
-  /** utxos is a list of UTXOs of channels over which the receiver will likely receive the payment. */
-  utxos: z.array(z.string()),
-  /** utxoCallback is the URL that the sender VASP will call to send UTXOs of the channel that the sender used to send the payment once it completes. */
-  utxoCallback: optionalIgnoringNull(z.string()),
-});
-
-export type PayReqResponseCompliance = z.infer<
-  typeof PayReqResponseComplianceSchema
->;
-
 export const PayReqResponsePaymentInfoSchema = z.object({
   /** currencyCode is the ISO 3-digit currency code that the receiver will receive for this payment. */
   currencyCode: z.string(),
@@ -144,8 +152,8 @@ export const PayReqResponseSchema = z.object({
   pr: z.string(),
   /** routes is usually just an empty list from legacy LNURL, which was replaced by route hints in the BOLT11 invoice. */
   routes: optionalIgnoringNull(z.array(RouteSchema)),
-  compliance: PayReqResponseComplianceSchema,
   paymentInfo: PayReqResponsePaymentInfoSchema,
+  payeeData: PayeeDataSchema,
 });
 
 export type PayReqResponse = z.infer<typeof PayReqResponseSchema>;
@@ -227,6 +235,9 @@ export function getSignableLnurlpRequestPayload(q: LnurlpRequest): string {
 }
 
 export function getSignableLnurlpResponsePayload(r: LnurlpResponse): string {
+  if (!r.compliance) {
+    throw new Error("compliance is required, but not present in response");
+  }
   return [
     r.compliance.receiverIdentifier,
     r.compliance.signatureNonce,
@@ -235,7 +246,11 @@ export function getSignableLnurlpResponsePayload(r: LnurlpResponse): string {
 }
 
 export function getSignablePayRequestPayload(q: PayRequest): string {
+  const complianceData = q.payerData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance is required, but not present in payerData");
+  }
   return `${q.payerData.identifier}|${
-    q.payerData.compliance.signatureNonce
-  }|${q.payerData.compliance.signatureTimestamp.toString()}`;
+    complianceData.signatureNonce
+  }|${complianceData.signatureTimestamp.toString()}`;
 }

@@ -3,15 +3,14 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
-import {
-  type CompliancePayerData,
-  type PayerDataOptions,
-} from "./PayerData.js";
+import { type PayeeData } from "./PayeeData.js";
+import { type CompliancePayerData } from "./PayerData.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
   getSignableLnurlpResponsePayload,
   getSignablePayRequestPayload,
+  type CounterPartyDataOptions,
   type LnurlComplianceResponse,
   type LnurlpRequest,
   type LnurlpResponse,
@@ -435,6 +434,10 @@ type PayRequestResponseArgs = {
    * payment once it completes.
    */
   utxoCallback?: string | undefined;
+  /**
+   *
+   */
+  payeeData?: PayeeData;
 };
 
 export async function getPayReqResponse({
@@ -448,6 +451,7 @@ export async function getPayReqResponse({
   receiverFeesMillisats,
   receiverNodePubKey,
   utxoCallback,
+  payeeData,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
   const msatsAmount = Math.round(
     query.amount * conversionRate + receiverFeesMillisats,
@@ -464,11 +468,16 @@ export async function getPayReqResponse({
   return {
     pr: encodedInvoice,
     routes: [],
-    compliance: {
-      utxos: receiverChannelUtxos,
-      nodePubKey: receiverNodePubKey,
-      utxoCallback,
-    },
+    payeeData: Object.assign(
+      {
+        compliance: {
+          utxos: receiverChannelUtxos,
+          nodePubKey: receiverNodePubKey,
+          utxoCallback,
+        },
+      },
+      payeeData,
+    ),
     paymentInfo: {
       currencyCode,
       decimals: currencyDecimals,
@@ -486,7 +495,7 @@ type GetSignedLnurlpResponseArgs = {
   encodedMetadata: string;
   minSendableSats: number;
   maxSendableSats: number;
-  payerDataOptions: PayerDataOptions;
+  payerDataOptions: CounterPartyDataOptions;
   currencyOptions: Currency[];
   receiverKycStatus: KycStatus;
 };
@@ -571,11 +580,15 @@ export async function verifyPayReqSignature(
   otherVaspPubKey: Uint8Array,
 ) {
   const encoder = new TextEncoder();
+  const complianceData = query.payerData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance data is required");
+  }
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
   return verifySignature(
     hashedPayload,
-    query.payerData.compliance.signature,
+    complianceData.signature,
     otherVaspPubKey,
   );
 }
