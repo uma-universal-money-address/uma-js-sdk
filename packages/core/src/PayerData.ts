@@ -2,29 +2,6 @@ import { z } from "zod";
 import { KycStatus } from "./KycStatus.js";
 import { optionalIgnoringNull } from "./zodUtils.js";
 
-export const PayerDataOptionsSchema = z.object({
-  identifier: z.object({
-    mandatory: z.boolean(),
-  }),
-  name: optionalIgnoringNull(
-    z.object({
-      mandatory: z.boolean(),
-    }),
-  ),
-  email: optionalIgnoringNull(
-    z.object({
-      mandatory: z.boolean(),
-    }),
-  ),
-  compliance: optionalIgnoringNull(
-    z.object({
-      mandatory: z.boolean(),
-    }),
-  ),
-});
-
-export type PayerDataOptions = z.infer<typeof PayerDataOptionsSchema>;
-
 const CompliancePayerDataSchema = z.object({
   /** Utxos is the list of UTXOs of the sender's channels that might be used to fund the payment. */
   utxos: optionalIgnoringNull(z.array(z.string())),
@@ -49,11 +26,13 @@ const CompliancePayerDataSchema = z.object({
 
 export type CompliancePayerData = z.infer<typeof CompliancePayerDataSchema>;
 
-export const PayerDataSchema = z.object({
-  name: optionalIgnoringNull(z.string()),
-  email: optionalIgnoringNull(z.string()),
-  identifier: z.string(),
-  compliance: CompliancePayerDataSchema,
-});
+export const PayerDataSchema = z
+  .object({
+    name: optionalIgnoringNull(z.string()),
+    email: optionalIgnoringNull(z.string()),
+    identifier: optionalIgnoringNull(z.string()),
+    compliance: optionalIgnoringNull(CompliancePayerDataSchema),
+  })
+  .passthrough();
 
 export type PayerData = z.infer<typeof PayerDataSchema>;
