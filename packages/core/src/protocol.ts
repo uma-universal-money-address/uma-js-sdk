@@ -254,3 +254,16 @@ export function getSignablePayRequestPayload(q: PayRequest): string {
     complianceData.signatureNonce
   }|${complianceData.signatureTimestamp.toString()}`;
 }
+
+export function getSignablePayReqResponsePayload(
+  r: PayReqResponse,
+  payerIdentifier: string,
+): string {
+  const complianceData = r.payeeData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance is required, but not present in payeeData");
+  }
+  return `${payerIdentifier}|${r.payeeData.identifier}|${
+    complianceData.signatureNonce
+  }|${complianceData.signatureTimestamp.toString()}`;
+}
