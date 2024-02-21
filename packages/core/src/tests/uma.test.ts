@@ -353,6 +353,7 @@ describe("uma", () => {
       receiverChannelUtxos: ["abcdef12345"],
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
       receivingVaspPrivateKey: receiverSigningPrivateKey,
+      payeeIdentifier: "$bob@vasp2.com",
     });
 
     const payreqResponseJson = JSON.stringify(payreqResponse);
@@ -361,6 +362,7 @@ describe("uma", () => {
     const verified = await verifyPayReqResponseSignature(
       parsedPayreqResponse,
       "$alice@vasp1.com",
+      "$bob@vasp2.com",
       receiverSigningPublicKey,
     );
     expect(verified).toBe(true);

@@ -441,6 +441,8 @@ type PayRequestResponseArgs = {
   payeeData?: PayeeData;
   /** The private key of the VASP that is receiving the payment. This will be used to sign the request. */
   receivingVaspPrivateKey: Uint8Array;
+  /** The identifier of the receiver. For example, $bob@vasp2.com */
+  payeeIdentifier: string;
 };
 
 export async function getPayReqResponse({
@@ -456,6 +458,7 @@ export async function getPayReqResponse({
   utxoCallback,
   payeeData,
   receivingVaspPrivateKey,
+  payeeIdentifier,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
   const msatsAmount = Math.round(
     query.amount * conversionRate + receiverFeesMillisats,
@@ -468,10 +471,14 @@ export async function getPayReqResponse({
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
+  const payerIdentifier = query.payerData.identifier;
+  if (!payerIdentifier) {
+    throw new Error("Payer identifier missing");
+  }
   const complianceData = await getSignedCompliancePayeeData(
     receivingVaspPrivateKey,
-    query.payerData.identifier,
-    payeeData?.identifier,
+    payerIdentifier,
+    payeeIdentifier,
     receiverChannelUtxos,
     receiverNodePubKey,
     utxoCallback,
@@ -492,8 +499,8 @@ export async function getPayReqResponse({
 
 async function getSignedCompliancePayeeData(
   receivingVaspPrivateKeyBytes: Uint8Array,
-  payerIdentifier: string | undefined,
-  payeeIdentifier: string | undefined,
+  payerIdentifier: string,
+  payeeIdentifier: string,
   receiverChannelUtxos: string[],
   receiverNodePubKey: string | undefined,
   utxoCallback: string | undefined,
@@ -624,6 +631,7 @@ export async function verifyPayReqSignature(
 export async function verifyPayReqResponseSignature(
   response: PayReqResponse,
   payerIdentifier: string,
+  payeeIdentifier: string,
   otherVaspPubKey: Uint8Array,
 ) {
   const encoder = new TextEncoder();
@@ -632,7 +640,11 @@ export async function verifyPayReqResponseSignature(
     throw new Error("compliance data is required");
   }
   const encodedQuery = encoder.encode(
-    getSignablePayReqResponsePayload(response, payerIdentifier),
+    getSignablePayReqResponsePayload(
+      response,
+      payerIdentifier,
+      payeeIdentifier,
+    ),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
   return verifySignature(
