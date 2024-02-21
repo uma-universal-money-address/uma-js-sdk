@@ -3,7 +3,7 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
-import { PayeeData, type CompliancePayeeData } from "./PayeeData.js";
+import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
 import { type CompliancePayerData } from "./PayerData.js";
 import {
   encodeToUrl,
@@ -508,10 +508,10 @@ async function getSignedCompliancePayeeData(
   return {
     nodePubKey: receiverNodePubKey,
     utxos: receiverChannelUtxos,
-    utxoCallback,
-    signatureNonce,
-    signatureTimestamp,
-    signature,
+    utxoCallback: utxoCallback,
+    signature: signature,
+    signatureNonce: signatureNonce,
+    signatureTimestamp: signatureTimestamp,
   };
 }
 
