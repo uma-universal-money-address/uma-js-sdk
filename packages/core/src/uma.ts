@@ -3,12 +3,13 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
-import { type PayeeData } from "./PayeeData.js";
+import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
 import { type CompliancePayerData } from "./PayerData.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
   getSignableLnurlpResponsePayload,
+  getSignablePayReqResponsePayload,
   getSignablePayRequestPayload,
   type CounterPartyDataOptions,
   type LnurlComplianceResponse,
@@ -435,9 +436,13 @@ type PayRequestResponseArgs = {
    */
   utxoCallback?: string | undefined;
   /**
-   *
+   * The data requested by the sending VASP about the receiver.
    */
   payeeData?: PayeeData;
+  /** The private key of the VASP that is receiving the payment. This will be used to sign the request. */
+  receivingVaspPrivateKey: Uint8Array;
+  /** The identifier of the receiver. For example, $bob@vasp2.com */
+  payeeIdentifier: string;
 };
 
 export async function getPayReqResponse({
@@ -452,6 +457,8 @@ export async function getPayReqResponse({
   receiverNodePubKey,
   utxoCallback,
   payeeData,
+  receivingVaspPrivateKey,
+  payeeIdentifier,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
   const msatsAmount = Math.round(
     query.amount * conversionRate + receiverFeesMillisats,
@@ -464,26 +471,54 @@ export async function getPayReqResponse({
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
+  const payerIdentifier = query.payerData.identifier;
+  if (!payerIdentifier) {
+    throw new Error("Payer identifier missing");
+  }
+  const complianceData = await getSignedCompliancePayeeData(
+    receivingVaspPrivateKey,
+    payerIdentifier,
+    payeeIdentifier,
+    receiverChannelUtxos,
+    receiverNodePubKey,
+    utxoCallback,
+  );
 
   return {
     pr: encodedInvoice,
     routes: [],
-    payeeData: Object.assign(
-      {
-        compliance: {
-          utxos: receiverChannelUtxos,
-          nodePubKey: receiverNodePubKey,
-          utxoCallback,
-        },
-      },
-      payeeData,
-    ),
+    payeeData: Object.assign({ compliance: complianceData }, payeeData),
     paymentInfo: {
       currencyCode,
       decimals: currencyDecimals,
       multiplier: conversionRate,
       exchangeFeesMillisatoshi: receiverFeesMillisats,
     },
+  };
+}
+
+async function getSignedCompliancePayeeData(
+  receivingVaspPrivateKeyBytes: Uint8Array,
+  payerIdentifier: string,
+  payeeIdentifier: string,
+  receiverChannelUtxos: string[],
+  receiverNodePubKey: string | undefined,
+  utxoCallback: string | undefined,
+): Promise<CompliancePayeeData> {
+  const signatureTimestamp = Date.now();
+  const signatureNonce = generateNonce();
+  const payloadString = `${payerIdentifier}|${payeeIdentifier}|${signatureNonce}|${signatureTimestamp}`;
+  const signature = await signPayload(
+    payloadString,
+    receivingVaspPrivateKeyBytes,
+  );
+  return {
+    nodePubKey: receiverNodePubKey,
+    utxos: receiverChannelUtxos,
+    utxoCallback: utxoCallback,
+    signature: signature,
+    signatureNonce: signatureNonce,
+    signatureTimestamp: signatureTimestamp,
   };
 }
 
@@ -585,6 +620,32 @@ export async function verifyPayReqSignature(
     throw new Error("compliance data is required");
   }
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
+  const hashedPayload = await createSha256Hash(encodedQuery);
+  return verifySignature(
+    hashedPayload,
+    complianceData.signature,
+    otherVaspPubKey,
+  );
+}
+
+export async function verifyPayReqResponseSignature(
+  response: PayReqResponse,
+  payerIdentifier: string,
+  payeeIdentifier: string,
+  otherVaspPubKey: Uint8Array,
+) {
+  const encoder = new TextEncoder();
+  const complianceData = response.payeeData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance data is required");
+  }
+  const encodedQuery = encoder.encode(
+    getSignablePayReqResponsePayload(
+      response,
+      payerIdentifier,
+      payeeIdentifier,
+    ),
+  );
   const hashedPayload = await createSha256Hash(encodedQuery);
   return verifySignature(
     hashedPayload,

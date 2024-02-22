@@ -19,6 +19,7 @@ import {
   isUmaLnurlpQuery,
   isValidUmaAddress,
   parseLnurlpRequest,
+  verifyPayReqResponseSignature,
   verifyPayReqSignature,
   verifyUmaLnurlpQuerySignature,
   verifyUmaLnurlpResponseSignature,
@@ -315,6 +316,10 @@ describe("uma", () => {
   it("should handle a pay request response", async () => {
     const { privateKey: senderSigningPrivateKey } = await generateKeypair();
     const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const {
+      privateKey: receiverSigningPrivateKey,
+      publicKey: receiverSigningPublicKey,
+    } = await generateKeypair();
 
     const trInfo = "some TR info for VASP2";
     const payreq = await getPayRequest({
@@ -347,11 +352,20 @@ describe("uma", () => {
       receiverFeesMillisats: 100_000,
       receiverChannelUtxos: ["abcdef12345"],
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      receivingVaspPrivateKey: receiverSigningPrivateKey,
+      payeeIdentifier: "$bob@vasp2.com",
     });
 
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
+    const verified = await verifyPayReqResponseSignature(
+      parsedPayreqResponse,
+      "$alice@vasp1.com",
+      "$bob@vasp2.com",
+      receiverSigningPublicKey,
+    );
+    expect(verified).toBe(true);
   });
 
   it("should create and parse a payreq", async () => {

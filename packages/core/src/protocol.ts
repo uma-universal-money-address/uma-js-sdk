@@ -250,7 +250,25 @@ export function getSignablePayRequestPayload(q: PayRequest): string {
   if (!complianceData) {
     throw new Error("compliance is required, but not present in payerData");
   }
-  return `${q.payerData.identifier}|${
+  const payerIdentifier = q.payerData.identifier;
+  if (!payerIdentifier) {
+    throw new Error("payer identifier is missing");
+  }
+  return `${payerIdentifier}|${
+    complianceData.signatureNonce
+  }|${complianceData.signatureTimestamp.toString()}`;
+}
+
+export function getSignablePayReqResponsePayload(
+  r: PayReqResponse,
+  payerIdentifier: string,
+  payeeIdentifier: string,
+): string {
+  const complianceData = r.payeeData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance is required, but not present in payeeData");
+  }
+  return `${payerIdentifier}|${payeeIdentifier}|${
     complianceData.signatureNonce
   }|${complianceData.signatureTimestamp.toString()}`;
 }
