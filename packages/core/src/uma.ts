@@ -11,12 +11,12 @@ import {
   getSignableLnurlpResponsePayload,
   getSignablePayReqResponsePayload,
   getSignablePayRequestPayload,
+  PayRequest,
   type CounterPartyDataOptions,
   type LnurlComplianceResponse,
   type LnurlpRequest,
   type LnurlpResponse,
   type PayReqResponse,
-  type PayRequest,
   type PubKeyResponse,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
@@ -267,9 +267,13 @@ type GetPayRequestArgs = {
   /** The private key of the VASP that is sending the payment. This will be used to sign the request. */
   sendingVaspPrivateKey: Uint8Array;
   /** The code of the currency that the receiver will receive for this payment. */
-  currencyCode: string;
+  receivingCurrencyCode: string;
   /** The amount of the payment in the smallest unit of the specified currency (i.e. cents for USD). */
   amount: number;
+  /**
+   * Whether the amount field is specified in the smallest unit of the receiving currency or in msats (if false).
+   */
+  isAmountInReceivingCurrency: boolean;
   /** The identifier of the sender. For example, $alice@vasp1.com */
   payerIdentifier: string;
   /** The name of the sender (optional). */
@@ -309,7 +313,8 @@ type GetPayRequestArgs = {
  */
 export async function getPayRequest({
   amount,
-  currencyCode,
+  receivingCurrencyCode,
+  isAmountInReceivingCurrency,
   payerEmail,
   payerIdentifier,
   payerKycStatus,
@@ -334,18 +339,22 @@ export async function getPayRequest({
     payerNodePubKey,
     utxoCallback,
   );
+  const sendingAmountCurrencyCode = isAmountInReceivingCurrency
+    ? receivingCurrencyCode
+    : "SAT";
 
-  return {
-    currency: currencyCode,
+  return new PayRequest(
+    receivingCurrencyCode,
+    sendingAmountCurrencyCode,
     amount,
-    payerData: {
+    {
       name: payerName,
       email: payerEmail,
       identifier: payerIdentifier,
       compliance: complianceData,
     },
-    payeeData: requestedPayeeData,
-  };
+    requestedPayeeData,
+  );
 }
 
 async function getSignedCompliancePayerData(
@@ -402,14 +411,14 @@ function encryptTrInfo(
 
 type PayRequestResponseArgs = {
   /** The uma pay request. */
-  query: PayRequest;
+  request: PayRequest;
   /**
    * Milli-satoshis per the smallest unit of the specified currency. This rate is committed to by the receiving
    * VASP until the invoice expires.
    */
   conversionRate: number;
   /** The code of the currency that the receiver will receive for this payment. */
-  currencyCode: string;
+  receivingCurrencyCode: string;
   /**
    * Number of digits after the decimal point for the receiving currency. For example, in USD, by
    * convention, there are 2 digits for cents - $5.95. In this case, `decimals` would be 2. This should align with
@@ -417,7 +426,7 @@ type PayRequestResponseArgs = {
    * [UMAD-04](https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md) for
    * details, edge cases, and examples.
    */
-  currencyDecimals: number;
+  receivingCurrencyDecimals: number;
   /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
   invoiceCreator: UmaInvoiceCreator;
   /**
@@ -453,12 +462,12 @@ type PayRequestResponseArgs = {
 };
 
 export async function getPayReqResponse({
+  request,
   conversionRate,
-  currencyCode,
-  currencyDecimals,
+  receivingCurrencyCode,
+  receivingCurrencyDecimals,
   invoiceCreator,
   metadata,
-  query,
   receiverChannelUtxos,
   receiverFeesMillisats,
   receiverNodePubKey,
@@ -467,10 +476,23 @@ export async function getPayReqResponse({
   receivingVaspPrivateKey,
   payeeIdentifier,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
-  const msatsAmount = Math.round(
-    query.amount * conversionRate + receiverFeesMillisats,
-  );
-  const encodedPayerData = JSON.stringify(query.payerData);
+  if (
+    request.sendingAmountCurrencyCode !== "SAT" &&
+    request.sendingAmountCurrencyCode !== receivingCurrencyCode
+  ) {
+    throw new Error(
+      "The sending currency code in the pay request does not match the receiving currency code.",
+    );
+  }
+  const msatsAmount =
+    request.sendingAmountCurrencyCode === "SAT"
+      ? request.amount
+      : Math.round(request.amount * conversionRate + receiverFeesMillisats);
+  const receivingAmount =
+    request.sendingAmountCurrencyCode === "SAT"
+      ? Math.round((request.amount - receiverFeesMillisats) / conversionRate)
+      : request.amount;
+  const encodedPayerData = JSON.stringify(request.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
     metadata + "{" + encodedPayerData + "}",
@@ -478,7 +500,7 @@ export async function getPayReqResponse({
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
-  const payerIdentifier = query.payerData.identifier;
+  const payerIdentifier = request.payerData.identifier;
   if (!payerIdentifier) {
     throw new Error("Payer identifier missing");
   }
@@ -495,11 +517,12 @@ export async function getPayReqResponse({
     pr: encodedInvoice,
     routes: [],
     payeeData: Object.assign({ compliance: complianceData }, payeeData),
-    paymentInfo: {
-      currencyCode,
-      decimals: currencyDecimals,
+    converted: {
+      amount: receivingAmount,
+      currencyCode: receivingCurrencyCode,
+      decimals: receivingCurrencyDecimals,
       multiplier: conversionRate,
-      exchangeFeesMillisatoshi: receiverFeesMillisats,
+      fee: receiverFeesMillisats,
     },
   };
 }

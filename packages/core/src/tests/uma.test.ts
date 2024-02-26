@@ -7,7 +7,7 @@ import {
   dateToUnixSeconds,
   parseLnurlpResponse,
   parsePayReqResponse,
-  parsePayRequest,
+  PayRequest,
   type LnurlpRequest,
 } from "../protocol.js";
 import {
@@ -296,8 +296,10 @@ describe("uma", () => {
           name: "US Dollar",
           symbol: "$",
           multiplier: 34_150,
-          minSendable: 1,
-          maxSendable: 10_000_000,
+          convertible: {
+            min: 1,
+            max: 10_000_000,
+          },
           decimals: 2,
         },
       ],
@@ -324,7 +326,8 @@ describe("uma", () => {
     const trInfo = "some TR info for VASP2";
     const payreq = await getPayRequest({
       amount: 1000,
-      currencyCode: "USD",
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
       payerIdentifier: "$alice@vasp1.com",
       payerKycStatus: KycStatus.Verified,
       receiverEncryptionPubKey: receiverEncryptionPublicKey,
@@ -335,7 +338,8 @@ describe("uma", () => {
     });
 
     const invoiceCreator = {
-      createUmaInvoice: async () => {
+      createUmaInvoice: async (amountMsats: number) => {
+        expect(amountMsats).toBe(1000 * 34_150 + 100_000);
         return "abcdefg123456";
       },
     };
@@ -343,11 +347,11 @@ describe("uma", () => {
     const metadata = createMetadataForBob();
 
     const payreqResponse = await getPayReqResponse({
-      query: payreq,
+      request: payreq,
       invoiceCreator: invoiceCreator,
       metadata,
-      currencyCode: "USD",
-      currencyDecimals: 2,
+      receivingCurrencyCode: "USD",
+      receivingCurrencyDecimals: 2,
       conversionRate: 34_150,
       receiverFeesMillisats: 100_000,
       receiverChannelUtxos: ["abcdef12345"],
@@ -356,6 +360,67 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
+    expect(payreqResponse.converted.amount).toBe(1000);
+    expect(payreqResponse.converted.currencyCode).toBe("USD");
+    const payreqResponseJson = JSON.stringify(payreqResponse);
+    const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
+    expect(parsedPayreqResponse).toEqual(payreqResponse);
+    const verified = await verifyPayReqResponseSignature(
+      parsedPayreqResponse,
+      "$alice@vasp1.com",
+      "$bob@vasp2.com",
+      receiverSigningPublicKey,
+    );
+    expect(verified).toBe(true);
+  });
+
+  it("should handle a pay request response for amount in msats", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const {
+      privateKey: receiverSigningPrivateKey,
+      publicKey: receiverSigningPublicKey,
+    } = await generateKeypair();
+
+    const trInfo = "some TR info for VASP2";
+    const payreq = await getPayRequest({
+      amount: 1_000_000,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: false,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      receiverEncryptionPubKey: receiverEncryptionPublicKey,
+      sendingVaspPrivateKey: senderSigningPrivateKey,
+      trInfo: trInfo,
+      travelRuleFormat: "fake_format@1.0",
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+    });
+
+    const invoiceCreator = {
+      createUmaInvoice: async (amountMsats: number) => {
+        expect(amountMsats).toBe(1_000_000);
+        return "abcdefg123456";
+      },
+    };
+
+    const metadata = createMetadataForBob();
+
+    const payreqResponse = await getPayReqResponse({
+      request: payreq,
+      invoiceCreator: invoiceCreator,
+      metadata,
+      receivingCurrencyCode: "USD",
+      receivingCurrencyDecimals: 2,
+      conversionRate: 34_150,
+      receiverFeesMillisats: 100_000,
+      receiverChannelUtxos: ["abcdef12345"],
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      receivingVaspPrivateKey: receiverSigningPrivateKey,
+      payeeIdentifier: "$bob@vasp2.com",
+    });
+
+    expect(payreqResponse.converted.amount).toBe(Math.round((1_000_000 - 100_000) / 34_150));
+    expect(payreqResponse.converted.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
@@ -382,7 +447,8 @@ describe("uma", () => {
     const payreq = await getPayRequest({
       receiverEncryptionPubKey: receiverEncryptionPublicKey,
       sendingVaspPrivateKey: senderSigningPrivateKey,
-      currencyCode: "USD",
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
       amount: 1000,
       payerIdentifier: "$alice@vasp1.com",
       trInfo,
@@ -390,9 +456,9 @@ describe("uma", () => {
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
     });
 
-    const payreqJson = JSON.stringify(payreq);
+    const payreqJson = payreq.toJson();
 
-    const parsedPayreq = parsePayRequest(payreqJson);
+    const parsedPayreq = PayRequest.fromJson(payreqJson);
 
     const verified = await verifyPayReqSignature(
       parsedPayreq,
