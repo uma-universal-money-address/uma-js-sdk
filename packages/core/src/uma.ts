@@ -297,6 +297,11 @@ type GetPayRequestArgs = {
    * payment once it completes.
    */
   utxoCallback?: string | undefined;
+
+  /**
+   * The data requested by the sending VASP about the receiver.
+   */
+  requestedPayeeData?: CounterPartyDataOptions | undefined;
 };
 
 /**
@@ -316,6 +321,7 @@ export async function getPayRequest({
   trInfo,
   travelRuleFormat,
   utxoCallback,
+  requestedPayeeData,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -338,6 +344,7 @@ export async function getPayRequest({
       identifier: payerIdentifier,
       compliance: complianceData,
     },
+    payeeData: requestedPayeeData,
   };
 }
 
