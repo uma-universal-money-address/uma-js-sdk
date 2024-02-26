@@ -107,6 +107,8 @@ export const PayRequestSchema = z.object({
   amount: z.number(),
   /** The data that the sender will send to the receiver to identify themselves. See LUD-18. */
   payerData: PayerDataSchema,
+  /** The fields requested about the payee by the sending vasp, if any. */
+  payeeData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
 });
 
 export type PayRequest = z.infer<typeof PayRequestSchema>;
