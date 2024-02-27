@@ -419,7 +419,9 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
-    expect(payreqResponse.converted.amount).toBe(Math.round((1_000_000 - 100_000) / 34_150));
+    expect(payreqResponse.converted.amount).toBe(
+      Math.round((1_000_000 - 100_000) / 34_150),
+    );
     expect(payreqResponse.converted.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
