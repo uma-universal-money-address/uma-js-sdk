@@ -11,6 +11,7 @@ import {
   getSignableLnurlpResponsePayload,
   getSignablePayReqResponsePayload,
   getSignablePayRequestPayload,
+  getSignablePostTransactionCallback,
   PayRequest,
   type CounterPartyDataOptions,
   type LnurlComplianceResponse,
@@ -18,6 +19,8 @@ import {
   type LnurlpResponse,
   type PayReqResponse,
   type PubKeyResponse,
+  UtxoWithAmount,
+  type PostTransactionCallback,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
@@ -624,6 +627,35 @@ async function getSignedLnurlpComplianceResponse({
   };
 }
 
+type PostTransactionCallbackArgs = {
+  /** UTXOs of the channels of the VASP initiating the callback. */
+  utxos: UtxoWithAmount[];
+  /** Domain name of the VASP sending the callback. Used to fetch keys for signature validation. */
+  vaspDomain: string;
+  /** The private signing key of the VASP that is sending the callback. This will be used to sign the request. */
+  signingPrivateKey: Uint8Array;
+};
+
+export async function getPostTransacationCallback({
+  utxos,
+  vaspDomain,
+  signingPrivateKey,
+}: PostTransactionCallbackArgs): Promise<PostTransactionCallback> {
+  const nonce = generateNonce();
+  const timestamp = Math.floor(Date.now() / 1000);
+  const callback: PostTransactionCallback = {
+    signature: "",
+    signatureNonce: nonce,
+    signatureTimestamp: timestamp,
+    utxos,
+    vaspDomain,
+  };
+  const payload = getSignablePostTransactionCallback(callback);
+  const signature = await signPayload(payload, signingPrivateKey);
+  callback.signature = signature;
+  return callback;
+}
+
 export async function verifyUmaLnurlpResponseSignature(
   response: LnurlpResponse,
   otherVaspSigningPubKey: Uint8Array,
@@ -680,6 +712,20 @@ export async function verifyPayReqResponseSignature(
   return verifySignature(
     hashedPayload,
     complianceData.signature,
+    otherVaspPubKey,
+  );
+}
+
+export async function verifyPostTransationCallbackSignature(
+  callback: PostTransactionCallback,
+  otherVaspPubKey: Uint8Array,
+) {
+  const encoder = new TextEncoder();
+  const encodedQuery = encoder.encode(getSignablePostTransactionCallback(callback));
+  const hashedPayload = await createSha256Hash(encodedQuery);
+  return verifySignature(
+    hashedPayload,
+    callback.signature,
     otherVaspPubKey,
   );
 }
