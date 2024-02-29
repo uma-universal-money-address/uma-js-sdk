@@ -287,9 +287,13 @@ export const PostTransactionCallbackSchema = z.object({
   signatureTimestamp: z.number(),
 });
 
-export type PostTransactionCallback = z.infer<typeof PostTransactionCallbackSchema>;
+export type PostTransactionCallback = z.infer<
+  typeof PostTransactionCallbackSchema
+>;
 
-export function parsePostTransactionCallback(jsonStr: string): PostTransactionCallback {
+export function parsePostTransactionCallback(
+  jsonStr: string,
+): PostTransactionCallback {
   const parsed = JSON.parse(jsonStr);
   let validated: PostTransactionCallback;
   try {
@@ -382,9 +386,8 @@ export function getSignablePayReqResponsePayload(
   }|${complianceData.signatureTimestamp.toString()}`;
 }
 
-export function getSignablePostTransactionCallback(c: PostTransactionCallback): string {
-  return [
-    c.signatureNonce,
-    c.signatureTimestamp.toString(),
-  ].join("|");
+export function getSignablePostTransactionCallback(
+  c: PostTransactionCallback,
+): string {
+  return [c.signatureNonce, c.signatureTimestamp.toString()].join("|");
 }

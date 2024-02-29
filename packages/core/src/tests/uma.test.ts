@@ -15,7 +15,7 @@ import {
   getLnurlpResponse,
   getPayReqResponse,
   getPayRequest,
-  getPostTransacationCallback,
+  getPostTransactionCallback,
   getSignedLnurlpRequestUrl,
   getVaspDomainFromUmaAddress,
   isUmaLnurlpQuery,
@@ -23,7 +23,7 @@ import {
   parseLnurlpRequest,
   verifyPayReqResponseSignature,
   verifyPayReqSignature,
-  verifyPostTransationCallbackSignature,
+  verifyPostTransactionCallbackSignature,
   verifyUmaLnurlpQuerySignature,
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
@@ -492,20 +492,19 @@ describe("uma", () => {
   });
 
   it("should sign and verify a post transaction callback", async () => {
-    const {
-      privateKey: signingPrivateKey,
-      publicKey: signingPublicKey,
-    } = await generateKeypair();
-    const callback = await getPostTransacationCallback({
-      utxos: [{utxo: "abcdef12345", amount: 1000}],
+    const { privateKey: signingPrivateKey, publicKey: signingPublicKey } =
+      await generateKeypair();
+    const callback = await getPostTransactionCallback({
+      utxos: [{ utxo: "abcdef12345", amount: 1000 }],
       vaspDomain: "my-vasp.com",
       signingPrivateKey: signingPrivateKey,
     });
 
     const callbackJson = JSON.stringify(callback);
-    const parsedPostTransacationCallback = parsePostTransactionCallback(callbackJson);
+    const parsedPostTransacationCallback =
+      parsePostTransactionCallback(callbackJson);
     expect(parsedPostTransacationCallback).toEqual(callback);
-    const verified = await verifyPostTransationCallbackSignature(
+    const verified = await verifyPostTransactionCallbackSignature(
       parsedPostTransacationCallback,
       signingPublicKey,
     );

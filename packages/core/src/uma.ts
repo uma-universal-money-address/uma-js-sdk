@@ -18,9 +18,9 @@ import {
   type LnurlpRequest,
   type LnurlpResponse,
   type PayReqResponse,
-  type PubKeyResponse,
-  UtxoWithAmount,
   type PostTransactionCallback,
+  type PubKeyResponse,
+  type UtxoWithAmount,
 } from "./protocol.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
@@ -636,7 +636,7 @@ type PostTransactionCallbackArgs = {
   signingPrivateKey: Uint8Array;
 };
 
-export async function getPostTransacationCallback({
+export async function getPostTransactionCallback({
   utxos,
   vaspDomain,
   signingPrivateKey,
@@ -716,16 +716,14 @@ export async function verifyPayReqResponseSignature(
   );
 }
 
-export async function verifyPostTransationCallbackSignature(
+export async function verifyPostTransactionCallbackSignature(
   callback: PostTransactionCallback,
   otherVaspPubKey: Uint8Array,
 ) {
   const encoder = new TextEncoder();
-  const encodedQuery = encoder.encode(getSignablePostTransactionCallback(callback));
-  const hashedPayload = await createSha256Hash(encodedQuery);
-  return verifySignature(
-    hashedPayload,
-    callback.signature,
-    otherVaspPubKey,
+  const encodedQuery = encoder.encode(
+    getSignablePostTransactionCallback(callback),
   );
+  const hashedPayload = await createSha256Hash(encodedQuery);
+  return verifySignature(hashedPayload, callback.signature, otherVaspPubKey);
 }
