@@ -7,6 +7,7 @@ import {
   dateToUnixSeconds,
   parseLnurlpResponse,
   parsePayReqResponse,
+  parsePostTransactionCallback,
   PayRequest,
   type LnurlpRequest,
 } from "../protocol.js";
@@ -14,6 +15,7 @@ import {
   getLnurlpResponse,
   getPayReqResponse,
   getPayRequest,
+  getPostTransactionCallback,
   getSignedLnurlpRequestUrl,
   getVaspDomainFromUmaAddress,
   isUmaLnurlpQuery,
@@ -21,6 +23,7 @@ import {
   parseLnurlpRequest,
   verifyPayReqResponseSignature,
   verifyPayReqSignature,
+  verifyPostTransactionCallbackSignature,
   verifyUmaLnurlpQuerySignature,
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
@@ -486,5 +489,25 @@ describe("uma", () => {
       encryptedTrInfoBytes,
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
+  });
+
+  it("should sign and verify a post transaction callback", async () => {
+    const { privateKey: signingPrivateKey, publicKey: signingPublicKey } =
+      await generateKeypair();
+    const callback = await getPostTransactionCallback({
+      utxos: [{ utxo: "abcdef12345", amount: 1000 }],
+      vaspDomain: "my-vasp.com",
+      signingPrivateKey: signingPrivateKey,
+    });
+
+    const callbackJson = JSON.stringify(callback);
+    const parsedPostTransacationCallback =
+      parsePostTransactionCallback(callbackJson);
+    expect(parsedPostTransacationCallback).toEqual(callback);
+    const verified = await verifyPostTransactionCallbackSignature(
+      parsedPostTransacationCallback,
+      signingPublicKey,
+    );
+    expect(verified).toBe(true);
   });
 });
