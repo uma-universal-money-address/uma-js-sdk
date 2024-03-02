@@ -465,6 +465,7 @@ describe("uma", () => {
       "$alice@vasp1.com",
       "$bob@vasp2.com",
       receiverSigningPublicKey,
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
   });
@@ -526,6 +527,7 @@ describe("uma", () => {
       "$alice@vasp1.com",
       "$bob@vasp2.com",
       receiverSigningPublicKey,
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
   });
@@ -600,6 +602,7 @@ describe("uma", () => {
     const verified = await verifyPostTransactionCallbackSignature(
       parsedPostTransacationCallback,
       signingPublicKey,
+      new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
   });

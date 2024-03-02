@@ -3,9 +3,9 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
+import { type NonceValidator } from "./NonceValidator.js";
 import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
 import { type CompliancePayerData } from "./PayerData.js";
-import { type NonceValidator } from "./NonceValidator.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
@@ -698,20 +698,19 @@ export async function verifyPayReqSignature(
   otherVaspPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
-  const compliance = query.payerData.compliance;
+  const encoder = new TextEncoder();
+  const complianceData = query.payerData.compliance;
+  if (!complianceData) {
+    throw new Error("compliance data is required");
+  }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
-    compliance.signatureNonce,
-    compliance.signatureTimestamp,
+    complianceData.signatureNonce,
+    complianceData.signatureTimestamp,
   );
   if (!isNonceValid) {
     throw new Error(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );
-  }
-  const encoder = new TextEncoder();
-  const complianceData = query.payerData.compliance;
-  if (!complianceData) {
-    throw new Error("compliance data is required");
   }
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
@@ -727,11 +726,21 @@ export async function verifyPayReqResponseSignature(
   payerIdentifier: string,
   payeeIdentifier: string,
   otherVaspPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
   const encoder = new TextEncoder();
   const complianceData = response.payeeData.compliance;
   if (!complianceData) {
     throw new Error("compliance data is required");
+  }
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    complianceData.signatureNonce,
+    complianceData.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
   }
   const encodedQuery = encoder.encode(
     getSignablePayReqResponsePayload(
@@ -751,7 +760,17 @@ export async function verifyPayReqResponseSignature(
 export async function verifyPostTransactionCallbackSignature(
   callback: PostTransactionCallback,
   otherVaspPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    callback.signatureNonce,
+    callback.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const encoder = new TextEncoder();
   const encodedQuery = encoder.encode(
     getSignablePostTransactionCallback(callback),
