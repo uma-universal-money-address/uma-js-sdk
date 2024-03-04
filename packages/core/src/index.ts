@@ -1,5 +1,6 @@
 export * from "./Currency.js";
 export * from "./KycStatus.js";
+export * from "./NonceValidator.js";
 export * from "./PayerData.js";
 export * from "./protocol.js";
 export * from "./PublicKeyCache.js";
