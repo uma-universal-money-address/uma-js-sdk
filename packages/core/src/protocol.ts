@@ -1,8 +1,8 @@
 import { z } from "zod";
-import { CurrencySchema } from "./Currency.js";
+import { CurrencySchema, type Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
-import { PayeeDataSchema } from "./PayeeData.js";
-import { PayerDataSchema } from "./PayerData.js";
+import { PayeeDataSchema, type PayeeData } from "./PayeeData.js";
+import { PayerDataSchema, type PayerData } from "./PayerData.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import { optionalIgnoringNull } from "./zodUtils.js";
 
@@ -11,21 +11,40 @@ export type LnurlpRequest = {
   /** ReceiverAddress is the address of the user at VASP2 that is receiving the payment. */
   receiverAddress: string;
   /** Nonce is a random string that is used to prevent replay attacks. */
-  nonce: string;
+  nonce?: string | undefined;
   /** Signature is the base64-encoded signature of sha256(ReceiverAddress|Nonce|Timestamp). */
-  signature: string;
+  signature?: string | undefined;
   /** IsSubjectToTravelRule indicates VASP1 is a financial institution that requires travel rule information. */
-  isSubjectToTravelRule: boolean;
+  isSubjectToTravelRule?: boolean | undefined;
   /** VaspDomain is the domain of the VASP that is sending the payment. It will be used by VASP2 to fetch the public keys of VASP1. */
-  vaspDomain: string;
+  vaspDomain?: string | undefined;
   /** Timestamp is the unix timestamp of when the request was sent. Used in the signature. */
-  timestamp: Date;
+  timestamp?: Date | undefined;
   /**
    * The version of the UMA protocol that VASP2 has chosen for this transaction based on its own support and VASP1's specified preference in the LnurlpRequest.
    * For the version negotiation flow, see https://static.swimlanes.io/87f5d188e080cb8e0494e46f80f2ae74.png
    */
-  umaVersion: string;
+  umaVersion?: string | undefined;
 };
+
+export function isLnurlpRequestForUma(
+  request: LnurlpRequest,
+): request is LnurlpRequest & {
+  receiverAddress: string;
+  nonce: string;
+  signature: string;
+  vaspDomain: string;
+  timestamp: Date;
+  umaVersion: string;
+} {
+  return (
+    request.nonce !== undefined &&
+    request.signature !== undefined &&
+    request.vaspDomain !== undefined &&
+    request.timestamp !== undefined &&
+    request.umaVersion !== undefined
+  );
+}
 
 export const CounterPartyDataOptionSchema = z.object({
   mandatory: z.boolean(),
@@ -74,17 +93,49 @@ export const LnurlpResponseSchema = z.object({
   minSendable: z.number(),
   maxSendable: z.number(),
   metadata: z.string(),
-  currencies: z.array(CurrencySchema),
-  payerData: CounterPartyDataOptionsSchema,
-  compliance: LnurlpComplianceResponseSchema,
+  currencies: optionalIgnoringNull(z.array(CurrencySchema)),
+  payerData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+  compliance: optionalIgnoringNull(LnurlpComplianceResponseSchema),
   /**
    * The version of the UMA protocol that VASP2 has chosen for this transaction based on its own support and VASP1's specified preference in the LnurlpRequest.
    * For the version negotiation flow, see https://static.swimlanes.io/87f5d188e080cb8e0494e46f80f2ae74.png
    */
-  umaVersion: z.string(),
+  umaVersion: optionalIgnoringNull(z.string()),
+
+  /**
+   * The number of characters that the sender can include in the comment field of the pay request.
+   */
+  commentAllowed: optionalIgnoringNull(z.number()),
+
+  /**
+   * An optional nostr pubkey used for nostr zaps (NIP-57). If set, it should be a valid
+   * BIP-340 public key in hex format.
+   */
+  nostrPubkey: optionalIgnoringNull(z.string()),
+
+  /**
+   * Should be set to true if the receiving VASP allows nostr zaps (NIP-57).
+   */
+  allowsNostr: optionalIgnoringNull(z.boolean()),
 });
 
 export type LnurlpResponse = z.infer<typeof LnurlpResponseSchema>;
+
+export function isLnurlResponseForUma(
+  response: LnurlpResponse,
+): response is LnurlpResponse & {
+  compliance: LnurlComplianceResponse;
+  umaVersion: string;
+  currencies: Currency[];
+  payerData: CounterPartyDataOptions;
+} {
+  return (
+    !!response.compliance &&
+    !!response.umaVersion &&
+    !!response.currencies &&
+    !!response.payerData
+  );
+}
 
 export function parseLnurlpResponse(jsonStr: string): LnurlpResponse {
   const parsed = JSON.parse(jsonStr);
@@ -102,7 +153,7 @@ export function parseLnurlpResponse(jsonStr: string): LnurlpResponse {
  */
 export const PayRequestSchema = z.object({
   /** The 3-character currency code that the receiver will receive for this payment. */
-  convert: z.string(),
+  convert: optionalIgnoringNull(z.string()),
   /**
    * An amount (int64) followed optionally by a "." and the sending currency code. For example: "100.USD" would send
    * an amount equivalent to $1 USD. Note that the amount is specified in the smallest unit of the specified
@@ -110,9 +161,15 @@ export const PayRequestSchema = z.object({
    */
   amount: z.coerce.string(),
   /** The data that the sender will send to the receiver to identify themselves. See LUD-18. */
-  payerData: PayerDataSchema,
+  payerData: optionalIgnoringNull(PayerDataSchema),
   /** The fields requested about the payee by the sending vasp, if any. */
   payeeData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+  /**
+   * A comment that the sender would like to include with the payment. This can only be included
+   * if the receiver included the `commentAllowed` field in the lnurlp response. The length of
+   * the comment must be less than or equal to the value of `commentAllowed`.
+   */
+  comment: optionalIgnoringNull(z.string()),
 });
 
 /**
@@ -123,35 +180,49 @@ export const PayRequestSchema = z.object({
  * This is necessary because `JSON.stringify` will not include the correct field names.
  */
 export class PayRequest {
-  receivingCurrencyCode: string;
-  sendingAmountCurrencyCode: string;
+  receivingCurrencyCode: string | undefined;
+  sendingAmountCurrencyCode: string | undefined;
   amount: number;
-  payerData: z.infer<typeof PayerDataSchema>;
+  payerData: z.infer<typeof PayerDataSchema> | undefined;
   requestedPayeeData: CounterPartyDataOptions | undefined;
+  comment: string | undefined;
 
   constructor(
-    receivingCurrencyCode: string,
-    sendingAmountCurrencyCode: string,
     amount: number,
-    payerData: z.infer<typeof PayerDataSchema>,
-    requestedPayeeData?: CounterPartyDataOptions,
+    receivingCurrencyCode: string | undefined,
+    sendingAmountCurrencyCode: string | undefined,
+    payerData?: z.infer<typeof PayerDataSchema> | undefined,
+    requestedPayeeData?: CounterPartyDataOptions | undefined,
+    comment?: string | undefined,
   ) {
+    this.amount = amount;
     this.receivingCurrencyCode = receivingCurrencyCode;
     this.sendingAmountCurrencyCode = sendingAmountCurrencyCode;
-    this.amount = amount;
     this.payerData = payerData;
     this.requestedPayeeData = requestedPayeeData;
+    this.comment = comment;
+  }
+
+  isUmaPayRequest(): this is {
+    payerData: PayerData;
+    receivingCurrencyCode: string;
+  } {
+    return (
+      !!this.payerData?.compliance && this.receivingCurrencyCode !== undefined
+    );
   }
 
   toJsonSchemaObject(): z.infer<typeof PayRequestSchema> {
     return {
       convert: this.receivingCurrencyCode,
       amount:
-        this.sendingAmountCurrencyCode == "SAT"
+        this.sendingAmountCurrencyCode == "SAT" ||
+        !this.sendingAmountCurrencyCode
           ? this.amount.toString()
           : `${this.amount}.${this.sendingAmountCurrencyCode}`,
       payerData: this.payerData,
       payeeData: this.requestedPayeeData,
+      comment: this.comment,
     };
   }
 
@@ -181,11 +252,12 @@ export class PayRequest {
     }
 
     return new PayRequest(
+      amount,
       schema.convert,
       sendingAmountCurrencyCode,
-      amount,
-      schema.payerData,
+      schema.payerData as PayerData | undefined,
       schema.payeeData,
+      schema.comment,
     );
   }
 
@@ -194,6 +266,34 @@ export class PayRequest {
     let validated: z.infer<typeof PayRequestSchema>;
     try {
       validated = PayRequestSchema.parse(parsed);
+    } catch (e) {
+      throw new Error("invalid pay request", { cause: e });
+    }
+    return this.fromSchema(validated);
+  }
+
+  /**
+   * Parse a PayRequest from a URLSearchParams object. Should only be used for
+   * non-UMA pay requests because UMA uses POST requests for payreq.
+   */
+  static fromUrlSearchParams(params: URLSearchParams): PayRequest {
+    const convert = params.get("convert");
+    const amountParam = params.get("amount");
+    const payerData = params.get("payerData");
+    const payeeData = params.get("payeeData");
+    const comment = params.get("comment");
+    if (amountParam === null) {
+      throw new Error("amount is required");
+    }
+    let validated: z.infer<typeof PayRequestSchema>;
+    try {
+      validated = PayRequestSchema.parse({
+        convert,
+        amount: amountParam,
+        payerData: payerData ? JSON.parse(payerData) : undefined,
+        payeeData: payeeData ? JSON.parse(payeeData) : undefined,
+        comment,
+      });
     } catch (e) {
       throw new Error("invalid pay request", { cause: e });
     }
@@ -247,11 +347,31 @@ export const PayReqResponseSchema = z.object({
   pr: z.string(),
   /** routes is usually just an empty list from legacy LNURL, which was replaced by route hints in the BOLT11 invoice. */
   routes: optionalIgnoringNull(z.array(RouteSchema)),
-  converted: PayReqResponsePaymentInfoSchema,
-  payeeData: PayeeDataSchema,
+  converted: optionalIgnoringNull(PayReqResponsePaymentInfoSchema),
+  payeeData: optionalIgnoringNull(PayeeDataSchema),
+  /**
+   * This field may be used by a WALLET to decide whether the initial LNURL link will
+   * be stored locally for later reuse or erased. If disposable is null, it should be
+   * interpreted as true, so if SERVICE intends its LNURL links to be stored it must
+   * return `disposable: false`. UMA should always return `disposable: false`. See LUD-11.
+   */
+  disposable: optionalIgnoringNull(z.boolean()),
+  /**
+   * Defines a struct which can be stored and shown to the user on payment success. See LUD-09.
+   */
+  successAction: optionalIgnoringNull(z.record(z.string())),
 });
 
 export type PayReqResponse = z.infer<typeof PayReqResponseSchema>;
+
+export function isPayReqResponseForUma(
+  response: PayReqResponse,
+): response is PayReqResponse & {
+  payeeData: PayeeData;
+  converted: PayReqResponsePaymentInfo;
+} {
+  return !!response.payeeData?.compliance && !!response.converted;
+}
 
 /** PubKeyResponse is sent from a VASP to another VASP to provide its public keys. It is the response to GET requests at `/.well-known/lnurlpubkey`. */
 export type PubKeyResponse = {
@@ -317,14 +437,19 @@ export function encodeToUrl(q: LnurlpRequest): URL {
   const lnurlpUrl = new URL(
     `${scheme}://${receiverAddressParts[1]}/.well-known/lnurlp/${receiverAddressParts[0]}`,
   );
-  const queryParams = lnurlpUrl.searchParams;
-  queryParams.set("signature", q.signature);
-  queryParams.set("vaspDomain", q.vaspDomain);
-  queryParams.set("nonce", q.nonce);
-  queryParams.set("isSubjectToTravelRule", q.isSubjectToTravelRule.toString());
-  queryParams.set("timestamp", String(dateToUnixSeconds(q.timestamp)));
-  queryParams.set("umaVersion", q.umaVersion);
-  lnurlpUrl.search = queryParams.toString();
+  if (isLnurlpRequestForUma(q)) {
+    const queryParams = lnurlpUrl.searchParams;
+    queryParams.set("signature", q.signature!);
+    queryParams.set("vaspDomain", q.vaspDomain!);
+    queryParams.set("nonce", q.nonce!);
+    queryParams.set(
+      "isSubjectToTravelRule",
+      q.isSubjectToTravelRule!.toString(),
+    );
+    queryParams.set("timestamp", String(dateToUnixSeconds(q.timestamp!)));
+    queryParams.set("umaVersion", q.umaVersion!);
+    lnurlpUrl.search = queryParams.toString();
+  }
   return lnurlpUrl;
 }
 
@@ -340,6 +465,9 @@ export function parsePayReqResponse(jsonStr: string): PayReqResponse {
 }
 
 export function getSignableLnurlpRequestPayload(q: LnurlpRequest): string {
+  if (!q.nonce || !q.timestamp) {
+    throw new Error("nonce and timestamp are required for signing");
+  }
   return [
     q.receiverAddress,
     q.nonce,
@@ -359,11 +487,11 @@ export function getSignableLnurlpResponsePayload(r: LnurlpResponse): string {
 }
 
 export function getSignablePayRequestPayload(q: PayRequest): string {
-  const complianceData = q.payerData.compliance;
+  const complianceData = q.payerData?.compliance;
   if (!complianceData) {
     throw new Error("compliance is required, but not present in payerData");
   }
-  const payerIdentifier = q.payerData.identifier;
+  const payerIdentifier = q.payerData?.identifier;
   if (!payerIdentifier) {
     throw new Error("payer identifier is missing");
   }
@@ -377,7 +505,7 @@ export function getSignablePayReqResponsePayload(
   payerIdentifier: string,
   payeeIdentifier: string,
 ): string {
-  const complianceData = r.payeeData.compliance;
+  const complianceData = r.payeeData?.compliance;
   if (!complianceData) {
     throw new Error("compliance is required, but not present in payeeData");
   }

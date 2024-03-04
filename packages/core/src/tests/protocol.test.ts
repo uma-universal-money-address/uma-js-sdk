@@ -1,17 +1,8 @@
 import { KycStatus } from "../KycStatus.js";
 import { PayRequest, PayRequestSchema } from "../protocol.js";
+import { getLnurlpResponse } from "../uma.js";
 
 describe("uma protocol", () => {
-  it("should throw on missing payerdata in payreq", async () => {
-    /* Missing payerData: */
-    await expect(() =>
-      PayRequestSchema.parse({
-        convert: "USD",
-        amount: 100,
-      }),
-    ).toThrow(/.*payerData.*/g);
-  });
-
   it("should throw on invalid compliance in payreq", async () => {
     /* Invalid compliance: */
     await expect(() =>
@@ -35,6 +26,38 @@ describe("uma protocol", () => {
         },
       }),
     ).toThrow(/.*signatureTimestamp.*/g);
+  });
+
+  it("should create valid non-uma lnurlp response", async () => {
+    const response = await getLnurlpResponse({
+      request: {
+        receiverAddress: "$bob@vasp.com",
+      },
+      minSendableSats: 100,
+      maxSendableSats: 1000,
+      encodedMetadata: JSON.stringify({
+        text: "Hello, World!",
+      }),
+      callback: "https://vasp.com/lnurlp",
+    });
+    expect(response).toMatchObject({
+      callback: "https://vasp.com/lnurlp",
+      tag: "payRequest",
+      minSendable: 100_000,
+      maxSendable: 1_000_000,
+      metadata: JSON.stringify({
+        text: "Hello, World!",
+      }),
+    });
+  });
+
+  it("should parse valid non-uma payreq", async () => {
+    const payReq = PayRequest.fromJson(JSON.stringify({ amount: 100 }));
+    expect(payReq.amount).toBe(100);
+    expect(payReq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payReq.receivingCurrencyCode).toBeUndefined();
+    expect(payReq.payerData).toBeUndefined();
+    expect(payReq.isUmaPayRequest()).toBe(false);
   });
 
   it("should parse valid payreq with only number amount", async () => {

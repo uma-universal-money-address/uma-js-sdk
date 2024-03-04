@@ -2,6 +2,7 @@ import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
+import { InvalidInputError } from "./errors.js";
 import { type KycStatus } from "./KycStatus.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
@@ -13,6 +14,7 @@ import {
   getSignablePayReqResponsePayload,
   getSignablePayRequestPayload,
   getSignablePostTransactionCallback,
+  isLnurlpRequestForUma,
   PayRequest,
   type CounterPartyDataOptions,
   type LnurlComplianceResponse,
@@ -40,34 +42,34 @@ export const createSha256Hash = async (
   return new Uint8Array(buffer);
 };
 
-export type ParsedLnurlpRequest = {
-  vaspDomain: string;
-  umaVersion: string;
-  signature: string;
-  receiverAddress: string;
-  nonce: string;
-  timestamp: Date;
-  isSubjectToTravelRule: boolean;
-};
-
-export function parseLnurlpRequest(url: URL) {
+export function parseLnurlpRequest(url: URL): LnurlpRequest {
   const query = url.searchParams;
-  const signature = query.get("signature");
-  const vaspDomain = query.get("vaspDomain");
-  const nonce = query.get("nonce");
-  const isSubjectToTravelRule = query.get("isSubjectToTravelRule");
-  const umaVersion = query.get("umaVersion");
-  const timestamp = query.get("timestamp");
+  const signature = query.get("signature") ?? undefined;
+  const vaspDomain = query.get("vaspDomain") ?? undefined;
+  const nonce = query.get("nonce") ?? undefined;
+  const isSubjectToTravelRule = query.get("isSubjectToTravelRule") ?? undefined;
+  const umaVersion = query.get("umaVersion") ?? undefined;
+  const timestamp = query.get("timestamp") ?? undefined;
+  const numUmaParamsIncluded = [
+    vaspDomain,
+    signature,
+    nonce,
+    timestamp,
+    umaVersion,
+  ].filter((param) => param !== undefined).length;
 
-  if (!vaspDomain || !signature || !nonce || !timestamp || !umaVersion) {
+  if (numUmaParamsIncluded < 5 && numUmaParamsIncluded > 0) {
     throw new Error(
-      "missing uma query parameters. vaspDomain, umaVersion, signature, nonce, and timestamp are required",
+      "Invalid UMA request. All UMA parameters must be included if any are included.",
     );
   }
 
-  const timestampUnixSeconds = parseInt(timestamp, 10);
-  /* Date expects milliseconds: */
-  const timestampAsTime = new Date(timestampUnixSeconds * 1000);
+  let timestampAsTime: Date | undefined;
+  if (timestamp) {
+    const timestampUnixSeconds = parseInt(timestamp, 10);
+    /* Date expects milliseconds: */
+    timestampAsTime = new Date(timestampUnixSeconds * 1000);
+  }
 
   const pathParts = url.pathname.split("/");
   if (
@@ -79,7 +81,7 @@ export function parseLnurlpRequest(url: URL) {
   }
   const receiverAddress = pathParts[3] + "@" + url.host;
 
-  if (!isVersionSupported(umaVersion)) {
+  if (umaVersion !== undefined && !isVersionSupported(umaVersion)) {
     throw new UnsupportedVersionError(umaVersion);
   }
 
@@ -90,21 +92,22 @@ export function parseLnurlpRequest(url: URL) {
     receiverAddress,
     nonce,
     timestamp: timestampAsTime,
-    isSubjectToTravelRule: Boolean(
-      isSubjectToTravelRule?.toLowerCase() == "true",
-    ),
+    isSubjectToTravelRule:
+      isSubjectToTravelRule !== undefined
+        ? Boolean(isSubjectToTravelRule?.toLowerCase() == "true")
+        : undefined,
   };
 }
 
 /* Checks if the given URL is a valid UMA request. */
 export function isUmaLnurlpQuery(url: URL) {
-  let query: null | ParsedLnurlpRequest = null;
+  let query: null | LnurlpRequest = null;
   try {
     query = parseLnurlpRequest(url);
   } catch (e) {
     return e instanceof UnsupportedVersionError;
   }
-  return query !== null;
+  return isLnurlpRequestForUma(query);
 }
 
 export function generateNonce() {
@@ -208,12 +211,15 @@ export async function verifyUmaLnurlpQuerySignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
+  if (!isLnurlpRequestForUma(query)) {
+    throw new InvalidInputError("not a valid uma request. Missing fields");
+  }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
-    query.nonce,
-    query.timestamp.getTime() / 1000,
+    query.nonce!,
+    query.timestamp!.getTime() / 1000,
   );
   if (!isNonceValid) {
-    throw new Error(
+    throw new InvalidInputError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );
   }
@@ -223,7 +229,7 @@ export async function verifyUmaLnurlpQuerySignature(
   const hashedPayload = await createSha256Hash(encodedPayload);
   return verifySignature(
     hashedPayload,
-    query.signature,
+    query.signature!,
     otherVaspSigningPubKey,
   );
 }
@@ -320,6 +326,13 @@ type GetPayRequestArgs = {
    * The data requested by the sending VASP about the receiver.
    */
   requestedPayeeData?: CounterPartyDataOptions | undefined;
+
+  /**
+   * A comment that the sender would like to include with the payment. This can only be included
+   * if the receiver included the `commentAllowed` field in the lnurlp response. The length of
+   * the comment must be less than or equal to the value of `commentAllowed`.
+   */
+  comment?: string | undefined;
 };
 
 /**
@@ -341,6 +354,7 @@ export async function getPayRequest({
   travelRuleFormat,
   utxoCallback,
   requestedPayeeData,
+  comment,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -358,9 +372,9 @@ export async function getPayRequest({
     : "SAT";
 
   return new PayRequest(
+    amount,
     receivingCurrencyCode,
     sendingAmountCurrencyCode,
-    amount,
     {
       name: payerName,
       email: payerEmail,
@@ -368,6 +382,7 @@ export async function getPayRequest({
       compliance: complianceData,
     },
     requestedPayeeData,
+    comment,
   );
 }
 
@@ -427,12 +442,19 @@ type PayRequestResponseArgs = {
   /** The uma pay request. */
   request: PayRequest;
   /**
+   * The metadata that will be added to the invoice's metadata hash field. Note that this should not include the
+   * extra payer data. That will be appended automatically.
+   */
+  metadata: string;
+  /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
+  invoiceCreator: UmaInvoiceCreator;
+  /**
    * Milli-satoshis per the smallest unit of the specified currency. This rate is committed to by the receiving
    * VASP until the invoice expires.
    */
-  conversionRate: number;
+  conversionRate: number | undefined;
   /** The code of the currency that the receiver will receive for this payment. */
-  receivingCurrencyCode: string;
+  receivingCurrencyCode: string | undefined;
   /**
    * Number of digits after the decimal point for the receiving currency. For example, in USD, by
    * convention, there are 2 digits for cents - $5.95. In this case, `decimals` would be 2. This should align with
@@ -440,21 +462,14 @@ type PayRequestResponseArgs = {
    * [UMAD-04](https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md) for
    * details, edge cases, and examples.
    */
-  receivingCurrencyDecimals: number;
-  /** UmaInvoiceCreator that calls createUmaInvoice using your provider. */
-  invoiceCreator: UmaInvoiceCreator;
-  /**
-   * The metadata that will be added to the invoice's metadata hash field. Note that this should not include the
-   * extra payer data. That will be appended automatically.
-   */
-  metadata: string;
+  receivingCurrencyDecimals: number | undefined;
   /** The list of UTXOs of the receiver's channels that might be used to fund the payment. */
-  receiverChannelUtxos: string[];
+  receiverChannelUtxos: string[] | undefined;
   /**
    * The fees charged (in millisats) by the receiving VASP to convert to the target currency. This is separate from
    * the conversion rate.
    */
-  receiverFeesMillisats: number;
+  receiverFeesMillisats: number | undefined;
   /**
    * If known, the public key of the receiver's node. If supported by the sending VASP's compliance provider, this
    * will be used to pre-screen the receiver's UTXOs for compliance purposes.
@@ -468,11 +483,22 @@ type PayRequestResponseArgs = {
   /**
    * The data requested by the sending VASP about the receiver.
    */
-  payeeData?: PayeeData;
+  payeeData?: PayeeData | undefined;
   /** The private key of the VASP that is receiving the payment. This will be used to sign the request. */
-  receivingVaspPrivateKey: Uint8Array;
+  receivingVaspPrivateKey: Uint8Array | undefined;
   /** The identifier of the receiver. For example, $bob@vasp2.com */
-  payeeIdentifier: string;
+  payeeIdentifier: string | undefined;
+  /**
+   * This field may be used by a WALLET to decide whether the initial LNURL link will
+   * be stored locally for later reuse or erased. If disposable is null, it should be
+   * interpreted as true, so if SERVICE intends its LNURL links to be stored it must
+   * return `disposable: false`. UMA should always return `disposable: false`. See LUD-11.
+   */
+  disposable?: boolean | undefined;
+  /**
+   * Defines a struct which can be stored and shown to the user on payment success. See LUD-09.
+   */
+  successAction?: { [key: string]: string } | undefined;
 };
 
 export async function getPayReqResponse({
@@ -489,56 +515,169 @@ export async function getPayReqResponse({
   payeeData,
   receivingVaspPrivateKey,
   payeeIdentifier,
+  disposable,
+  successAction,
 }: PayRequestResponseArgs): Promise<PayReqResponse> {
+  validateUmaFields({
+    request,
+    conversionRate,
+    receivingCurrencyCode,
+    receivingCurrencyDecimals,
+    invoiceCreator,
+    receiverChannelUtxos,
+    receiverFeesMillisats,
+    receiverNodePubKey,
+    utxoCallback,
+    payeeData,
+    receivingVaspPrivateKey,
+    payeeIdentifier,
+  });
+  validateLud21Fields({
+    request,
+    conversionRate,
+    receivingCurrencyCode,
+    receivingCurrencyDecimals,
+    receiverFeesMillisats,
+  });
+
+  const isSendingAmountInMsats =
+    !request.sendingAmountCurrencyCode ||
+    request.sendingAmountCurrencyCode === "SAT";
+
   if (
-    request.sendingAmountCurrencyCode !== "SAT" &&
+    !isSendingAmountInMsats &&
     request.sendingAmountCurrencyCode !== receivingCurrencyCode
   ) {
-    throw new Error(
+    throw new InvalidInputError(
       "The sending currency code in the pay request does not match the receiving currency code.",
     );
   }
-  const msatsAmount =
-    request.sendingAmountCurrencyCode === "SAT"
-      ? request.amount
-      : Math.round(request.amount * conversionRate + receiverFeesMillisats);
-  const receivingAmount =
-    request.sendingAmountCurrencyCode === "SAT"
-      ? Math.round((request.amount - receiverFeesMillisats) / conversionRate)
-      : request.amount;
-  const encodedPayerData = JSON.stringify(request.payerData);
+
+  conversionRate = conversionRate || 1;
+  receiverFeesMillisats = receiverFeesMillisats || 0;
+  const msatsAmount = isSendingAmountInMsats
+    ? request.amount
+    : Math.round(request.amount * conversionRate + receiverFeesMillisats);
+  const receivingAmount = isSendingAmountInMsats
+    ? Math.round((request.amount - receiverFeesMillisats) / conversionRate)
+    : request.amount;
+
+  const encodedPayerData =
+    request.payerData && JSON.stringify(request.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
-    metadata + "{" + encodedPayerData + "}",
+    metadata + (encodedPayerData || ""),
   );
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
-  const payerIdentifier = request.payerData.identifier;
+  const payerIdentifier = request.payerData?.identifier;
   if (!payerIdentifier) {
     throw new Error("Payer identifier missing");
   }
-  const complianceData = await getSignedCompliancePayeeData(
-    receivingVaspPrivateKey,
-    payerIdentifier,
-    payeeIdentifier,
-    receiverChannelUtxos,
-    receiverNodePubKey,
-    utxoCallback,
-  );
+  let complianceData: CompliancePayeeData | undefined;
+  if (request.isUmaPayRequest()) {
+    if (!payeeIdentifier) {
+      throw new Error("Payee identifier missing");
+    }
+    complianceData = await getSignedCompliancePayeeData(
+      receivingVaspPrivateKey!,
+      payerIdentifier,
+      payeeIdentifier,
+      receiverChannelUtxos || [],
+      receiverNodePubKey,
+      utxoCallback,
+    );
+  }
+
+  let isDisposable = disposable;
+  // UMA requests should be disposable by default.
+  if (isDisposable === undefined && request.isUmaPayRequest()) {
+    isDisposable = true;
+  }
 
   return {
     pr: encodedInvoice,
     routes: [],
-    payeeData: Object.assign({ compliance: complianceData }, payeeData),
-    converted: {
-      amount: receivingAmount,
-      currencyCode: receivingCurrencyCode,
-      decimals: receivingCurrencyDecimals,
-      multiplier: conversionRate,
-      fee: receiverFeesMillisats,
-    },
+    payeeData: Object.assign({ compliance: complianceData }, payeeData || {}),
+    converted: !!receivingCurrencyCode
+      ? {
+          amount: receivingAmount,
+          currencyCode: receivingCurrencyCode,
+          decimals: receivingCurrencyDecimals || 0,
+          multiplier: conversionRate,
+          fee: receiverFeesMillisats,
+        }
+      : undefined,
+    disposable: isDisposable,
+    successAction,
   };
+}
+
+function validateUmaFields({
+  request,
+  conversionRate,
+  receivingCurrencyCode,
+  receivingCurrencyDecimals,
+  invoiceCreator,
+  receiverFeesMillisats,
+  receivingVaspPrivateKey,
+  payeeIdentifier,
+}: Partial<PayRequestResponseArgs>) {
+  if (!request?.isUmaPayRequest()) {
+    return;
+  }
+  const umaRequiredFields = {
+    conversionRate: conversionRate,
+    receivingCurrencyCode: receivingCurrencyCode,
+    receivingCurrencyDecimals: receivingCurrencyDecimals,
+    invoiceCreator: invoiceCreator,
+    receiverFeesMillisats: receiverFeesMillisats,
+    receivingVaspPrivateKey: receivingVaspPrivateKey,
+    payeeIdentifier: payeeIdentifier,
+  };
+  const undefinedFields = Object.entries(umaRequiredFields)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key);
+  if (undefinedFields.length > 0) {
+    throw new Error(
+      `missing required uma fields:  ${Array(undefinedFields).join(", ")}`,
+    );
+  }
+}
+
+function validateLud21Fields({
+  request,
+  conversionRate,
+  receivingCurrencyCode,
+  receivingCurrencyDecimals,
+  receiverFeesMillisats,
+}: Partial<PayRequestResponseArgs>) {
+  if (request?.receivingCurrencyCode === undefined) {
+    return;
+  }
+  if (request.receivingCurrencyCode !== undefined) {
+    if (conversionRate === undefined) {
+      throw new InvalidInputError(
+        "conversionRate is required when receivingCurrencyCode is set",
+      );
+    }
+    if (receivingCurrencyCode === undefined) {
+      throw new InvalidInputError(
+        "receivingCurrencyCode is required when receivingCurrencyCode is set",
+      );
+    }
+    if (receivingCurrencyDecimals === undefined) {
+      throw new InvalidInputError(
+        "receivingCurrencyDecimals is required when receivingCurrencyCode is set",
+      );
+    }
+    if (receiverFeesMillisats === undefined) {
+      throw new InvalidInputError(
+        "receiverFeesMillisats is required when receivingCurrencyCode is set",
+      );
+    }
+  }
 }
 
 async function getSignedCompliancePayeeData(
@@ -568,15 +707,17 @@ async function getSignedCompliancePayeeData(
 
 type GetSignedLnurlpResponseArgs = {
   request: LnurlpRequest;
-  privateKeyBytes: Uint8Array;
-  requiresTravelRuleInfo: boolean;
   callback: string;
   encodedMetadata: string;
   minSendableSats: number;
   maxSendableSats: number;
-  payerDataOptions: CounterPartyDataOptions;
-  currencyOptions: Currency[];
-  receiverKycStatus: KycStatus;
+  privateKeyBytes?: Uint8Array | undefined;
+  requiresTravelRuleInfo?: boolean | undefined;
+  payerDataOptions?: CounterPartyDataOptions | undefined;
+  currencyOptions?: Currency[] | undefined;
+  receiverKycStatus?: KycStatus | undefined;
+  commentCharsAllowed?: number | undefined;
+  nostrPubkey?: string | undefined;
 };
 
 export async function getLnurlpResponse({
@@ -590,13 +731,46 @@ export async function getLnurlpResponse({
   payerDataOptions,
   currencyOptions,
   receiverKycStatus,
+  commentCharsAllowed,
+  nostrPubkey,
 }: GetSignedLnurlpResponseArgs): Promise<LnurlpResponse> {
-  const umaVersion = selectLowerVersion(request.umaVersion, UmaProtocolVersion);
+  if (!isLnurlpRequestForUma(request)) {
+    return {
+      tag: "payRequest",
+      callback,
+      minSendable: minSendableSats * 1000,
+      maxSendable: maxSendableSats * 1000,
+      metadata: encodedMetadata,
+      currencies: currencyOptions,
+      payerData: payerDataOptions,
+      commentAllowed: commentCharsAllowed,
+      nostrPubkey,
+      allowsNostr: !!nostrPubkey,
+    };
+  }
+  const requiredUmaFields = {
+    privateKeyBytes: privateKeyBytes,
+    requiresTravelRuleInfo: requiresTravelRuleInfo,
+    receiverKycStatus: receiverKycStatus,
+    currencyOptions: currencyOptions,
+  };
+  const undefinedFields = Object.entries(requiredUmaFields)
+    .filter(([, value]) => value === undefined)
+    .map(([key]) => key);
+  if (undefinedFields.length > 0) {
+    throw new InvalidInputError(
+      `missing required uma fields:  ${Array(undefinedFields).join(", ")}`,
+    );
+  }
+  const umaVersion = selectLowerVersion(
+    request.umaVersion!,
+    UmaProtocolVersion,
+  );
   const complianceResponse = await getSignedLnurlpComplianceResponse({
     query: request,
-    privateKeyBytes,
-    isSubjectToTravelRule: requiresTravelRuleInfo,
-    receiverKycStatus,
+    privateKeyBytes: privateKeyBytes!,
+    isSubjectToTravelRule: requiresTravelRuleInfo!,
+    receiverKycStatus: receiverKycStatus!,
   });
   return {
     tag: "payRequest",
@@ -608,6 +782,9 @@ export async function getLnurlpResponse({
     payerData: payerDataOptions,
     compliance: complianceResponse,
     umaVersion,
+    commentAllowed: commentCharsAllowed,
+    nostrPubkey,
+    allowsNostr: !!nostrPubkey,
   };
 }
 
@@ -672,6 +849,9 @@ export async function verifyUmaLnurlpResponseSignature(
   otherVaspSigningPubKey: Uint8Array,
   nonceValidator: NonceValidator,
 ) {
+  if (!response.compliance) {
+    throw new Error("compliance data is required for UMA response.");
+  }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     response.compliance.signatureNonce,
     response.compliance.signatureTimestamp,
@@ -699,7 +879,7 @@ export async function verifyPayReqSignature(
   nonceValidator: NonceValidator,
 ) {
   const encoder = new TextEncoder();
-  const complianceData = query.payerData.compliance;
+  const complianceData = query.payerData?.compliance;
   if (!complianceData) {
     throw new Error("compliance data is required");
   }
@@ -729,7 +909,7 @@ export async function verifyPayReqResponseSignature(
   nonceValidator: NonceValidator,
 ) {
   const encoder = new TextEncoder();
-  const complianceData = response.payeeData.compliance;
+  const complianceData = response.payeeData?.compliance;
   if (!complianceData) {
     throw new Error("compliance data is required");
   }

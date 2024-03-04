@@ -6,6 +6,7 @@ import { KycStatus } from "../KycStatus.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
 import {
   dateToUnixSeconds,
+  isLnurlpRequestForUma,
   parseLnurlpResponse,
   parsePayReqResponse,
   parsePostTransactionCallback,
@@ -206,6 +207,7 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    expect(isLnurlpRequestForUma(query)).toBe(true);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
@@ -225,6 +227,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(1);
     nonceCache.checkAndSaveNonce(query.nonce, 2);
     try {
@@ -250,6 +255,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(
       query.timestamp.getTime() / 1000 + 1000,
     );
@@ -276,6 +284,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(1000); // milliseconds
     nonceCache.checkAndSaveNonce(query.nonce, 2); // seconds
     nonceCache.purgeNoncesOlderThan(3000); // milliseconds
@@ -455,8 +466,8 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
-    expect(payreqResponse.converted.amount).toBe(1000);
-    expect(payreqResponse.converted.currencyCode).toBe("USD");
+    expect(payreqResponse.converted?.amount).toBe(1000);
+    expect(payreqResponse.converted?.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
@@ -491,6 +502,8 @@ describe("uma", () => {
       travelRuleFormat: "fake_format@1.0",
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
     });
+    expect(payreq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payreq.receivingCurrencyCode).toBe("USD");
 
     const invoiceCreator = {
       createUmaInvoice: async (amountMsats: number) => {
@@ -515,10 +528,10 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
-    expect(payreqResponse.converted.amount).toBe(
+    expect(payreqResponse.converted?.amount).toBe(
       Math.round((1_000_000 - 100_000) / 34_150),
     );
-    expect(payreqResponse.converted.currencyCode).toBe("USD");
+    expect(payreqResponse.converted?.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
@@ -567,7 +580,7 @@ describe("uma", () => {
     expect(verified).toBe(true);
 
     const encryptedTrInfo =
-      parsedPayreq.payerData.compliance?.encryptedTravelRuleInfo;
+      parsedPayreq.payerData?.compliance?.encryptedTravelRuleInfo;
     if (!encryptedTrInfo) {
       throw new Error("encryptedTrInfo is undefined");
     }
