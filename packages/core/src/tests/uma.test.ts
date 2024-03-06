@@ -6,6 +6,7 @@ import { KycStatus } from "../KycStatus.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
 import {
   dateToUnixSeconds,
+  isLnurlpRequestForUma,
   parseLnurlpResponse,
   parsePayReqResponse,
   parsePostTransactionCallback,
@@ -90,10 +91,10 @@ describe("uma", () => {
       nonce: "12345",
       timestamp: expectedTime,
       vaspDomain: "vasp1",
-      umaVersion: "0.3",
+      umaVersion: "1.0",
     };
     const urlString =
-      "https://vasp2/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=" +
+      "https://vasp2/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=" +
       timeSec;
     const urlObj = new URL(urlString);
     const query = parseLnurlpRequest(urlObj);
@@ -102,14 +103,14 @@ describe("uma", () => {
 
   it("validates uma queries", () => {
     const umaQuery =
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678";
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678";
     expect(isUmaLnurlpQuery(new URL(umaQuery))).toBeTruthy();
   });
 
   it("returns expected result for missing query params", () => {
     // Missing signature
     let url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
@@ -121,25 +122,25 @@ describe("uma", () => {
 
     // Missing nonce
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     // Missing vaspDomain
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.3&nonce=12345&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=1.0&nonce=12345&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=0.3&nonce=12345&vaspDomain=vasp1.com&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=1.0&nonce=12345&vaspDomain=vasp1.com&timestamp=12345678",
     );
     // IsSubjectToTravelRule is optional
     expect(isUmaLnurlpQuery(url)).toBe(true);
 
     // Missing timestamp
     url = new URL(
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true",
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
@@ -150,17 +151,17 @@ describe("uma", () => {
 
   it("should be invalid uma query when url path is invalid", () => {
     let url = new URL(
-      "https://vasp2.com/.well-known/lnurla/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/.well-known/lnurla/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
 
     url = new URL(
-      "https://vasp2.com/?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=0.3&isSubjectToTravelRule=true&timestamp=12345678",
+      "https://vasp2.com/?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678",
     );
     expect(isUmaLnurlpQuery(url)).toBe(false);
   });
@@ -206,6 +207,7 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    expect(isLnurlpRequestForUma(query)).toBe(true);
     expect(query.umaVersion).toBe(UmaProtocolVersion);
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
@@ -225,6 +227,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(1);
     nonceCache.checkAndSaveNonce(query.nonce, 2);
     try {
@@ -250,6 +255,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(
       query.timestamp.getTime() / 1000 + 1000,
     );
@@ -276,6 +284,9 @@ describe("uma", () => {
     });
 
     const query = parseLnurlpRequest(queryUrl);
+    if (!isLnurlpRequestForUma(query)) {
+      throw new Error("Invalid UMA query");
+    }
     const nonceCache = new InMemoryNonceValidator(1000); // milliseconds
     nonceCache.checkAndSaveNonce(query.nonce, 2); // seconds
     nonceCache.purgeNoncesOlderThan(3000); // milliseconds
@@ -293,7 +304,7 @@ describe("uma", () => {
       "hex",
     );
     const queryUrl = new URL(
-      "https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=0.3&vaspDomain=api.ltng.bakkt.com",
+      "https://uma.jeremykle.in/.well-known/lnurlp/$jeremy?isSubjectToTravelRule=true&nonce=2734010273&signature=30450220694fce49a32c81a58ddb0090ebdd4c7ff3a1e277d28570c61bf2b8274b5d8286022100fe6f0318579e12726531c8a63aea6a94f59f46b7679f970df33f7750a0d88f36&timestamp=1701461443&umaVersion=1.0&vaspDomain=api.ltng.bakkt.com",
     );
 
     const query = parseLnurlpRequest(queryUrl);
@@ -455,8 +466,8 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
-    expect(payreqResponse.converted.amount).toBe(1000);
-    expect(payreqResponse.converted.currencyCode).toBe("USD");
+    expect(payreqResponse.converted?.amount).toBe(1000);
+    expect(payreqResponse.converted?.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
@@ -491,6 +502,8 @@ describe("uma", () => {
       travelRuleFormat: "fake_format@1.0",
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
     });
+    expect(payreq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payreq.receivingCurrencyCode).toBe("USD");
 
     const invoiceCreator = {
       createUmaInvoice: async (amountMsats: number) => {
@@ -515,10 +528,10 @@ describe("uma", () => {
       payeeIdentifier: "$bob@vasp2.com",
     });
 
-    expect(payreqResponse.converted.amount).toBe(
+    expect(payreqResponse.converted?.amount).toBe(
       Math.round((1_000_000 - 100_000) / 34_150),
     );
-    expect(payreqResponse.converted.currencyCode).toBe("USD");
+    expect(payreqResponse.converted?.currencyCode).toBe("USD");
     const payreqResponseJson = JSON.stringify(payreqResponse);
     const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
@@ -567,7 +580,7 @@ describe("uma", () => {
     expect(verified).toBe(true);
 
     const encryptedTrInfo =
-      parsedPayreq.payerData.compliance?.encryptedTravelRuleInfo;
+      parsedPayreq.payerData?.compliance?.encryptedTravelRuleInfo;
     if (!encryptedTrInfo) {
       throw new Error("encryptedTrInfo is undefined");
     }
