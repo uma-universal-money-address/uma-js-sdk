@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { getPublicKey, getX509Certificate } from "./certUtils.js";
 import { CurrencySchema, type Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { PayeeDataSchema, type PayeeData } from "./PayeeData.js";
@@ -375,13 +376,39 @@ export function isPayReqResponseForUma(
 
 /** PubKeyResponse is sent from a VASP to another VASP to provide its public keys. It is the response to GET requests at `/.well-known/lnurlpubkey`. */
 export type PubKeyResponse = {
+  /** SigningCertificate is a PEM encoded X.509 certificate string. The signing public key extracted from this certificate and used to verify signatures from a VASP. */
+  signingCertificate?: string;
+  /** EncryptionCertificate is a PEM encoded X.509 certificate string. The encryption public key is extracted from this certificate and used to encrypt TR info sent to a VASP. */
+  encryptionCertificate?: string;
   /** SigningPubKey is used to verify signatures from a VASP. */
-  signingPubKey: string;
+  signingPubKey?: string;
   /** EncryptionPubKey is used to encrypt TR info sent to a VASP. */
-  encryptionPubKey: string;
+  encryptionPubKey?: string;
   /** [Optional] Seconds since epoch at which these pub keys must be refreshed. They can be safely cached until this expiration (or forever if null). */
   expirationTimestamp?: number;
 };
+
+export function getSigningPubKey(r: PubKeyResponse): Uint8Array {
+  if (r.signingCertificate) {
+    const certificate = getX509Certificate(r.signingCertificate);
+    return getPublicKey(certificate);
+  } else if (r.signingPubKey) {
+    return Buffer.from(r.signingPubKey, "hex");
+  } else {
+    throw new Error("No signing public key");
+  }
+}
+
+export function getEncryptionPubKey(r: PubKeyResponse): Uint8Array {
+  if (r.encryptionCertificate) {
+    const certificate = getX509Certificate(r.encryptionCertificate);
+    return getPublicKey(certificate);
+  } else if (r.encryptionPubKey) {
+    return Buffer.from(r.encryptionPubKey, "hex");
+  } else {
+    throw new Error("No encryption public key");
+  }
+}
 
 /** UtxoWithAmount is a pair of utxo and amount transferred over that corresponding channel. It can be used to register payment for KYT. */
 export const UtxoWithAmountSchema = z.object({

@@ -18,6 +18,7 @@ import {
   getPayReqResponse,
   getPayRequest,
   getPostTransactionCallback,
+  getPubKeyResponse,
   getSignedLnurlpRequestUrl,
   getVaspDomainFromUmaAddress,
   isUmaLnurlpQuery,
@@ -44,6 +45,29 @@ const generateKeypair = async () => {
     publicKey,
   };
 };
+
+const bytesToHex = (bytes: Uint8Array): string => {
+  return bytes.reduce((acc: string, byte: number) => {
+    return (acc += ("0" + byte.toString(16)).slice(-2));
+  }, "");
+};
+
+const certString =
+  "-----BEGIN CERTIFICATE-----\n" +
+  "MIIB1zCCAXygAwIBAgIUGN3ihBj1RnKoeTM/auDFnNoThR4wCgYIKoZIzj0EAwIw\n" +
+  "QjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCmNhbGlmb3JuaWExDjAMBgNVBAcMBWxv\n" +
+  "cyBhMQ4wDAYDVQQKDAVsaWdodDAeFw0yNDAzMDUyMTAzMTJaFw0yNDAzMTkyMTAz\n" +
+  "MTJaMEIxCzAJBgNVBAYTAlVTMRMwEQYDVQQIDApjYWxpZm9ybmlhMQ4wDAYDVQQH\n" +
+  "DAVsb3MgYTEOMAwGA1UECgwFbGlnaHQwVjAQBgcqhkjOPQIBBgUrgQQACgNCAARB\n" +
+  "nFRn6lY/ABD9YU+F6IWsmcIbjo1BYkEXX91e/SJE/pB+Lm+j3WYxsbF80oeY2o2I\n" +
+  "KjTEd21EzECQeBx6reobo1MwUTAdBgNVHQ4EFgQUU87LnQdiP6XIE6LoKU1PZnbt\n" +
+  "bMwwHwYDVR0jBBgwFoAUU87LnQdiP6XIE6LoKU1PZnbtbMwwDwYDVR0TAQH/BAUw\n" +
+  "AwEB/zAKBggqhkjOPQQDAgNJADBGAiEAvsrvoeo3rbgZdTHxEUIgP0ArLyiO34oz\n" +
+  "NlwL4gk5GpgCIQCvRx4PAyXNV9T6RRE+3wFlqwluOc/pPOjgdRw/wpoNPQ==\n" +
+  "-----END CERTIFICATE-----";
+
+const certPubKey =
+  "04419c5467ea563f0010fd614f85e885ac99c21b8e8d416241175fdd5efd2244fe907e2e6fa3dd6631b1b17cd28798da8d882a34c4776d44cc4090781c7aadea1b";
 
 function getOneWeekAgoTsMs(): number {
   return Date.now() - 1000 * 60 * 60 * 24 * 7;
@@ -211,7 +235,10 @@ describe("uma", () => {
     expect(query.umaVersion).toBe(UmaProtocolVersion);
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
-      publicKey,
+      {
+        signingPubKey: bytesToHex(publicKey),
+        encryptionPubKey: bytesToHex(publicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
@@ -234,7 +261,14 @@ describe("uma", () => {
     nonceCache.checkAndSaveNonce(query.nonce, 2);
     try {
       expect(
-        await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache),
+        await verifyUmaLnurlpQuerySignature(
+          query,
+          {
+            signingPubKey: bytesToHex(publicKey),
+            encryptionPubKey: bytesToHex(publicKey),
+          },
+          nonceCache,
+        ),
       ).toThrow(
         "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
       );
@@ -263,7 +297,14 @@ describe("uma", () => {
     );
     try {
       expect(
-        await verifyUmaLnurlpQuerySignature(query, publicKey, nonceCache),
+        await verifyUmaLnurlpQuerySignature(
+          query,
+          {
+            signingPubKey: bytesToHex(publicKey),
+            encryptionPubKey: bytesToHex(publicKey),
+          },
+          nonceCache,
+        ),
       ).toThrow(
         "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
       );
@@ -292,7 +333,10 @@ describe("uma", () => {
     nonceCache.purgeNoncesOlderThan(3000); // milliseconds
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
-      publicKey,
+      {
+        signingPubKey: bytesToHex(publicKey),
+        encryptionPubKey: bytesToHex(publicKey),
+      },
       nonceCache,
     );
     expect(verified).toBe(true);
@@ -311,7 +355,10 @@ describe("uma", () => {
     expect(query.umaVersion).toBe(UmaProtocolVersion);
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
-      publicKey,
+      {
+        signingPubKey: bytesToHex(publicKey),
+        encryptionPubKey: bytesToHex(publicKey),
+      },
       new InMemoryNonceValidator(1000),
     );
     expect(verified).toBe(true);
@@ -331,7 +378,10 @@ describe("uma", () => {
     expect(query.umaVersion).toBe(UmaProtocolVersion);
     const verified = await verifyUmaLnurlpQuerySignature(
       query,
-      incorrectPublicKey,
+      {
+        signingPubKey: bytesToHex(incorrectPublicKey),
+        encryptionPubKey: bytesToHex(incorrectPublicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(false);
@@ -354,7 +404,10 @@ describe("uma", () => {
       expect(
         await verifyUmaLnurlpQuerySignature(
           query,
-          publicKey,
+          {
+            signingPubKey: bytesToHex(publicKey),
+            encryptionPubKey: bytesToHex(publicKey),
+          },
           new InMemoryNonceValidator(getOneWeekAgoTsMs()),
         ),
       ).toThrow("Public Key could not be parsed");
@@ -367,15 +420,13 @@ describe("uma", () => {
 
   it("should sign and verify lnurlp response", async () => {
     const { privateKey: senderSigningPrivateKey } = await generateKeypair();
-    const {
-      privateKey: receiverSigningPrivateKey,
-      publicKey: receiverSigningPublicKey,
-    } = await generateKeypair();
+    const { privateKey: receiverPrivateKey, publicKey: receiverPublicKey } =
+      await generateKeypair();
     const request = await createLnurlpRequest(senderSigningPrivateKey);
     const metadata = createMetadataForBob();
     const response = await getLnurlpResponse({
       request,
-      privateKeyBytes: receiverSigningPrivateKey,
+      privateKeyBytes: receiverPrivateKey,
       requiresTravelRuleInfo: true,
       callback: "https://vasp2.com/api/lnurl/payreq/$bob",
       encodedMetadata: metadata,
@@ -415,7 +466,10 @@ describe("uma", () => {
     const parsedResponse = parseLnurlpResponse(responseJson);
     const verified = verifyUmaLnurlpResponseSignature(
       parsedResponse,
-      receiverSigningPublicKey,
+      {
+        signingPubKey: bytesToHex(receiverPublicKey),
+        encryptionPubKey: bytesToHex(receiverPublicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBeTruthy();
@@ -475,7 +529,10 @@ describe("uma", () => {
       parsedPayreqResponse,
       "$alice@vasp1.com",
       "$bob@vasp2.com",
-      receiverSigningPublicKey,
+      {
+        signingPubKey: bytesToHex(receiverSigningPublicKey),
+        encryptionPubKey: bytesToHex(receiverEncryptionPublicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
@@ -539,17 +596,18 @@ describe("uma", () => {
       parsedPayreqResponse,
       "$alice@vasp1.com",
       "$bob@vasp2.com",
-      receiverSigningPublicKey,
+      {
+        signingPubKey: bytesToHex(receiverSigningPublicKey),
+        encryptionPubKey: bytesToHex(receiverEncryptionPublicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
   });
 
   it("should create and parse a payreq", async () => {
-    const {
-      privateKey: senderSigningPrivateKey,
-      publicKey: senderSigningPublicKey,
-    } = await generateKeypair();
+    const { privateKey: senderPrivateKey, publicKey: senderPublicKey } =
+      await generateKeypair();
     const {
       privateKey: receiverEncryptionPrivateKey,
       publicKey: receiverEncryptionPublicKey,
@@ -558,7 +616,7 @@ describe("uma", () => {
     const trInfo = "some TR info for VASP2";
     const payreq = await getPayRequest({
       receiverEncryptionPubKey: receiverEncryptionPublicKey,
-      sendingVaspPrivateKey: senderSigningPrivateKey,
+      sendingVaspPrivateKey: senderPrivateKey,
       receivingCurrencyCode: "USD",
       isAmountInReceivingCurrency: true,
       amount: 1000,
@@ -574,7 +632,10 @@ describe("uma", () => {
 
     const verified = await verifyPayReqSignature(
       parsedPayreq,
-      senderSigningPublicKey,
+      {
+        signingPubKey: bytesToHex(senderPublicKey),
+        encryptionPubKey: bytesToHex(senderPublicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
@@ -600,12 +661,12 @@ describe("uma", () => {
   });
 
   it("should sign and verify a post transaction callback", async () => {
-    const { privateKey: signingPrivateKey, publicKey: signingPublicKey } =
+    const { privateKey: privateKey, publicKey: publicKey } =
       await generateKeypair();
     const callback = await getPostTransactionCallback({
       utxos: [{ utxo: "abcdef12345", amount: 1000 }],
       vaspDomain: "my-vasp.com",
-      signingPrivateKey: signingPrivateKey,
+      signingPrivateKey: privateKey,
     });
 
     const callbackJson = JSON.stringify(callback);
@@ -614,9 +675,39 @@ describe("uma", () => {
     expect(parsedPostTransacationCallback).toEqual(callback);
     const verified = await verifyPostTransactionCallbackSignature(
       parsedPostTransacationCallback,
-      signingPublicKey,
+      {
+        signingPubKey: bytesToHex(publicKey),
+        encryptionPubKey: bytesToHex(publicKey),
+      },
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBe(true);
+  });
+
+  it("should serialize and deserialize pub key response", async () => {
+    const keysOnlyResponse = {
+      signingPubKey: certPubKey,
+      encryptionPubKey: certPubKey,
+    };
+    let responseJson = JSON.stringify(keysOnlyResponse);
+    let parsedPubKeyResponse = JSON.parse(responseJson);
+    expect(parsedPubKeyResponse).toEqual(keysOnlyResponse);
+
+    const keysAndCertsResponse = getPubKeyResponse({
+      signingCertificate: certString,
+      encryptionCertificate: certString,
+    });
+    responseJson = JSON.stringify(keysAndCertsResponse);
+    parsedPubKeyResponse = JSON.parse(responseJson);
+    expect(parsedPubKeyResponse).toEqual(keysAndCertsResponse);
+  });
+
+  it("should extract correct pub key from cert", async () => {
+    const pubKeyResponse = getPubKeyResponse({
+      signingCertificate: certString,
+      encryptionCertificate: certString,
+    });
+    expect(pubKeyResponse.signingPubKey).toEqual(certPubKey);
+    expect(pubKeyResponse.encryptionPubKey).toEqual(certPubKey);
   });
 });
