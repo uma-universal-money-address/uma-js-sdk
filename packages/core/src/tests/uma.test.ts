@@ -693,6 +693,14 @@ describe("uma", () => {
     let parsedPubKeyResponse = JSON.parse(responseJson);
     expect(parsedPubKeyResponse).toEqual(keysOnlyResponse);
 
+    const certsOnlyResponse = {
+      signingCertificate: certString,
+      encryptionCertificate: certString,
+    };
+    responseJson = JSON.stringify(certsOnlyResponse);
+    parsedPubKeyResponse = JSON.parse(responseJson);
+    expect(parsedPubKeyResponse).toEqual(certsOnlyResponse);
+
     const keysAndCertsResponse = getPubKeyResponse({
       signingCertificate: certString,
       encryptionCertificate: certString,

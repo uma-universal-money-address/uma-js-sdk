@@ -16,5 +16,6 @@ export const getPublicKey = (cert: X509Certificate) => {
       "Invalid key type. Only EC keys are supported.",
     );
   }
+  // The last 65 bytes of a ASN.1/DER encoded X.509/SPKI key are the uncompressed public key
   return publicKey.export({ type: "spki", format: "der" }).subarray(-65);
 };

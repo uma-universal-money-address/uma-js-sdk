@@ -165,6 +165,9 @@ type GetPubKeyResponseArgs = {
   expirationTimestamp?: number;
 };
 
+/**
+ * Creates a pub key response.
+ */
 export function getPubKeyResponse({
   signingCertificate,
   encryptionCertificate,
