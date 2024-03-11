@@ -3,6 +3,7 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { type Currency } from "./Currency.js";
 import { type KycStatus } from "./KycStatus.js";
+import { type NonceValidator } from "./NonceValidator.js";
 import {
   type CompliancePayerData,
   type PayerDataOptions,
@@ -202,7 +203,17 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    query.nonce,
+    query.timestamp.getTime() / 1000,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const payload = getSignableLnurlpRequestPayload(query);
   const encoder = new TextEncoder();
   const encodedPayload = encoder.encode(payload);
@@ -352,7 +363,7 @@ async function getSignedCompliancePayerData(
   payerNodePubKey: string | undefined,
   utxoCallback: string | undefined,
 ): Promise<CompliancePayerData> {
-  const signatureTimestamp = Date.now();
+  const signatureTimestamp = Math.floor(Date.now() / 1000);
   const signatureNonce = generateNonce();
 
   let encryptedTravelRuleInfo: string | undefined;
@@ -553,7 +564,17 @@ async function getSignedLnurlpComplianceResponse({
 export async function verifyUmaLnurlpResponseSignature(
   response: LnurlpResponse,
   otherVaspSigningPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    response.compliance.signatureNonce,
+    response.compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const encoder = new TextEncoder();
   const encodedResponse = encoder.encode(
     getSignableLnurlpResponsePayload(response),
@@ -569,13 +590,20 @@ export async function verifyUmaLnurlpResponseSignature(
 export async function verifyPayReqSignature(
   query: PayRequest,
   otherVaspPubKey: Uint8Array,
+  nonceValidator: NonceValidator,
 ) {
+  const compliance = query.payerData.compliance;
+  const isNonceValid = await nonceValidator.checkAndSaveNonce(
+    compliance.signatureNonce,
+    compliance.signatureTimestamp,
+  );
+  if (!isNonceValid) {
+    throw new Error(
+      "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+    );
+  }
   const encoder = new TextEncoder();
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
-  return verifySignature(
-    hashedPayload,
-    query.payerData.compliance.signature,
-    otherVaspPubKey,
-  );
+  return verifySignature(hashedPayload, compliance.signature, otherVaspPubKey);
 }
