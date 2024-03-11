@@ -352,7 +352,7 @@ async function getSignedCompliancePayerData(
   payerNodePubKey: string | undefined,
   utxoCallback: string | undefined,
 ): Promise<CompliancePayerData> {
-  const signatureTimestamp = Date.now();
+  const signatureTimestamp = Math.floor(Date.now() / 1000);
   const signatureNonce = generateNonce();
 
   let encryptedTravelRuleInfo: string | undefined;
