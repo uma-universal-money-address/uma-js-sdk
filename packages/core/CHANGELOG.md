@@ -1,5 +1,21 @@
 # @uma-sdk/core
 
+## 0.8.1
+
+### Patch Changes
+
+- 64a1f9a: Export nonce validator classes.
+
+## 0.8.0
+
+### Minor Changes
+
+- ca9e6eb: - Add nonce checks to prevent replay attacks.
+
+### Patch Changes
+
+- ca9e6eb: - Fix timestamp for payreq signature to ensure we are using seconds instead of ms
+
 ## 0.7.3
 
 ### Patch Changes
