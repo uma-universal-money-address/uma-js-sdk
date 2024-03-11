@@ -1,16 +1,20 @@
 import { X509Certificate } from "crypto";
 import { InvalidInputError } from "./errors.js";
 
-export const getX509Certificate = (cert: string) => {
+export const getX509CertChain = (certChain: string) => {
+  const certs = certChain
+    .split("-----END CERTIFICATE-----")
+    .filter((cert) => cert.trim().length > 0)
+    .map((cert) => `${cert.trim()}\n-----END CERTIFICATE-----\n`);
   try {
-    return new X509Certificate(cert);
+    return certs.map((cert) => new X509Certificate(cert));
   } catch (e) {
     throw new InvalidInputError("Cannot be parsed as a valid X509 certificate");
   }
 };
 
-export const getPublicKey = (cert: X509Certificate) => {
-  const publicKey = cert.publicKey;
+export const getPublicKey = (certs: X509Certificate[]) => {
+  const publicKey = certs[0].publicKey;
   if (publicKey.asymmetricKeyType !== "ec") {
     throw new InvalidInputError(
       "Invalid key type. Only EC keys are supported.",

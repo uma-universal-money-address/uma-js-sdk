@@ -64,6 +64,22 @@ const certString =
   "bMwwHwYDVR0jBBgwFoAUU87LnQdiP6XIE6LoKU1PZnbtbMwwDwYDVR0TAQH/BAUw\n" +
   "AwEB/zAKBggqhkjOPQQDAgNJADBGAiEAvsrvoeo3rbgZdTHxEUIgP0ArLyiO34oz\n" +
   "NlwL4gk5GpgCIQCvRx4PAyXNV9T6RRE+3wFlqwluOc/pPOjgdRw/wpoNPQ==\n" +
+  "-----END CERTIFICATE-----\n" +
+  "-----BEGIN CERTIFICATE-----\n" +
+  "MIICdjCCAV6gAwIBAgIUAekCcU1Qhjo2Y6L2Down9BLdfdUwDQYJKoZIhvcNAQEL\n" +
+  "BQAwNDELMAkGA1UEBhMCVVMxCzAJBgNVBAgMAmNhMQwwCgYDVQQHDANsb3MxCjAI\n" +
+  "BgNVBAoMAWEwHhcNMjQwMzA4MDEwNTU3WhcNMjUwMzA4MDEwNTU3WjBAMQswCQYD\n" +
+  "VQQGEwJVUzELMAkGA1UECAwCY2ExDDAKBgNVBAcMA2xvczEKMAgGA1UECgwBYTEK\n" +
+  "MAgGA1UECwwBYTBWMBAGByqGSM49AgEGBSuBBAAKA0IABJ11ZAQKylgIzZmuI5NE\n" +
+  "+DyZ9BUDZhxUPSxTxl+s1am+Lxzr9D7wlwOiiqCYHFWpL6lkCmJcCC06P3RyzXIT\n" +
+  "KmyjQjBAMB0GA1UdDgQWBBRXgW6xGB3+mTSSUKlhSiu3LS+TKTAfBgNVHSMEGDAW\n" +
+  "gBTFmyv7+YDpK0WAOHJYAzjynmWsMDANBgkqhkiG9w0BAQsFAAOCAQEAFVAA3wo+\n" +
+  "Hi/k+OWO/1CFqIRV/0cA8F05sBMiKVA11xB6I1y54aUV4R0jN76fOiN1jnZqTRnM\n" +
+  "G8rZUfQgE/LPVbb1ERHQfd8yaeI+TerKdPkMseu/jnvI+dDJfQdsY7iaa7NPO0dm\n" +
+  "t8Nz75cYW8kYuDaq0Hb6uGsywf9LGO/VjrDhyiRxmZ1Oq4JxQmLuh5SDcPfqHTR3\n" +
+  "VbMC1b7eVXaA9O2qYS36zv8cCUSUl5sOSwM6moaFN+xLtVNJ6ZhKPNS2Gd8znhzZ\n" +
+  "AQZcDDpXBO6ORNbhVk5A3X6eQX4Ek1HBTa3pcSUQomYAA9TIuVzL6DSot5GWS8Ek\n" +
+  "usLY8crt6ys3KQ==\n" +
   "-----END CERTIFICATE-----";
 
 const certPubKey =
@@ -694,16 +710,16 @@ describe("uma", () => {
     expect(parsedPubKeyResponse).toEqual(keysOnlyResponse);
 
     const certsOnlyResponse = {
-      signingCertificate: certString,
-      encryptionCertificate: certString,
+      signingCertChain: certString,
+      encryptionCertChain: certString,
     };
     responseJson = JSON.stringify(certsOnlyResponse);
     parsedPubKeyResponse = JSON.parse(responseJson);
     expect(parsedPubKeyResponse).toEqual(certsOnlyResponse);
 
     const keysAndCertsResponse = getPubKeyResponse({
-      signingCertificate: certString,
-      encryptionCertificate: certString,
+      signingCertChain: certString,
+      encryptionCertChain: certString,
     });
     responseJson = JSON.stringify(keysAndCertsResponse);
     parsedPubKeyResponse = JSON.parse(responseJson);
@@ -712,8 +728,8 @@ describe("uma", () => {
 
   it("should extract correct pub key from cert", async () => {
     const pubKeyResponse = getPubKeyResponse({
-      signingCertificate: certString,
-      encryptionCertificate: certString,
+      signingCertChain: certString,
+      encryptionCertChain: certString,
     });
     expect(pubKeyResponse.signingPubKey).toEqual(certPubKey);
     expect(pubKeyResponse.encryptionPubKey).toEqual(certPubKey);

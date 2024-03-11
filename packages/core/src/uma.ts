@@ -1,7 +1,7 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
-import { getPublicKey, getX509Certificate } from "./certUtils.js";
+import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { type Currency } from "./Currency.js";
 import { InvalidInputError } from "./errors.js";
 import { type KycStatus } from "./KycStatus.js";
@@ -157,10 +157,16 @@ export async function fetchPublicKeyForVasp({
 }
 
 type GetPubKeyResponseArgs = {
-  /** PEM encoded X.509 certificate string. Used to verify signatures from a VASP. */
-  signingCertificate: string;
-  /** PEM encoded X.509 certificate string. Used to encrypt TR info sent to a VASP. */
-  encryptionCertificate: string;
+  /**
+   * The chain of signing certificates in PEM format. The order of the certificates
+   * should be from the leaf to the root. Used to verify signatures from a vasp.
+   */
+  signingCertChain: string;
+  /**
+   * The chain of encryption certificates in PEM format. The order of the certificates
+   * should be from the leaf to the root. Used to encrypt TR info sent to a VASP.
+   */
+  encryptionCertChain: string;
   /** Seconds since epoch at which these pub keys must be refreshed. They can be safely cached until this expiration (or forever if null). */
   expirationTimestamp?: number;
 };
@@ -169,17 +175,17 @@ type GetPubKeyResponseArgs = {
  * Creates a pub key response.
  */
 export function getPubKeyResponse({
-  signingCertificate,
-  encryptionCertificate,
+  signingCertChain,
+  encryptionCertChain,
   expirationTimestamp,
 }: GetPubKeyResponseArgs) {
-  const signingCertX509 = getX509Certificate(signingCertificate);
-  const encryptionCertX509 = getX509Certificate(encryptionCertificate);
-  const signingPubKey = getPublicKey(signingCertX509).toString("hex");
-  const encryptionPubKey = getPublicKey(encryptionCertX509).toString("hex");
+  const signingCertChainX509 = getX509CertChain(signingCertChain);
+  const encryptionCerChainX509 = getX509CertChain(encryptionCertChain);
+  const signingPubKey = getPublicKey(signingCertChainX509).toString("hex");
+  const encryptionPubKey = getPublicKey(encryptionCerChainX509).toString("hex");
   return {
-    signingCertificate: signingCertificate,
-    encryptionCertificate: encryptionCertificate,
+    signingCertChain: signingCertChain,
+    encryptionCertChain: encryptionCertChain,
     signingPubKey: signingPubKey,
     encryptionPubKey: encryptionPubKey,
     expirationTimestamp: expirationTimestamp,
