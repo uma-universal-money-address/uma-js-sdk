@@ -1,6 +1,7 @@
 import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
+import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { type Currency } from "./Currency.js";
 import { InvalidInputError } from "./errors.js";
 import { type KycStatus } from "./KycStatus.js";
@@ -14,6 +15,7 @@ import {
   getSignablePayReqResponsePayload,
   getSignablePayRequestPayload,
   getSignablePostTransactionCallback,
+  getSigningPubKey,
   isLnurlpRequestForUma,
   PayRequest,
   type CounterPartyDataOptions,
@@ -154,6 +156,42 @@ export async function fetchPublicKeyForVasp({
   return pubKeyResponse;
 }
 
+type GetPubKeyResponseArgs = {
+  /**
+   * The chain of signing certificates in PEM format. The order of the certificates
+   * should be from the leaf to the root. Used to verify signatures from a vasp.
+   */
+  signingCertChain: string;
+  /**
+   * The chain of encryption certificates in PEM format. The order of the certificates
+   * should be from the leaf to the root. Used to encrypt TR info sent to a VASP.
+   */
+  encryptionCertChain: string;
+  /** Seconds since epoch at which these pub keys must be refreshed. They can be safely cached until this expiration (or forever if null). */
+  expirationTimestamp?: number;
+};
+
+/**
+ * Creates a pub key response.
+ */
+export function getPubKeyResponse({
+  signingCertChain,
+  encryptionCertChain,
+  expirationTimestamp,
+}: GetPubKeyResponseArgs) {
+  const signingCertChainX509 = getX509CertChain(signingCertChain);
+  const encryptionCerChainX509 = getX509CertChain(encryptionCertChain);
+  const signingPubKey = getPublicKey(signingCertChainX509).toString("hex");
+  const encryptionPubKey = getPublicKey(encryptionCerChainX509).toString("hex");
+  return {
+    signingCertChain: signingCertChain,
+    encryptionCertChain: encryptionCertChain,
+    signingPubKey: signingPubKey,
+    encryptionPubKey: encryptionPubKey,
+    expirationTimestamp: expirationTimestamp,
+  };
+}
+
 type GetSignedLnurlpRequestUrlArgs = {
   isSubjectToTravelRule: boolean; // whether the sending VASP is a financial institution that requires travel rule information.
   receiverAddress: string; // the address of the receiver of the payment (i.e. $bob@vasp2).
@@ -208,7 +246,7 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
 
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
-  otherVaspSigningPubKey: Uint8Array,
+  otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   if (!isLnurlpRequestForUma(query)) {
@@ -227,6 +265,7 @@ export async function verifyUmaLnurlpQuerySignature(
   const encoder = new TextEncoder();
   const encodedPayload = encoder.encode(payload);
   const hashedPayload = await createSha256Hash(encodedPayload);
+  const otherVaspSigningPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
     hashedPayload,
     query.signature!,
@@ -846,7 +885,7 @@ export async function getPostTransactionCallback({
 
 export async function verifyUmaLnurlpResponseSignature(
   response: LnurlpResponse,
-  otherVaspSigningPubKey: Uint8Array,
+  otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   if (!response.compliance) {
@@ -866,6 +905,7 @@ export async function verifyUmaLnurlpResponseSignature(
     getSignableLnurlpResponsePayload(response),
   );
   const hashedPayload = await createSha256Hash(encodedResponse);
+  const otherVaspSigningPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
     hashedPayload,
     response.compliance.signature,
@@ -875,7 +915,7 @@ export async function verifyUmaLnurlpResponseSignature(
 
 export async function verifyPayReqSignature(
   query: PayRequest,
-  otherVaspPubKey: Uint8Array,
+  otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   const encoder = new TextEncoder();
@@ -894,6 +934,7 @@ export async function verifyPayReqSignature(
   }
   const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
   const hashedPayload = await createSha256Hash(encodedQuery);
+  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
     hashedPayload,
     complianceData.signature,
@@ -905,7 +946,7 @@ export async function verifyPayReqResponseSignature(
   response: PayReqResponse,
   payerIdentifier: string,
   payeeIdentifier: string,
-  otherVaspPubKey: Uint8Array,
+  otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   const encoder = new TextEncoder();
@@ -930,6 +971,7 @@ export async function verifyPayReqResponseSignature(
     ),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
+  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
     hashedPayload,
     complianceData.signature,
@@ -939,7 +981,7 @@ export async function verifyPayReqResponseSignature(
 
 export async function verifyPostTransactionCallbackSignature(
   callback: PostTransactionCallback,
-  otherVaspPubKey: Uint8Array,
+  otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
@@ -956,5 +998,6 @@ export async function verifyPostTransactionCallbackSignature(
     getSignablePostTransactionCallback(callback),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
+  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(hashedPayload, callback.signature, otherVaspPubKey);
 }
