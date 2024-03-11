@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.8.1
+
+### Patch Changes
+
+- 64a1f9a: Export nonce validator classes.
+
 ## 0.8.0
 
 ### Minor Changes
