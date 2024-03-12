@@ -1,18 +1,18 @@
 import { randomBytes } from "crypto";
 import { decrypt, PrivateKey } from "eciesjs";
 import secp256k1 from "secp256k1";
+import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
-import { KycStatus } from "../KycStatus.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
+import { KycStatus } from "../protocol/KycStatus.js";
 import {
-  dateToUnixSeconds,
   isLnurlpRequestForUma,
-  parseLnurlpResponse,
-  parsePayReqResponse,
-  parsePostTransactionCallback,
-  PayRequest,
   type LnurlpRequest,
-} from "../protocol.js";
+} from "../protocol/LnurlpRequest.js";
+import { parseLnurlpResponse } from "../protocol/LnurlpResponse.js";
+import { parsePayReqResponse } from "../protocol/PayReqResponse.js";
+import { PayRequest } from "../protocol/PayRequest.js";
+import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import {
   getLnurlpResponse,
   getPayReqResponse,

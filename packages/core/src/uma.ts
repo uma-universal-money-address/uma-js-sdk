@@ -2,31 +2,44 @@ import crypto, { createHash } from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { getPublicKey, getX509CertChain } from "./certUtils.js";
-import { type Currency } from "./Currency.js";
 import { InvalidInputError } from "./errors.js";
-import { type KycStatus } from "./KycStatus.js";
 import { type NonceValidator } from "./NonceValidator.js";
-import { type CompliancePayeeData, type PayeeData } from "./PayeeData.js";
-import { type CompliancePayerData } from "./PayerData.js";
+import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
+import { type Currency } from "./protocol/Currency.js";
+import { type KycStatus } from "./protocol/KycStatus.js";
 import {
   encodeToUrl,
   getSignableLnurlpRequestPayload,
-  getSignableLnurlpResponsePayload,
-  getSignablePayReqResponsePayload,
-  getSignablePayRequestPayload,
-  getSignablePostTransactionCallback,
-  getSigningPubKey,
   isLnurlpRequestForUma,
-  PayRequest,
-  type CounterPartyDataOptions,
-  type LnurlComplianceResponse,
   type LnurlpRequest,
+} from "./protocol/LnurlpRequest.js";
+import {
+  getSignableLnurlpResponsePayload,
+  type LnurlComplianceResponse,
   type LnurlpResponse,
+} from "./protocol/LnurlpResponse.js";
+import {
+  type CompliancePayeeData,
+  type PayeeData,
+} from "./protocol/PayeeData.js";
+import { type CompliancePayerData } from "./protocol/PayerData.js";
+import {
+  getSignablePayReqResponsePayload,
   type PayReqResponse,
+} from "./protocol/PayReqResponse.js";
+import {
+  getSignablePayRequestPayload,
+  PayRequest,
+} from "./protocol/PayRequest.js";
+import {
+  getSignablePostTransactionCallback,
   type PostTransactionCallback,
-  type PubKeyResponse,
   type UtxoWithAmount,
-} from "./protocol.js";
+} from "./protocol/PostTransactionCallback.js";
+import {
+  getSigningPubKey,
+  type PubKeyResponse,
+} from "./protocol/PubKeyResponse.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";

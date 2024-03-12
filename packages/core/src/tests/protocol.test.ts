@@ -1,5 +1,5 @@
-import { KycStatus } from "../KycStatus.js";
-import { PayRequest, PayRequestSchema } from "../protocol.js";
+import { KycStatus } from "../protocol/KycStatus.js";
+import { PayRequest, PayRequestSchema } from "../protocol/PayRequest.js";
 import { getLnurlpResponse } from "../uma.js";
 
 describe("uma protocol", () => {

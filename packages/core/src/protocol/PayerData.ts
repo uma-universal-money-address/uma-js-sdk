@@ -1,6 +1,6 @@
 import { z } from "zod";
+import { optionalIgnoringNull } from "../zodUtils.js";
 import { KycStatus } from "./KycStatus.js";
-import { optionalIgnoringNull } from "./zodUtils.js";
 
 const CompliancePayerDataSchema = z.object({
   /** Utxos is the list of UTXOs of the sender's channels that might be used to fund the payment. */

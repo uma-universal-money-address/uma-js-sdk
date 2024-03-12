@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { optionalIgnoringNull } from "./zodUtils.js";
+import { optionalIgnoringNull } from "../zodUtils.js";
 
 export const CompliancePayeeDataSchema = z.object({
   /** nodePubKey is the public key of the receiver's node if known. */
