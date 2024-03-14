@@ -1,5 +1,6 @@
 export const MAJOR_VERSION = 1;
 export const MINOR_VERSION = 0;
+const backCompatibleVersions = ["0.3"];
 
 export const UmaProtocolVersion = `${MAJOR_VERSION}.${MINOR_VERSION}`;
 
@@ -20,10 +21,16 @@ export class UnsupportedVersionError extends Error {
 export function getHighestSupportedVersionForMajorVersion(
   majorVersion: number,
 ): string {
-  if (majorVersion !== MAJOR_VERSION) {
-    throw new Error("unsupported major version");
+  if (majorVersion === MAJOR_VERSION) {
+    return UmaProtocolVersion;
   }
-  return UmaProtocolVersion;
+
+  for (const backCompatibleVersion of backCompatibleVersions) {
+    if (getMajorVersion(backCompatibleVersion) === majorVersion) {
+      return backCompatibleVersion;
+    }
+  }
+  throw new Error("unsupported major version");
 }
 
 export function selectHighestSupportedVersion(
@@ -106,7 +113,7 @@ export function parseVersion(version: string): {
 }
 
 export function getSupportedMajorVersions(): Set<number> {
-  // NOTE: In the future, we may want to support multiple major versions in the same SDK, but for now, this keeps
-  // things simple.
-  return new Set([MAJOR_VERSION]);
+  return new Set(
+    [MAJOR_VERSION].concat(backCompatibleVersions.map(getMajorVersion)),
+  );
 }

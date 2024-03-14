@@ -68,7 +68,7 @@ export const PayRequestSchema = V0PayRequestSchema.or(
  * NOTE: The `fromJson` and `toJsonString` methods are used to convert to and from JSON strings.
  * This is necessary because `JSON.stringify` will not include the correct field names.
  */
-export default class PayRequest {
+export class PayRequest {
   constructor(
     public readonly amount: number,
     public readonly receivingCurrencyCode: string | undefined,

@@ -156,7 +156,7 @@ export const PayReqResponseSchema = V1PayReqResponseSchema.or(
   },
 );
 
-export default class PayReqResponse {
+export class PayReqResponse {
   constructor(
     public readonly pr: string,
     public readonly routes: Route[],

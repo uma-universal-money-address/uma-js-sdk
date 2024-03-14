@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { MAJOR_VERSION } from "../version.js";
 
-export default class Currency {
+export class Currency {
   constructor(
     /**
      * The currency code, eg. "USD".
@@ -47,7 +47,7 @@ export default class Currency {
     public readonly decimals: number,
 
     /** The major version of the UMA protocol that this currency adheres to. This is not serialized to JSON. */
-    public readonly umaVersion: number,
+    public readonly umaVersion: number = MAJOR_VERSION,
   ) {}
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

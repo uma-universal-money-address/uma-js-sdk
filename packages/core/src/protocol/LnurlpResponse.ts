@@ -4,11 +4,11 @@ import {
   CounterPartyDataOptionsSchema,
   type CounterPartyDataOptions,
 } from "./CounterPartyData.js";
-import { CurrencySchema, default as Currency } from "./Currency.js";
+import { CurrencySchema, Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 
 /** The response to the LnurlpRequest. It is sent by the VASP that is receiving the payment to provide information to the sender about the receiver. */
-export default class LnurlpResponse {
+export class LnurlpResponse {
   public tag: string = "payRequest";
 
   constructor(

@@ -12,7 +12,7 @@ import {
 } from "../protocol/LnurlpRequest.js";
 import LnurlpResponse from "../protocol/LnurlpResponse.js";
 import PayReqResponse from "../protocol/PayReqResponse.js";
-import { default as PayRequest } from "../protocol/PayRequest.js";
+import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import {
   getLnurlpResponse,

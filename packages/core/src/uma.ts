@@ -5,7 +5,7 @@ import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { InvalidInputError } from "./errors.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
-import { type default as Currency } from "./protocol/Currency.js";
+import { type Currency } from "./protocol/Currency.js";
 import { type KycStatus } from "./protocol/KycStatus.js";
 import {
   encodeToUrl,
@@ -14,7 +14,7 @@ import {
   type LnurlpRequest,
 } from "./protocol/LnurlpRequest.js";
 import {
-  default as LnurlpResponse,
+  LnurlpResponse,
   type LnurlComplianceResponse,
 } from "./protocol/LnurlpResponse.js";
 import {
@@ -22,8 +22,8 @@ import {
   type PayeeData,
 } from "./protocol/PayeeData.js";
 import { type CompliancePayerData } from "./protocol/PayerData.js";
-import { default as PayReqResponse } from "./protocol/PayReqResponse.js";
-import { default as PayRequest } from "./protocol/PayRequest.js";
+import { PayReqResponse } from "./protocol/PayReqResponse.js";
+import { PayRequest } from "./protocol/PayRequest.js";
 import {
   getSignablePostTransactionCallback,
   type PostTransactionCallback,
