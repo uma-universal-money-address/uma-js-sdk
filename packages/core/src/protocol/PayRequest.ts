@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import {
   CounterPartyDataOptionsSchema,
@@ -6,10 +7,7 @@ import {
 } from "./CounterPartyData.js";
 import { PayerDataSchema, type PayerData } from "./PayerData.js";
 
-/**
- * The schema of the request sent by the sender to the receiver to retrieve an invoice.
- */
-export const PayRequestSchema = z.object({
+const V1PayRequestSchema = z.object({
   /** The 3-character currency code that the receiver will receive for this payment. */
   convert: optionalIgnoringNull(z.string()),
   /**
@@ -30,36 +28,56 @@ export const PayRequestSchema = z.object({
   comment: optionalIgnoringNull(z.string()),
 });
 
+const V0PayRequestSchema = z.object({
+  currency: optionalIgnoringNull(z.string()),
+  amount: z.number(),
+  payerData: optionalIgnoringNull(PayerDataSchema),
+  payeeData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+  comment: optionalIgnoringNull(z.string()),
+});
+
+export const PayRequestSchema = V0PayRequestSchema.or(
+  V1PayRequestSchema,
+).transform(
+  (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: any,
+  ): z.infer<typeof V1PayRequestSchema> & { umaMajorVersion: number } => {
+    if (data.currency) {
+      return {
+        convert: data.currency,
+        amount: data.amount.toString(),
+        payerData: data.payerData,
+        payeeData: data.payeeData,
+        comment: data.comment,
+        umaMajorVersion: 0,
+      };
+    }
+    return {
+      ...data,
+      amount: data.amount.toString(), // Needed for raw LNURL.
+      umaMajorVersion: MAJOR_VERSION,
+    };
+  },
+);
+
 /**
  * A class which wraps the `PayRequestSchema` and provides a more convenient interface for
  * creating and parsing PayRequests.
  *
- * NOTE: The `fromJson` and `toJson` methods are used to convert to and from JSON strings.
+ * NOTE: The `fromJson` and `toJsonString` methods are used to convert to and from JSON strings.
  * This is necessary because `JSON.stringify` will not include the correct field names.
  */
-export class PayRequest {
-  receivingCurrencyCode: string | undefined;
-  sendingAmountCurrencyCode: string | undefined;
-  amount: number;
-  payerData: z.infer<typeof PayerDataSchema> | undefined;
-  requestedPayeeData: CounterPartyDataOptions | undefined;
-  comment: string | undefined;
-
+export default class PayRequest {
   constructor(
-    amount: number,
-    receivingCurrencyCode: string | undefined,
-    sendingAmountCurrencyCode: string | undefined,
-    payerData?: z.infer<typeof PayerDataSchema> | undefined,
-    requestedPayeeData?: CounterPartyDataOptions | undefined,
-    comment?: string | undefined,
-  ) {
-    this.amount = amount;
-    this.receivingCurrencyCode = receivingCurrencyCode;
-    this.sendingAmountCurrencyCode = sendingAmountCurrencyCode;
-    this.payerData = payerData;
-    this.requestedPayeeData = requestedPayeeData;
-    this.comment = comment;
-  }
+    public readonly amount: number,
+    public readonly receivingCurrencyCode: string | undefined,
+    public readonly sendingAmountCurrencyCode: string | undefined,
+    readonly umaMajorVersion: number,
+    public readonly payerData?: z.infer<typeof PayerDataSchema> | undefined,
+    public readonly requestedPayeeData?: CounterPartyDataOptions | undefined,
+    public readonly comment?: string | undefined,
+  ) {}
 
   isUmaPayRequest(): this is {
     payerData: PayerData;
@@ -70,14 +88,25 @@ export class PayRequest {
     );
   }
 
-  toJsonSchemaObject(): z.infer<typeof PayRequestSchema> {
+  toJsonSchemaObject():
+    | z.infer<typeof V0PayRequestSchema>
+    | z.infer<typeof V1PayRequestSchema> {
+    if (this.umaMajorVersion === 0) {
+      return {
+        amount: this.amount,
+        currency: this.receivingCurrencyCode,
+        payerData: this.payerData,
+        payeeData: this.requestedPayeeData,
+        comment: this.comment,
+      };
+    }
+    const amountString =
+      this.sendingAmountCurrencyCode == "SAT" || !this.sendingAmountCurrencyCode
+        ? this.amount.toString()
+        : `${this.amount}.${this.sendingAmountCurrencyCode}`;
     return {
       convert: this.receivingCurrencyCode,
-      amount:
-        this.sendingAmountCurrencyCode == "SAT" ||
-        !this.sendingAmountCurrencyCode
-          ? this.amount.toString()
-          : `${this.amount}.${this.sendingAmountCurrencyCode}`,
+      amount: amountString,
       payerData: this.payerData,
       payeeData: this.requestedPayeeData,
       comment: this.comment,
@@ -89,22 +118,37 @@ export class PayRequest {
    * `JSON.stringify` because the latter will not include the correct field names.
    * @returns a JSON string representation of the PayRequest.
    */
-  toJson(): string {
+  toJsonString(): string {
     return JSON.stringify(this.toJsonSchemaObject());
+  }
+
+  signablePayload(): string {
+    const complianceData = this.payerData?.compliance;
+    if (!complianceData) {
+      throw new Error("compliance is required, but not present in payerData");
+    }
+    const payerIdentifier = this.payerData?.identifier;
+    if (!payerIdentifier) {
+      throw new Error("payer identifier is missing");
+    }
+    return `${payerIdentifier}|${
+      complianceData.signatureNonce
+    }|${complianceData.signatureTimestamp.toString()}`;
   }
 
   static fromSchema(schema: z.infer<typeof PayRequestSchema>): PayRequest {
     let amount: number;
     let sendingAmountCurrencyCode: string;
-    if (!schema.amount.includes(".")) {
-      amount = z.coerce.number().int().parse(schema.amount);
+    const amountFieldStr = schema.amount.toString();
+    if (!amountFieldStr.includes(".")) {
+      amount = z.coerce.number().int().parse(amountFieldStr);
       sendingAmountCurrencyCode = "SAT";
-    } else if (schema.amount.split(".").length > 2) {
+    } else if (amountFieldStr.split(".").length > 2) {
       throw new Error(
         "invalid amount string. Cannot contain more than one period. Example: '5000' for SAT or '5.USD' for USD.",
       );
     } else {
-      const [amountStr, currencyCode] = schema.amount.split(".");
+      const [amountStr, currencyCode] = amountFieldStr.split(".");
       amount = z.coerce.number().int().parse(amountStr);
       sendingAmountCurrencyCode = currencyCode;
     }
@@ -113,21 +157,25 @@ export class PayRequest {
       amount,
       schema.convert,
       sendingAmountCurrencyCode,
+      schema.umaMajorVersion,
       schema.payerData as PayerData | undefined,
       schema.payeeData,
       schema.comment,
     );
   }
 
-  static fromJson(jsonStr: string): PayRequest {
-    const parsed = JSON.parse(jsonStr);
+  static parse(data: unknown): PayRequest {
     let validated: z.infer<typeof PayRequestSchema>;
     try {
-      validated = PayRequestSchema.parse(parsed);
+      validated = PayRequestSchema.parse(data);
     } catch (e) {
       throw new Error("invalid pay request", { cause: e });
     }
     return this.fromSchema(validated);
+  }
+
+  static fromJson(jsonStr: string): PayRequest {
+    return this.fromSchema(JSON.parse(jsonStr));
   }
 
   /**
@@ -157,18 +205,4 @@ export class PayRequest {
     }
     return this.fromSchema(validated);
   }
-}
-
-export function getSignablePayRequestPayload(q: PayRequest): string {
-  const complianceData = q.payerData?.compliance;
-  if (!complianceData) {
-    throw new Error("compliance is required, but not present in payerData");
-  }
-  const payerIdentifier = q.payerData?.identifier;
-  if (!payerIdentifier) {
-    throw new Error("payer identifier is missing");
-  }
-  return `${payerIdentifier}|${
-    complianceData.signatureNonce
-  }|${complianceData.signatureTimestamp.toString()}`;
 }

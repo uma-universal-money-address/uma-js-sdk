@@ -5,7 +5,7 @@ import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { InvalidInputError } from "./errors.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
-import { type Currency } from "./protocol/Currency.js";
+import { type default as Currency } from "./protocol/Currency.js";
 import { type KycStatus } from "./protocol/KycStatus.js";
 import {
   encodeToUrl,
@@ -14,23 +14,16 @@ import {
   type LnurlpRequest,
 } from "./protocol/LnurlpRequest.js";
 import {
-  getSignableLnurlpResponsePayload,
+  default as LnurlpResponse,
   type LnurlComplianceResponse,
-  type LnurlpResponse,
 } from "./protocol/LnurlpResponse.js";
 import {
   type CompliancePayeeData,
   type PayeeData,
 } from "./protocol/PayeeData.js";
 import { type CompliancePayerData } from "./protocol/PayerData.js";
-import {
-  getSignablePayReqResponsePayload,
-  type PayReqResponse,
-} from "./protocol/PayReqResponse.js";
-import {
-  getSignablePayRequestPayload,
-  PayRequest,
-} from "./protocol/PayRequest.js";
+import { default as PayReqResponse } from "./protocol/PayReqResponse.js";
+import { default as PayRequest } from "./protocol/PayRequest.js";
 import {
   getSignablePostTransactionCallback,
   type PostTransactionCallback,
@@ -44,7 +37,9 @@ import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
+  getMajorVersion,
   isVersionSupported,
+  MAJOR_VERSION,
   selectLowerVersion,
   UmaProtocolVersion,
   UnsupportedVersionError,
@@ -385,6 +380,13 @@ type GetPayRequestArgs = {
    * the comment must be less than or equal to the value of `commentAllowed`.
    */
   comment?: string | undefined;
+
+  /**
+   * The major version of UMA used for this request. If non-UMA, this version is still relevant
+   * for which LUD-21 spec to follow. For the older LUD-21 spec, this should be 0. For the newer
+   * LUD-21 spec, this should be 1.
+   */
+  umaMajorVersion: number;
 };
 
 /**
@@ -407,6 +409,7 @@ export async function getPayRequest({
   utxoCallback,
   requestedPayeeData,
   comment,
+  umaMajorVersion,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -427,6 +430,7 @@ export async function getPayRequest({
     amount,
     receivingCurrencyCode,
     sendingAmountCurrencyCode,
+    umaMajorVersion,
     {
       name: payerName,
       email: payerEmail,
@@ -648,11 +652,11 @@ export async function getPayReqResponse({
     isDisposable = true;
   }
 
-  return {
-    pr: encodedInvoice,
-    routes: [],
-    payeeData: Object.assign({ compliance: complianceData }, payeeData || {}),
-    converted: !!receivingCurrencyCode
+  return new PayReqResponse(
+    encodedInvoice,
+    [],
+    Object.assign({ compliance: complianceData }, payeeData || {}),
+    !!receivingCurrencyCode
       ? {
           amount: receivingAmount,
           currencyCode: receivingCurrencyCode,
@@ -661,9 +665,10 @@ export async function getPayReqResponse({
           fee: receiverFeesMillisats,
         }
       : undefined,
-    disposable: isDisposable,
+    isDisposable,
     successAction,
-  };
+    request.umaMajorVersion,
+  );
 }
 
 function validateUmaFields({
@@ -787,18 +792,19 @@ export async function getLnurlpResponse({
   nostrPubkey,
 }: GetSignedLnurlpResponseArgs): Promise<LnurlpResponse> {
   if (!isLnurlpRequestForUma(request)) {
-    return {
-      tag: "payRequest",
+    return new LnurlpResponse(
       callback,
-      minSendable: minSendableSats * 1000,
-      maxSendable: maxSendableSats * 1000,
-      metadata: encodedMetadata,
-      currencies: currencyOptions,
-      payerData: payerDataOptions,
-      commentAllowed: commentCharsAllowed,
+      minSendableSats * 1000,
+      maxSendableSats * 1000,
+      encodedMetadata,
+      undefined,
+      undefined,
+      currencyOptions,
+      payerDataOptions,
+      commentCharsAllowed,
       nostrPubkey,
-      allowsNostr: !!nostrPubkey,
-    };
+      !!nostrPubkey,
+    );
   }
   const requiredUmaFields = {
     privateKeyBytes: privateKeyBytes,
@@ -824,20 +830,30 @@ export async function getLnurlpResponse({
     isSubjectToTravelRule: requiresTravelRuleInfo!,
     receiverKycStatus: receiverKycStatus!,
   });
-  return {
-    tag: "payRequest",
+
+  // Ensure correct encoding of currencies for v0:
+  if (getMajorVersion(umaVersion) === 0) {
+    currencyOptions = currencyOptions?.map((currency) =>
+      currency.withUmaVersion(0),
+    );
+  } else {
+    currencyOptions = currencyOptions?.map((currency) =>
+      currency.withUmaVersion(MAJOR_VERSION),
+    );
+  }
+  return new LnurlpResponse(
     callback,
-    minSendable: minSendableSats * 1000,
-    maxSendable: maxSendableSats * 1000,
-    metadata: encodedMetadata,
-    currencies: currencyOptions,
-    payerData: payerDataOptions,
-    compliance: complianceResponse,
+    minSendableSats * 1000,
+    maxSendableSats * 1000,
+    encodedMetadata,
+    complianceResponse,
     umaVersion,
-    commentAllowed: commentCharsAllowed,
+    currencyOptions,
+    payerDataOptions,
+    commentCharsAllowed,
     nostrPubkey,
-    allowsNostr: !!nostrPubkey,
-  };
+    !!nostrPubkey,
+  );
 }
 
 type GetSignedLnurlpComplianceResponseArgs = {
@@ -914,9 +930,7 @@ export async function verifyUmaLnurlpResponseSignature(
     );
   }
   const encoder = new TextEncoder();
-  const encodedResponse = encoder.encode(
-    getSignableLnurlpResponsePayload(response),
-  );
+  const encodedResponse = encoder.encode(response.signablePayload());
   const hashedPayload = await createSha256Hash(encodedResponse);
   const otherVaspSigningPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
@@ -945,7 +959,7 @@ export async function verifyPayReqSignature(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
     );
   }
-  const encodedQuery = encoder.encode(getSignablePayRequestPayload(query));
+  const encodedQuery = encoder.encode(query.signablePayload());
   const hashedPayload = await createSha256Hash(encodedQuery);
   const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
   return verifySignature(
@@ -967,6 +981,13 @@ export async function verifyPayReqResponseSignature(
   if (!complianceData) {
     throw new Error("compliance data is required");
   }
+  if (
+    !complianceData.signatureNonce ||
+    !complianceData.signatureTimestamp ||
+    !complianceData.signature
+  ) {
+    throw new Error("compliance data is missing signature, nonce or timestamp");
+  }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     complianceData.signatureNonce,
     complianceData.signatureTimestamp,
@@ -977,11 +998,7 @@ export async function verifyPayReqResponseSignature(
     );
   }
   const encodedQuery = encoder.encode(
-    getSignablePayReqResponsePayload(
-      response,
-      payerIdentifier,
-      payeeIdentifier,
-    ),
+    response.signablePayload(payerIdentifier, payeeIdentifier),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
   const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
