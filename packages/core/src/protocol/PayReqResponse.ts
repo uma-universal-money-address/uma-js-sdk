@@ -7,6 +7,128 @@ import {
   type PayeeData,
 } from "./PayeeData.js";
 
+export class PayReqResponse {
+  constructor(
+    /** The BOLT11 invoice that the sender will pay. */
+    public readonly pr: string,
+    /**
+     * The data about the receiver that the sending VASP requested in the payreq request.
+     * Required for UMA.
+     */
+    public readonly payeeData: PayeeData | undefined,
+    /**
+     * Information about the payment that the receiver will receive. Includes
+     * Final currency-related information for the payment. Required for UMA.
+     */
+    public readonly converted: PayReqResponsePaymentInfo | undefined,
+    /**
+     * This field may be used by a WALLET to decide whether the initial LNURL link will
+     * be stored locally for later reuse or erased. If disposable is null, it should be
+     * interpreted as true, so if SERVICE intends its LNURL links to be stored it must
+     * return `disposable: false`. UMA should always return `disposable: false`. See LUD-11.
+     */
+    public readonly disposable: boolean | undefined,
+    /**
+     * Defines a struct which can be stored and shown to the user on payment success. See LUD-09.
+     */
+    public readonly successAction: Record<string, string> | undefined,
+    /**
+     * The major version of the UMA protocol that this currency adheres to. This is not
+     * serialized to JSON.
+     */
+    public readonly umaMajorVersion: number,
+    /**
+     * Usually just an empty list from legacy LNURL, which was replaced by route
+     * hints in the BOLT11 invoice.
+     */
+    public readonly routes: Route[] = [],
+  ) {}
+
+  isUma(): this is PayReqResponse & {
+    payeeData: PayeeData;
+    converted: PayReqResponsePaymentInfo;
+  } {
+    return !!this.payeeData?.compliance && !!this.converted;
+  }
+
+  toJsonString(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+
+  toJsonSchemaObject():
+    | z.infer<typeof V0PayReqResponseSchema>
+    | z.infer<typeof V1PayReqResponseSchema> {
+    if (this.umaMajorVersion === 0) {
+      return {
+        pr: this.pr,
+        routes: this.routes,
+        payeeData: this.payeeData,
+        disposable: this.disposable,
+        successAction: this.successAction,
+        paymentInfo: this.converted && {
+          currencyCode: this.converted?.currencyCode,
+          decimals: this.converted?.decimals,
+          multiplier: this.converted?.multiplier,
+          exchangeFeesMillisatoshi: this.converted?.fee,
+        },
+        compliance: this.payeeData?.compliance,
+      };
+    }
+    return {
+      pr: this.pr,
+      routes: this.routes,
+      payeeData: this.payeeData,
+      disposable: this.disposable,
+      successAction: this.successAction,
+      converted: this.converted,
+    };
+  }
+
+  static fromJson(json: string): PayReqResponse {
+    return this.parse(JSON.parse(json));
+  }
+
+  static parse(data: unknown): PayReqResponse {
+    let validated: z.infer<typeof PayReqResponseSchema>;
+    try {
+      validated = PayReqResponseSchema.parse(data);
+    } catch (e) {
+      throw new Error("invalid pay request response", { cause: e });
+    }
+    return this.fromSchema(validated);
+  }
+
+  static fromSchema(
+    schema: z.infer<typeof PayReqResponseSchema>,
+  ): PayReqResponse {
+    return new PayReqResponse(
+      schema.pr,
+      schema.payeeData && PayeeDataSchema.parse(schema.payeeData),
+      schema.converted &&
+        PayReqResponsePaymentInfoSchema.parse(schema.converted),
+      schema.disposable,
+      schema.successAction,
+      schema.umaMajorVersion,
+      schema.routes || [],
+    );
+  }
+
+  signablePayload(payerIdentifier: string, payeeIdentifier: string): string {
+    const complianceData = this.payeeData?.compliance;
+    if (!complianceData) {
+      throw new Error("compliance is required, but not present in payeeData");
+    }
+    if (!complianceData.signatureNonce || !complianceData.signatureTimestamp) {
+      throw new Error(
+        "signatureNonce and signatureTimestamp are required. Is this a v0 response?",
+      );
+    }
+    return `${payerIdentifier}|${payeeIdentifier}|${
+      complianceData.signatureNonce
+    }|${complianceData.signatureTimestamp.toString()}`;
+  }
+}
+
 export const RouteSchema = z.object({
   pubkey: z.string(),
   path: z.array(
@@ -155,99 +277,3 @@ export const PayReqResponseSchema = V1PayReqResponseSchema.or(
     };
   },
 );
-
-export class PayReqResponse {
-  constructor(
-    public readonly pr: string,
-    public readonly routes: Route[],
-    public readonly payeeData: PayeeData | undefined,
-    public readonly converted: PayReqResponsePaymentInfo | undefined,
-    public readonly disposable: boolean | undefined,
-    public readonly successAction: Record<string, string> | undefined,
-    public readonly umaMajorVersion: number,
-  ) {}
-
-  isUma(): this is PayReqResponse & {
-    payeeData: PayeeData;
-    converted: PayReqResponsePaymentInfo;
-  } {
-    return !!this.payeeData?.compliance && !!this.converted;
-  }
-
-  toJsonString(): string {
-    return JSON.stringify(this.toJsonSchemaObject());
-  }
-
-  toJsonSchemaObject():
-    | z.infer<typeof V0PayReqResponseSchema>
-    | z.infer<typeof V1PayReqResponseSchema> {
-    if (this.umaMajorVersion === 0) {
-      return {
-        pr: this.pr,
-        routes: this.routes,
-        payeeData: this.payeeData,
-        disposable: this.disposable,
-        successAction: this.successAction,
-        paymentInfo: this.converted && {
-          currencyCode: this.converted?.currencyCode,
-          decimals: this.converted?.decimals,
-          multiplier: this.converted?.multiplier,
-          exchangeFeesMillisatoshi: this.converted?.fee,
-        },
-        compliance: this.payeeData?.compliance,
-      };
-    }
-    return {
-      pr: this.pr,
-      routes: this.routes,
-      payeeData: this.payeeData,
-      disposable: this.disposable,
-      successAction: this.successAction,
-      converted: this.converted,
-    };
-  }
-
-  static fromJson(json: string): PayReqResponse {
-    return this.parse(JSON.parse(json));
-  }
-
-  static parse(data: unknown): PayReqResponse {
-    let validated: z.infer<typeof PayReqResponseSchema>;
-    try {
-      validated = PayReqResponseSchema.parse(data);
-    } catch (e) {
-      throw new Error("invalid pay request response", { cause: e });
-    }
-    return this.fromSchema(validated);
-  }
-
-  static fromSchema(
-    schema: z.infer<typeof PayReqResponseSchema>,
-  ): PayReqResponse {
-    return new PayReqResponse(
-      schema.pr,
-      schema.routes || [],
-      schema.payeeData && PayeeDataSchema.parse(schema.payeeData),
-      schema.converted &&
-        PayReqResponsePaymentInfoSchema.parse(schema.converted),
-      schema.disposable,
-      schema.successAction,
-      schema.umaMajorVersion,
-    );
-  }
-
-  signablePayload(payerIdentifier: string, payeeIdentifier: string): string {
-    const complianceData = this.payeeData?.compliance;
-    if (!complianceData) {
-      throw new Error("compliance is required, but not present in payeeData");
-    }
-    if (!complianceData.signatureNonce || !complianceData.signatureTimestamp) {
-      throw new Error(
-        "signatureNonce and signatureTimestamp are required. Is this a v0 response?",
-      );
-    }
-    return `${payerIdentifier}|${payeeIdentifier}|${
-      complianceData.signatureNonce
-    }|${complianceData.signatureTimestamp.toString()}`;
-  }
-}

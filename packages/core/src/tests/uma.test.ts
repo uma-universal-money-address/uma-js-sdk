@@ -4,14 +4,14 @@ import secp256k1 from "secp256k1";
 import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
-import Currency from "../protocol/Currency.js";
+import { Currency } from "../protocol/Currency.js";
 import { KycStatus } from "../protocol/KycStatus.js";
 import {
   isLnurlpRequestForUma,
   type LnurlpRequest,
 } from "../protocol/LnurlpRequest.js";
-import LnurlpResponse from "../protocol/LnurlpResponse.js";
-import PayReqResponse from "../protocol/PayReqResponse.js";
+import { LnurlpResponse } from "../protocol/LnurlpResponse.js";
+import { PayReqResponse } from "../protocol/PayReqResponse.js";
 import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import {

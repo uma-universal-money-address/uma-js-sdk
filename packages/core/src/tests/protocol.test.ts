@@ -1,11 +1,8 @@
-import Currency from "../protocol/Currency.js";
+import { Currency } from "../protocol/Currency.js";
 import { KycStatus } from "../protocol/KycStatus.js";
-import LnurlpResponse from "../protocol/LnurlpResponse.js";
-import PayReqResponse from "../protocol/PayReqResponse.js";
-import {
-  PayRequest,
-  PayRequestSchema,
-} from "../protocol/PayRequest.js";
+import { LnurlpResponse } from "../protocol/LnurlpResponse.js";
+import { PayReqResponse } from "../protocol/PayReqResponse.js";
+import { PayRequest, PayRequestSchema } from "../protocol/PayRequest.js";
 import { getLnurlpResponse } from "../uma.js";
 
 describe("uma protocol", () => {
@@ -63,7 +60,7 @@ describe("uma protocol", () => {
     expect(payReq.sendingAmountCurrencyCode).toBe("SAT");
     expect(payReq.receivingCurrencyCode).toBeUndefined();
     expect(payReq.payerData).toBeUndefined();
-    expect(payReq.isUmaPayRequest()).toBe(false);
+    expect(payReq.isUma()).toBe(false);
   });
 
   it("should parse valid payreq with only number amount", async () => {

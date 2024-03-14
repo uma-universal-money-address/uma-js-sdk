@@ -70,16 +70,62 @@ export const PayRequestSchema = V0PayRequestSchema.or(
  */
 export class PayRequest {
   constructor(
+    /**
+     * The amount of the payment in the currency specified by `currency_code`. This amount is
+     * in the smallest unit of the specified currency (e.g. cents for USD).
+     */
     public readonly amount: number,
+    /**
+     * The 3-character currency code that the receiver will receive for this payment.
+     */
     public readonly receivingCurrencyCode: string | undefined,
+    /**
+     * The currency code of the `amount` field. `None` indicates that `amount` is in millisatoshis
+     * as in LNURL without LUD-21. If this is not `None`, then `amount` is in the smallest unit of
+     * the specified currency (e.g. cents for USD). This currency code can be any currency which
+     * the receiver can quote. However, there are two most common scenarios for UMA:
+     *
+     * 1. If the sender wants the receiver wants to receive a specific amount in their receiving
+     * currency, then this field should be the same as `receiving_currency_code`. This is useful
+     * for cases where the sender wants to ensure that the receiver receives a specific amount
+     * in that destination currency, regardless of the exchange rate, for example, when paying
+     * for some goods or services in a foreign currency.
+     *
+     * 2. If the sender has a specific amount in their own currency that they would like to send,
+     * then this field should be left as `None` to indicate that the amount is in millisatoshis.
+     * This will lock the sent amount on the sender side, and the receiver will receive the
+     * equivalent amount in their receiving currency. NOTE: In this scenario, the sending VASP
+     * *should not* pass the sending currency code here, as it is not relevant to the receiver.
+     * Rather, by specifying an invoice amount in msats, the sending VASP can ensure that their
+     * user will be sending a fixed amount, regardless of the exchange rate on the receiving side.
+     */
     public readonly sendingAmountCurrencyCode: string | undefined,
+    /**
+     * The major version of the UMA protocol that this currency adheres to. This is not serialized to JSON.
+     */
     readonly umaMajorVersion: number,
+    /**
+     * The data about the payer that the sending VASP must provide in order to send a payment.
+     * This was requested by the receiver in the lnulp response. See LUD-18.
+     */
     public readonly payerData?: z.infer<typeof PayerDataSchema> | undefined,
+    /**
+     * The data about the receiver that the sending VASP would like to know from the receiver.
+     * See LUD-22.
+     */
     public readonly requestedPayeeData?: CounterPartyDataOptions | undefined,
+    /**
+     * A comment that the sender would like to include with the payment. This can only be included
+     * if the receiver included the `commentAllowed` field in the lnurlp response. The length of
+     * the comment must be less than or equal to the value of `commentAllowed`.
+     */
     public readonly comment?: string | undefined,
   ) {}
 
-  isUmaPayRequest(): this is {
+  /**
+   * @returns true if this PayRequest is for UMA. False if for regular lnurl.
+   */
+  isUma(): this is {
     payerData: PayerData;
     receivingCurrencyCode: string;
   } {

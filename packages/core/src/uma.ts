@@ -632,7 +632,7 @@ export async function getPayReqResponse({
     throw new Error("Payer identifier missing");
   }
   let complianceData: CompliancePayeeData | undefined;
-  if (request.isUmaPayRequest()) {
+  if (request.isUma()) {
     if (!payeeIdentifier) {
       throw new Error("Payee identifier missing");
     }
@@ -648,13 +648,12 @@ export async function getPayReqResponse({
 
   let isDisposable = disposable;
   // UMA requests should be disposable by default.
-  if (isDisposable === undefined && request.isUmaPayRequest()) {
+  if (isDisposable === undefined && request.isUma()) {
     isDisposable = true;
   }
 
   return new PayReqResponse(
     encodedInvoice,
-    [],
     Object.assign({ compliance: complianceData }, payeeData || {}),
     !!receivingCurrencyCode
       ? {
@@ -681,7 +680,7 @@ function validateUmaFields({
   receivingVaspPrivateKey,
   payeeIdentifier,
 }: Partial<PayRequestResponseArgs>) {
-  if (!request?.isUmaPayRequest()) {
+  if (!request?.isUma()) {
     return;
   }
   const umaRequiredFields = {
