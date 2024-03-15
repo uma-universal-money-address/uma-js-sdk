@@ -4,13 +4,14 @@ import secp256k1 from "secp256k1";
 import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
+import { Currency } from "../protocol/Currency.js";
 import { KycStatus } from "../protocol/KycStatus.js";
 import {
   isLnurlpRequestForUma,
   type LnurlpRequest,
 } from "../protocol/LnurlpRequest.js";
-import { parseLnurlpResponse } from "../protocol/LnurlpResponse.js";
-import { parsePayReqResponse } from "../protocol/PayReqResponse.js";
+import { LnurlpResponse } from "../protocol/LnurlpResponse.js";
+import { PayReqResponse } from "../protocol/PayReqResponse.js";
 import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import {
@@ -463,7 +464,7 @@ describe("uma", () => {
         },
       },
       currencyOptions: [
-        {
+        Currency.parse({
           code: "USD",
           name: "US Dollar",
           symbol: "$",
@@ -473,13 +474,12 @@ describe("uma", () => {
             max: 10_000_000,
           },
           decimals: 2,
-        },
+        }),
       ],
       receiverKycStatus: KycStatus.Verified,
     });
 
-    const responseJson = JSON.stringify(response);
-    const parsedResponse = parseLnurlpResponse(responseJson);
+    const parsedResponse = LnurlpResponse.parse(response);
     const verified = verifyUmaLnurlpResponseSignature(
       parsedResponse,
       {
@@ -511,6 +511,7 @@ describe("uma", () => {
       trInfo: trInfo,
       travelRuleFormat: "fake_format@1.0",
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
     });
 
     const invoiceCreator = {
@@ -538,8 +539,9 @@ describe("uma", () => {
 
     expect(payreqResponse.converted?.amount).toBe(1000);
     expect(payreqResponse.converted?.currencyCode).toBe("USD");
-    const payreqResponseJson = JSON.stringify(payreqResponse);
-    const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
+    expect(payreqResponse.umaMajorVersion).toBe(1);
+    const payreqResponseJson = payreqResponse.toJsonString();
+    const parsedPayreqResponse = PayReqResponse.fromJson(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
     const verified = await verifyPayReqResponseSignature(
       parsedPayreqResponse,
@@ -574,6 +576,7 @@ describe("uma", () => {
       trInfo: trInfo,
       travelRuleFormat: "fake_format@1.0",
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
     });
     expect(payreq.sendingAmountCurrencyCode).toBe("SAT");
     expect(payreq.receivingCurrencyCode).toBe("USD");
@@ -605,8 +608,8 @@ describe("uma", () => {
       Math.round((1_000_000 - 100_000) / 34_150),
     );
     expect(payreqResponse.converted?.currencyCode).toBe("USD");
-    const payreqResponseJson = JSON.stringify(payreqResponse);
-    const parsedPayreqResponse = parsePayReqResponse(payreqResponseJson);
+    const payreqResponseJson = payreqResponse.toJsonString();
+    const parsedPayreqResponse = PayReqResponse.fromJson(payreqResponseJson);
     expect(parsedPayreqResponse).toEqual(payreqResponse);
     const verified = await verifyPayReqResponseSignature(
       parsedPayreqResponse,
@@ -640,9 +643,10 @@ describe("uma", () => {
       trInfo,
       payerKycStatus: KycStatus.Verified,
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
     });
 
-    const payreqJson = payreq.toJson();
+    const payreqJson = payreq.toJsonString();
 
     const parsedPayreq = PayRequest.fromJson(payreqJson);
 
