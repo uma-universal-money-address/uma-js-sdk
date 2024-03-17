@@ -230,6 +230,7 @@ export class PayRequest {
    */
   static fromUrlSearchParams(params: URLSearchParams): PayRequest {
     const convert = params.get("convert");
+    const v0Currency = params.get("currency");
     const amountParam = params.get("amount");
     const payerData = params.get("payerData");
     const payeeData = params.get("payeeData");
@@ -241,6 +242,7 @@ export class PayRequest {
     try {
       validated = PayRequestSchema.parse({
         convert,
+        currency: v0Currency,
         amount: amountParam,
         payerData: payerData ? JSON.parse(payerData) : undefined,
         payeeData: payeeData ? JSON.parse(payeeData) : undefined,
