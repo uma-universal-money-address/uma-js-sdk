@@ -744,7 +744,7 @@ async function getSignedCompliancePayeeData(
   receiverNodePubKey: string | undefined,
   utxoCallback: string | undefined,
 ): Promise<CompliancePayeeData> {
-  const signatureTimestamp = Date.now();
+  const signatureTimestamp = Math.floor(Date.now() / 1000);
   const signatureNonce = generateNonce();
   const payloadString = `${payerIdentifier}|${payeeIdentifier}|${signatureNonce}|${signatureTimestamp}`;
   const signature = await signPayload(

@@ -221,7 +221,7 @@ export class PayRequest {
   }
 
   static fromJson(jsonStr: string): PayRequest {
-    return this.fromSchema(JSON.parse(jsonStr));
+    return this.parse(JSON.parse(jsonStr));
   }
 
   /**

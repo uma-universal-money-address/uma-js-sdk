@@ -20,7 +20,7 @@ export class LnurlpResponse {
     public maxSendable: number,
     /** JSON-encoded metadata that the sender can use to display information to the user. */
     public metadata: string,
-    /** Compliance-related data from the receiving VASP. */
+    /** Compliance-related data from the receiving VASP. Required for UMA. */
     public compliance?: LnurlComplianceResponse,
     /**
      * The version of the UMA protocol that VASP2 has chosen for this transaction based on its own support and VASP1's specified preference in the LnurlpRequest.
