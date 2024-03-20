@@ -56,6 +56,20 @@ export function parseLnurlpRequest(url: URL) {
   const umaVersion = query.get("umaVersion");
   const timestamp = query.get("timestamp");
 
+  const pathParts = url.pathname.split("/");
+  if (
+    pathParts.length != 4 ||
+    pathParts[1] != ".well-known" ||
+    pathParts[2] != "lnurlp"
+  ) {
+    throw new Error("invalid request path");
+  }
+  const receiverAddress = pathParts[3] + "@" + url.host;
+
+  if (umaVersion && !isVersionSupported(umaVersion)) {
+    throw new UnsupportedVersionError(umaVersion);
+  }
+
   if (!vaspDomain || !signature || !nonce || !timestamp || !umaVersion) {
     throw new Error(
       "missing uma query parameters. vaspDomain, umaVersion, signature, nonce, and timestamp are required",
@@ -65,20 +79,6 @@ export function parseLnurlpRequest(url: URL) {
   const timestampUnixSeconds = parseInt(timestamp, 10);
   /* Date expects milliseconds: */
   const timestampAsTime = new Date(timestampUnixSeconds * 1000);
-
-  const pathParts = url.pathname.split("/");
-  if (
-    pathParts.length != 4 ||
-    pathParts[1] != ".well-known" ||
-    pathParts[2] != "lnurlp"
-  ) {
-    throw new Error("invalid uma request path");
-  }
-  const receiverAddress = pathParts[3] + "@" + url.host;
-
-  if (!isVersionSupported(umaVersion)) {
-    throw new UnsupportedVersionError(umaVersion);
-  }
 
   return {
     vaspDomain,
