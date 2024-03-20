@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 0.8.2
+
+### Patch Changes
+
+- e5f8f9d: - Fix version future-proofing with isUmaLnurlpQuery.
+
 ## 0.8.1
 
 ### Patch Changes
