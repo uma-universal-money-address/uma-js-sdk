@@ -29,10 +29,7 @@ import {
   type PostTransactionCallback,
   type UtxoWithAmount,
 } from "./protocol/PostTransactionCallback.js";
-import {
-  getSigningPubKey,
-  type PubKeyResponse,
-} from "./protocol/PubKeyResponse.js";
+import { PubKeyResponse } from "./protocol/PubKeyResponse.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
@@ -169,12 +166,12 @@ type GetPubKeyResponseArgs = {
    * The chain of signing certificates in PEM format. The order of the certificates
    * should be from the leaf to the root. Used to verify signatures from a vasp.
    */
-  signingCertChain: string;
+  signingCertChainPem: string;
   /**
    * The chain of encryption certificates in PEM format. The order of the certificates
    * should be from the leaf to the root. Used to encrypt TR info sent to a VASP.
    */
-  encryptionCertChain: string;
+  encryptionCertChainPem: string;
   /** Seconds since epoch at which these pub keys must be refreshed. They can be safely cached until this expiration (or forever if null). */
   expirationTimestamp?: number;
 };
@@ -183,21 +180,23 @@ type GetPubKeyResponseArgs = {
  * Creates a pub key response.
  */
 export function getPubKeyResponse({
-  signingCertChain,
-  encryptionCertChain,
+  signingCertChainPem,
+  encryptionCertChainPem,
   expirationTimestamp,
 }: GetPubKeyResponseArgs) {
-  const signingCertChainX509 = getX509CertChain(signingCertChain);
-  const encryptionCerChainX509 = getX509CertChain(encryptionCertChain);
+  const signingCertChainX509 = getX509CertChain(signingCertChainPem);
+  const encryptionCertChainX509 = getX509CertChain(encryptionCertChainPem);
   const signingPubKey = getPublicKey(signingCertChainX509).toString("hex");
-  const encryptionPubKey = getPublicKey(encryptionCerChainX509).toString("hex");
-  return {
-    signingCertChain: signingCertChain,
-    encryptionCertChain: encryptionCertChain,
-    signingPubKey: signingPubKey,
-    encryptionPubKey: encryptionPubKey,
-    expirationTimestamp: expirationTimestamp,
-  };
+  const encryptionPubKey = getPublicKey(encryptionCertChainX509).toString(
+    "hex",
+  );
+  return new PubKeyResponse(
+    signingCertChainX509,
+    encryptionCertChainX509,
+    signingPubKey,
+    encryptionPubKey,
+    expirationTimestamp,
+  );
 }
 
 type GetSignedLnurlpRequestUrlArgs = {
@@ -273,7 +272,7 @@ export async function verifyUmaLnurlpQuerySignature(
   const encoder = new TextEncoder();
   const encodedPayload = encoder.encode(payload);
   const hashedPayload = await createSha256Hash(encodedPayload);
-  const otherVaspSigningPubKey = getSigningPubKey(otherVaspPubKeyResponse);
+  const otherVaspSigningPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(
     hashedPayload,
     query.signature!,
@@ -931,7 +930,7 @@ export async function verifyUmaLnurlpResponseSignature(
   const encoder = new TextEncoder();
   const encodedResponse = encoder.encode(response.signablePayload());
   const hashedPayload = await createSha256Hash(encodedResponse);
-  const otherVaspSigningPubKey = getSigningPubKey(otherVaspPubKeyResponse);
+  const otherVaspSigningPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(
     hashedPayload,
     response.compliance.signature,
@@ -960,7 +959,7 @@ export async function verifyPayReqSignature(
   }
   const encodedQuery = encoder.encode(query.signablePayload());
   const hashedPayload = await createSha256Hash(encodedQuery);
-  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
+  const otherVaspPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(
     hashedPayload,
     complianceData.signature,
@@ -1000,7 +999,7 @@ export async function verifyPayReqResponseSignature(
     response.signablePayload(payerIdentifier, payeeIdentifier),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
-  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
+  const otherVaspPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(
     hashedPayload,
     complianceData.signature,
@@ -1027,6 +1026,6 @@ export async function verifyPostTransactionCallbackSignature(
     getSignablePostTransactionCallback(callback),
   );
   const hashedPayload = await createSha256Hash(encodedQuery);
-  const otherVaspPubKey = getSigningPubKey(otherVaspPubKeyResponse);
+  const otherVaspPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(hashedPayload, callback.signature, otherVaspPubKey);
 }
