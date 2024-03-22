@@ -13,7 +13,7 @@ export type PubKeyResponse = {
    * leaf to root. The encryption public key can be extracted from the leaf certificate and is used
    * to verify signatures from a VASP.
    */
-  encruptionCertChain?: string;
+  encryptionCertChain?: string;
   /** SigningPubKey is used to verify signatures from a VASP. */
   signingPubKey?: string;
   /** EncryptionPubKey is used to encrypt TR info sent to a VASP. */
@@ -34,8 +34,8 @@ export function getSigningPubKey(r: PubKeyResponse): Uint8Array {
 }
 
 export function getEncryptionPubKey(r: PubKeyResponse): Uint8Array {
-  if (r.encruptionCertChain) {
-    const certificates = getX509CertChain(r.encruptionCertChain);
+  if (r.encryptionCertChain) {
+    const certificates = getX509CertChain(r.encryptionCertChain);
     return getPublicKey(certificates);
   } else if (r.encryptionPubKey) {
     return Buffer.from(r.encryptionPubKey, "hex");
