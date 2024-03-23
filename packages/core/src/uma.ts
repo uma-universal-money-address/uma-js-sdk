@@ -156,7 +156,7 @@ export async function fetchPublicKeyForVasp({
   if (response.status !== 200) {
     return Promise.reject(new Error("invalid response from VASP"));
   }
-  const pubKeyResponse = await response.json();
+  const pubKeyResponse = PubKeyResponse.fromJson(await response.text());
   cache.addPublicKeyForVasp(vaspDomain, pubKeyResponse);
   return pubKeyResponse;
 }
