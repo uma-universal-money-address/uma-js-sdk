@@ -1,4 +1,4 @@
-import { randomBytes, X509Certificate } from "crypto";
+import { randomBytes, type X509Certificate } from "crypto";
 import { decrypt, PrivateKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { getX509CertChain } from "../certUtils.js";
