@@ -84,7 +84,7 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
     pathParts[1] != ".well-known" ||
     pathParts[2] != "lnurlp"
   ) {
-    throw new Error("invalid uma request path");
+    throw new Error("invalid request path");
   }
   const receiverAddress = pathParts[3] + "@" + url.host;
 

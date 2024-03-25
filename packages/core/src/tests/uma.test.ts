@@ -214,6 +214,17 @@ describe("uma", () => {
     expect(isUmaLnurlpQuery(url)).toBe(false);
   });
 
+  it("future uma versions are still UMA queries", () => {
+    const umaQuery =
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=100.0&isSubjectToTravelRule=true&timestamp=12345678";
+    expect(isUmaLnurlpQuery(new URL(umaQuery))).toBeTruthy();
+
+    // Maybe the params can change in a future version.
+    const umaQueryMissingParams =
+      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&umaVersion=100.0&isSubjectToTravelRule=true&timestamp=12345678";
+    expect(isUmaLnurlpQuery(new URL(umaQueryMissingParams))).toBeTruthy();
+  });
+
   it("should validate valid uma addresses", () => {
     expect(isValidUmaAddress("$bob@vasp-domain.com")).toBe(true);
     expect(isValidUmaAddress("$BOb@vasp-domain.com")).toBe(true);
