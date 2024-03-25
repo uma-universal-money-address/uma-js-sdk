@@ -65,12 +65,6 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
     umaVersion,
   ].filter((param) => param !== undefined).length;
 
-  if (numUmaParamsIncluded < 5 && numUmaParamsIncluded > 0) {
-    throw new Error(
-      "Invalid UMA request. All UMA parameters must be included if any are included.",
-    );
-  }
-
   let timestampAsTime: Date | undefined;
   if (timestamp) {
     const timestampUnixSeconds = parseInt(timestamp, 10);
@@ -90,6 +84,12 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
 
   if (umaVersion !== undefined && !isVersionSupported(umaVersion)) {
     throw new UnsupportedVersionError(umaVersion);
+  }
+
+  if (numUmaParamsIncluded < 5 && numUmaParamsIncluded > 0) {
+    throw new Error(
+      "Invalid UMA request. All UMA parameters must be included if any are included.",
+    );
   }
 
   return {
