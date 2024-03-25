@@ -67,7 +67,7 @@ describe("uma protocol", () => {
     const payReq = PayRequest.fromJson(
       JSON.stringify({
         convert: "USD",
-        amount: "100",
+        amount: 100,
         payerData: {
           identifier: "$bob@uma-test.lightspark.com",
           name: null,
