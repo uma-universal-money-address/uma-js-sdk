@@ -7,26 +7,32 @@ import {
 } from "./CounterPartyData.js";
 import { PayerDataSchema, type PayerData } from "./PayerData.js";
 
-const V1PayRequestSchema = z.object({
-  /** The 3-character currency code that the receiver will receive for this payment. */
-  convert: optionalIgnoringNull(z.string()),
-  /**
-   * An amount (int64) followed optionally by a "." and the sending currency code. For example: "100.USD" would send
-   * an amount equivalent to $1 USD. Note that the amount is specified in the smallest unit of the specified
-   * currency (eg. cents for USD). Omitting the currency code will default to specifying the amount in millisats.
-   */
-  amount: z.coerce.string(),
-  /** The data that the sender will send to the receiver to identify themselves. See LUD-18. */
-  payerData: optionalIgnoringNull(PayerDataSchema),
-  /** The fields requested about the payee by the sending vasp, if any. */
-  payeeData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
-  /**
-   * A comment that the sender would like to include with the payment. This can only be included
-   * if the receiver included the `commentAllowed` field in the lnurlp response. The length of
-   * the comment must be less than or equal to the value of `commentAllowed`.
-   */
-  comment: optionalIgnoringNull(z.string()),
-});
+const V1PayRequestSchema = z
+  .object({
+    /** The 3-character currency code that the receiver will receive for this payment. */
+    convert: optionalIgnoringNull(z.string()),
+    /**
+     * An amount (int64) followed optionally by a "." and the sending currency code. For example: "100.USD" would send
+     * an amount equivalent to $1 USD. Note that the amount is specified in the smallest unit of the specified
+     * currency (eg. cents for USD). Omitting the currency code will default to specifying the amount in millisats.
+     */
+    amount: z.coerce.string(),
+    /** The data that the sender will send to the receiver to identify themselves. See LUD-18. */
+    payerData: optionalIgnoringNull(PayerDataSchema),
+    /** The fields requested about the payee by the sending vasp, if any. */
+    payeeData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+    /**
+     * A comment that the sender would like to include with the payment. This can only be included
+     * if the receiver included the `commentAllowed` field in the lnurlp response. The length of
+     * the comment must be less than or equal to the value of `commentAllowed`.
+     */
+    comment: optionalIgnoringNull(z.string()),
+  })
+  .passthrough()
+  .refine((data) => {
+    // This refinement is needed to avoid swallowing V0 data.
+    return !("currency" in data) || "convert" in data;
+  });
 
 const V0PayRequestSchema = z.object({
   currency: optionalIgnoringNull(z.string()),
@@ -36,8 +42,8 @@ const V0PayRequestSchema = z.object({
   comment: optionalIgnoringNull(z.string()),
 });
 
-export const PayRequestSchema = V0PayRequestSchema.or(
-  V1PayRequestSchema,
+export const PayRequestSchema = V1PayRequestSchema.or(
+  V0PayRequestSchema,
 ).transform(
   (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
