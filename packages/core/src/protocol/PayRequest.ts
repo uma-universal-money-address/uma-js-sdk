@@ -152,10 +152,9 @@ export class PayRequest {
         comment: this.comment,
       };
     }
-    const amountString =
-      this.sendingAmountCurrencyCode == "SAT" || !this.sendingAmountCurrencyCode
-        ? this.amount.toString()
-        : `${this.amount}.${this.sendingAmountCurrencyCode}`;
+    const amountString = !this.sendingAmountCurrencyCode
+      ? this.amount.toString()
+      : `${this.amount}.${this.sendingAmountCurrencyCode}`;
     return {
       convert: this.receivingCurrencyCode,
       amount: amountString,
@@ -190,11 +189,11 @@ export class PayRequest {
 
   static fromSchema(schema: z.infer<typeof PayRequestSchema>): PayRequest {
     let amount: number;
-    let sendingAmountCurrencyCode: string;
+    let sendingAmountCurrencyCode: string | undefined;
     const amountFieldStr = schema.amount.toString();
     if (!amountFieldStr.includes(".")) {
       amount = z.coerce.number().int().parse(amountFieldStr);
-      sendingAmountCurrencyCode = "SAT";
+      sendingAmountCurrencyCode = undefined;
     } else if (amountFieldStr.split(".").length > 2) {
       throw new Error(
         "invalid amount string. Cannot contain more than one period. Example: '5000' for SAT or '5.USD' for USD.",

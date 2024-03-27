@@ -588,7 +588,7 @@ describe("uma", () => {
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
       umaMajorVersion: 1,
     });
-    expect(payreq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payreq.sendingAmountCurrencyCode).toBeUndefined();
     expect(payreq.receivingCurrencyCode).toBe("USD");
 
     const invoiceCreator = {

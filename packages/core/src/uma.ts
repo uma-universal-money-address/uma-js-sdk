@@ -423,7 +423,7 @@ export async function getPayRequest({
   );
   const sendingAmountCurrencyCode = isAmountInReceivingCurrency
     ? receivingCurrencyCode
-    : "SAT";
+    : undefined;
 
   return new PayRequest(
     amount,
@@ -595,9 +595,7 @@ export async function getPayReqResponse({
     receiverFeesMillisats,
   });
 
-  const isSendingAmountInMsats =
-    !request.sendingAmountCurrencyCode ||
-    request.sendingAmountCurrencyCode === "SAT";
+  const isSendingAmountInMsats = !request.sendingAmountCurrencyCode;
 
   if (
     !isSendingAmountInMsats &&
