@@ -153,8 +153,8 @@ export class PayRequest {
       };
     }
     const amountString = !this.sendingAmountCurrencyCode
-        ? this.amount.toString()
-        : `${this.amount}.${this.sendingAmountCurrencyCode}`;
+      ? this.amount.toString()
+      : `${this.amount}.${this.sendingAmountCurrencyCode}`;
     return {
       convert: this.receivingCurrencyCode,
       amount: amountString,
@@ -189,7 +189,7 @@ export class PayRequest {
 
   static fromSchema(schema: z.infer<typeof PayRequestSchema>): PayRequest {
     let amount: number;
-    let sendingAmountCurrencyCode: string|undefined;
+    let sendingAmountCurrencyCode: string | undefined;
     const amountFieldStr = schema.amount.toString();
     if (!amountFieldStr.includes(".")) {
       amount = z.coerce.number().int().parse(amountFieldStr);
