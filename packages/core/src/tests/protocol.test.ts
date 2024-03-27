@@ -57,7 +57,7 @@ describe("uma protocol", () => {
   it("should parse valid non-uma payreq", async () => {
     const payReq = PayRequest.fromJson(JSON.stringify({ amount: 100 }));
     expect(payReq.amount).toBe(100);
-    expect(payReq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payReq.sendingAmountCurrencyCode).toBeUndefined();
     expect(payReq.receivingCurrencyCode).toBeUndefined();
     expect(payReq.payerData).toBeUndefined();
     expect(payReq.isUma()).toBe(false);
@@ -95,7 +95,7 @@ describe("uma protocol", () => {
       }),
     );
     expect(payReq.amount).toBe(100);
-    expect(payReq.sendingAmountCurrencyCode).toBe("SAT");
+    expect(payReq.sendingAmountCurrencyCode).toBeUndefined();
     expect(payReq.receivingCurrencyCode).toBe("USD");
   });
 
