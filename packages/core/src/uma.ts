@@ -595,7 +595,7 @@ export async function getPayReqResponse({
     receiverFeesMillisats,
   });
 
-  const isSendingAmountInMsats = !request.sendingAmountCurrencyCode
+  const isSendingAmountInMsats = !request.sendingAmountCurrencyCode;
 
   if (
     !isSendingAmountInMsats &&
