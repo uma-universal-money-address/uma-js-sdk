@@ -1,4 +1,4 @@
-import { type PubKeyResponse } from "./protocol.js";
+import { type PubKeyResponse } from "./protocol/PubKeyResponse.js";
 
 export interface PublicKeyCache {
   fetchPublicKeyForVasp(vaspDomain: string): PubKeyResponse | undefined;

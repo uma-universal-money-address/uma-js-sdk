@@ -10,3 +10,10 @@ export const isError = (e: unknown): e is Error => {
       (!e.stack || typeof e.stack === "string"),
   );
 };
+
+export class InvalidInputError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidInputError";
+  }
+}
