@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.0.0
+
+### Major Changes
+
+- b723ef3: - Update the SDK to the v1.0 version of the UMA Protocol 🎉. See the V1 migration guide https://docs.uma.me/uma-standard/uma-v1-migration for the full update list.
+
 ## 0.8.2
 
 ### Patch Changes
