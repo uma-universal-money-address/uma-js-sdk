@@ -56,12 +56,16 @@ jobs:
                 ref: triggeringRefHead,
               });
 
+              let title = latestCommit.commit.message.replace(/\sGitOrigin-RevId.*/, "");
+              if (title.length > 256) {
+                title = title.substring(0, 253) + "...";
+              }
               const result = await github.rest.pulls.create({
                 owner,
                 repo,
                 head: triggeringRefHead,
                 base,
-                title: latestCommit.commit.message.replace(/\sGitOrigin-RevId.*/, ""),
+                title,
                 body: "If this change should result in new package versions please add a changeset before merging. You can do so by clicking the link provided by changeset bot below."
               });
               pr = result.data;
