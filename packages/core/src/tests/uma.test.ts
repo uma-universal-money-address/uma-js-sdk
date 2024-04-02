@@ -710,6 +710,50 @@ describe("uma", () => {
     expect(verified).toBe(true);
   });
 
+  it("should encrypt using specific public key", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    // This pubkey response is similar to ones generated from other SDKs.
+    const pubkeys = PubKeyResponse.fromJson(`{
+      "encryptionCertChain": [
+        "30820203308201a8a003020102021468951575052e6746ed833d3fa24328a65d07d2a2300a06082a8648ce3d0403023058310b30090603550406130255533113301106035504080c0a43616c69666f726e69613114301206035504070c0b4c6f7320416e67656c6573311e301c060355040a0c154c69676874737061726b2047726f757020496e632e301e170d3234303430323035323232325a170d3234303530323035323232325a3058310b30090603550406130255533113301106035504080c0a43616c69666f726e69613114301206035504070c0b4c6f7320416e67656c6573311e301c060355040a0c154c69676874737061726b2047726f757020496e632e3056301006072a8648ce3d020106052b8104000a03420004bf99978277b2370c1e8fd520aa407af400573ec42ece45f90debfb5414be6b70e041606a1c0fd28ff129c84f0af6daa966e2c9b3980b59f02444e53a068d5c65a3533051301d0603551d0e04160414e0ae53fdf69ab09b6a0afaea46e358746d66b04d301f0603551d23041830168014e0ae53fdf69ab09b6a0afaea46e358746d66b04d300f0603551d130101ff040530030101ff300a06082a8648ce3d0403020349003046022100fca75215d93aff51441e3c0e9e5c3b8e5a3d257958ce5a4e761f35f6fda02a17022100fef0ae40f34e15f5f9b705553c827828fe0dcc526ef1dffe0afea193ebead954"
+      ],
+      "encryptionPubKey": "04bf99978277b2370c1e8fd520aa407af400573ec42ece45f90debfb5414be6b70e041606a1c0fd28ff129c84f0af6daa966e2c9b3980b59f02444e53a068d5c65",
+      "signingCertChain": [
+        "30820203308201a8a003020102021468951575052e6746ed833d3fa24328a65d07d2a2300a06082a8648ce3d0403023058310b30090603550406130255533113301106035504080c0a43616c69666f726e69613114301206035504070c0b4c6f7320416e67656c6573311e301c060355040a0c154c69676874737061726b2047726f757020496e632e301e170d3234303430323035323232325a170d3234303530323035323232325a3058310b30090603550406130255533113301106035504080c0a43616c69666f726e69613114301206035504070c0b4c6f7320416e67656c6573311e301c060355040a0c154c69676874737061726b2047726f757020496e632e3056301006072a8648ce3d020106052b8104000a03420004bf99978277b2370c1e8fd520aa407af400573ec42ece45f90debfb5414be6b70e041606a1c0fd28ff129c84f0af6daa966e2c9b3980b59f02444e53a068d5c65a3533051301d0603551d0e04160414e0ae53fdf69ab09b6a0afaea46e358746d66b04d301f0603551d23041830168014e0ae53fdf69ab09b6a0afaea46e358746d66b04d300f0603551d130101ff040530030101ff300a06082a8648ce3d0403020349003046022100fca75215d93aff51441e3c0e9e5c3b8e5a3d257958ce5a4e761f35f6fda02a17022100fef0ae40f34e15f5f9b705553c827828fe0dcc526ef1dffe0afea193ebead954"
+      ],
+      "signingPubKey": "04bf99978277b2370c1e8fd520aa407af400573ec42ece45f90debfb5414be6b70e041606a1c0fd28ff129c84f0af6daa966e2c9b3980b59f02444e53a068d5c65"
+    }`);
+
+    const trInfo = "some unencrypted travel rule info";
+    const payreq = await getPayRequest({
+      amount: 1_000_000,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: false,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      receiverEncryptionPubKey: pubkeys.getEncryptionPubKey(),
+      sendingVaspPrivateKey: senderSigningPrivateKey,
+      trInfo: trInfo,
+      travelRuleFormat: "fake_format@1.0",
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
+    });
+    const privkey =
+      "afbbdcb77d7afc5496ef4f016072deaa326a1b9a4deb72c7a67febaf169c4d66";
+    const encryptedTrInfo =
+      payreq.payerData?.compliance?.encryptedTravelRuleInfo;
+    if (!encryptedTrInfo) {
+      throw new Error("encryptedTrInfo is undefined");
+    }
+    const encryptedTrInfoBytes = Buffer.from(encryptedTrInfo, "hex");
+    const eciesPrivKey = new PrivateKey(Buffer.from(privkey, "hex"));
+    const decryptedTrInfo = decrypt(
+      eciesPrivKey.toHex(),
+      encryptedTrInfoBytes,
+    ).toString();
+    expect(decryptedTrInfo).toBe(trInfo);
+  });
+
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {
       signingPubKey: certPubKey,
