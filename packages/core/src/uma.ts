@@ -485,12 +485,11 @@ function encryptTrInfo(
   trInfo: string,
   receiverEncryptionPubKey: Uint8Array,
 ): string {
-  const pubKeyBuffer = Buffer.from(receiverEncryptionPubKey.buffer);
-  const pubKey = new PublicKey(pubKeyBuffer);
-  const trInfoBuffer = Buffer.from(trInfo);
-  const encryptedTrInfoBytes = encrypt(pubKey.toHex(), trInfoBuffer);
-  const encryptedTrInfoHex = uint8ArrayToHexString(encryptedTrInfoBytes);
-  return encryptedTrInfoHex;
+  const pubKey = PublicKey.fromHex(
+    uint8ArrayToHexString(receiverEncryptionPubKey),
+  );
+  const encryptedTrInfoBytes = encrypt(pubKey.compressed, Buffer.from(trInfo));
+  return uint8ArrayToHexString(encryptedTrInfoBytes);
 }
 
 type PayRequestResponseArgs = {
