@@ -836,6 +836,17 @@ export async function getLnurlpResponse({
       currency.withUmaVersion(MAJOR_VERSION),
     );
   }
+
+  // Identifier and compliance are mandatory fields for UMA requests.
+  if (!payerDataOptions) {
+    payerDataOptions = {};
+  }
+  if (!payerDataOptions.compliance) {
+    payerDataOptions.compliance = { mandatory: true };
+  }
+  if (!payerDataOptions.identifier) {
+    payerDataOptions.identifier = { mandatory: true };
+  }
   return new LnurlpResponse(
     callback,
     minSendableSats * 1000,
