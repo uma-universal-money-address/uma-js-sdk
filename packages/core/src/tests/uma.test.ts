@@ -471,14 +471,8 @@ describe("uma", () => {
         name: {
           mandatory: false,
         },
-        identifier: {
-          mandatory: false,
-        },
         email: {
           mandatory: false,
-        },
-        compliance: {
-          mandatory: true,
         },
       },
       currencyOptions: [
@@ -507,6 +501,9 @@ describe("uma", () => {
       new InMemoryNonceValidator(getOneWeekAgoTsMs()),
     );
     expect(verified).toBeTruthy();
+    expect(parsedResponse.payerData).toBeDefined();
+    expect(parsedResponse.payerData!["compliance"].mandatory).toBe(true);
+    expect(parsedResponse.payerData!["identifier"].mandatory).toBe(true);
   });
 
   it("should handle a pay request response", async () => {
