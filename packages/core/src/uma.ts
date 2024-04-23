@@ -623,12 +623,12 @@ export async function getPayReqResponse({
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
-  const payerIdentifier = request.payerData?.identifier;
-  if (!payerIdentifier) {
-    throw new Error("Payer identifier missing");
-  }
   let complianceData: CompliancePayeeData | undefined;
   if (request.isUma()) {
+    const payerIdentifier = request.payerData?.identifier;
+    if (!payerIdentifier) {
+      throw new Error("Payer identifier missing");
+    }
     if (!payeeIdentifier) {
       throw new Error("Payee identifier missing");
     }
