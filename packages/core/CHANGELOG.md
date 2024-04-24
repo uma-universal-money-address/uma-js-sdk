@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 1.0.1
+
+### Patch Changes
+
+- aa205bf: - Automatically add compliance and identifier to payerdata for uma.
+  - Fix payer identifier property enforcement for non-uma lnurl
+
 ## 1.0.0
 
 ### Major Changes
