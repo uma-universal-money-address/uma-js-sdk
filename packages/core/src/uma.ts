@@ -623,12 +623,12 @@ export async function getPayReqResponse({
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");
   }
-  const payerIdentifier = request.payerData?.identifier;
-  if (!payerIdentifier) {
-    throw new Error("Payer identifier missing");
-  }
   let complianceData: CompliancePayeeData | undefined;
   if (request.isUma()) {
+    const payerIdentifier = request.payerData?.identifier;
+    if (!payerIdentifier) {
+      throw new Error("Payer identifier missing");
+    }
     if (!payeeIdentifier) {
       throw new Error("Payee identifier missing");
     }
@@ -835,6 +835,17 @@ export async function getLnurlpResponse({
     currencyOptions = currencyOptions?.map((currency) =>
       currency.withUmaVersion(MAJOR_VERSION),
     );
+  }
+
+  // Identifier and compliance are mandatory fields for UMA requests.
+  if (!payerDataOptions) {
+    payerDataOptions = {};
+  }
+  if (!payerDataOptions.compliance) {
+    payerDataOptions.compliance = { mandatory: true };
+  }
+  if (!payerDataOptions.identifier) {
+    payerDataOptions.identifier = { mandatory: true };
   }
   return new LnurlpResponse(
     callback,
