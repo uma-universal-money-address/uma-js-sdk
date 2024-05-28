@@ -5,7 +5,7 @@ export const UtxoWithAmountSchema = z.object({
   /** Utxo The utxo of the channel over which the payment went through in the format of <transaction_hash>:<output_index>. */
   utxo: z.string(),
   /** Amount The amount of funds transferred in the payment in mSats. */
-  amount: z.number(),
+  amountMsats: z.number(),
 });
 
 export type UtxoWithAmount = z.infer<typeof UtxoWithAmountSchema>;
