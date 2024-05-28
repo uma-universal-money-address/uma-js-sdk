@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.0.2
+
+### Patch Changes
+
+- b3a44ed: - Fix the amountMsats field in post-tx callback.
+
 ## 1.0.1
 
 ### Patch Changes
