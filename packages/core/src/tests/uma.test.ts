@@ -687,7 +687,7 @@ describe("uma", () => {
 
   it("should sign and verify a post transaction callback", async () => {
     const callback = await getPostTransactionCallback({
-      utxos: [{ utxo: "abcdef12345", amount: 1000 }],
+      utxos: [{ utxo: "abcdef12345", amountMsats: 1000 }],
       vaspDomain: "my-vasp.com",
       signingPrivateKey: certPrivKeyBytes,
     });
