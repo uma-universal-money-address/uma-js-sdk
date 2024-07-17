@@ -619,6 +619,7 @@ export async function getPayReqResponse({
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
     metadata + (encodedPayerData || ""),
+    payeeIdentifier,
   );
   if (!encodedInvoice) {
     throw new Error("failed to create invoice");

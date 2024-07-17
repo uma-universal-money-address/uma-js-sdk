@@ -9,5 +9,6 @@ export default interface UmaInvoiceCreator {
   createUmaInvoice: (
     amountMsats: number,
     metadata: string,
+    receiverIdentifier: string | undefined,
   ) => Promise<string | undefined>;
 }
