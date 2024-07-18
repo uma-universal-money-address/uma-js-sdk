@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.1.0
+
+### Minor Changes
+
+- f04f362: Add receiverIdentifier param to createUmaInvoice interface
+
 ## 1.0.2
 
 ### Patch Changes
