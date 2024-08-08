@@ -30,9 +30,7 @@
   "workspaces": [
     "packages/*",
     "packages/private/*",
-    "apps/*",
-    "apps/private/*",
-    "apps/examples/*"
+    "examples/*"
   ],
   "dependencies": {
     "@changesets/cli": "^2.26.1",
