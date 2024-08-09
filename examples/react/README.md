@@ -1,3 +1,9 @@
-# uma-auth-client
+# UMA Auth Client SDK React example
 
-The UMA Auth Client SDK for web apps
+This example imports the UMA Connect button component directly from the UMA Auth Client SDK.
+
+## Running the example
+
+```bash
+yarn && yarn dev
+```

@@ -2162,6 +2162,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@emotion/core@npm:^11.0.0":
+  version: 11.0.0
+  resolution: "@emotion/core@npm:11.0.0"
+  checksum: d9beeff0c120ec4d3cd89aa74e1ee3ff658976f27d14820e4e8f8e9981b4461b4a78c9e9c0853397ba09dff36b4e19357858ac8773ee5eb72bfd4b185926b5f3
+  languageName: node
+  linkType: hard
+
 "@emotion/css@npm:^11.11.0, @emotion/css@npm:^11.11.2":
   version: 11.13.0
   resolution: "@emotion/css@npm:11.13.0"
@@ -4351,6 +4358,7 @@ __metadata:
   dependencies:
     "@babel/core": ^7.21.4
     "@emotion/babel-plugin": ^11.11.0
+    "@emotion/core": ^11.0.0
     "@emotion/css": ^11.11.2
     "@emotion/react": ^11.11.4
     "@emotion/styled": ^11.11.5
