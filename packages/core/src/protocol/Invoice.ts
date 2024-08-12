@@ -2,12 +2,17 @@ import { CounterPartyDataOptions } from "./CounterPartyData.js";
 import { Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { bech32 } from "bech32";
-
-interface TLVCodable {
-    toTLV(): Uint8Array
-}
+import { TLVCodable, convertToBytes, mergeByteArrays } from "../tlvUtils.js"
 
 export class InvoiceCurrency implements TLVCodable {
+    tlvMembers = new Map([
+        ["code", 0],
+        ["name", 1],
+        ["symbol", 2],
+        ["decimals", 3],
+    ])
+        
+
     constructor(
         // code is the ISO 4217 (if applicable) currency code (eg. "USD"). For cryptocurrencies, this will  be a ticker
         // symbol, such as BTC for Bitcoin.
@@ -24,7 +29,18 @@ export class InvoiceCurrency implements TLVCodable {
     ) {}
 
     toTLV(): Uint8Array {
-        return new Uint8Array()
+        const tlv = new Array<Uint8Array>();
+        Object.keys(this).forEach(key => {
+            if (key in this.tlvMembers) {
+                let convert = convertToBytes(this[key as keyof InvoiceCurrency])
+                let len = convert.length;
+                const subArray = new Uint8Array();
+                subArray[0] = this.tlvMembers.get(key) as number;
+                subArray[1] = length;
+                tlv.push(mergeByteArrays([subArray, convert]));
+            } 
+        })
+        return mergeByteArrays(tlv);
     }
 
     fromTLV(): void {
@@ -33,22 +49,22 @@ export class InvoiceCurrency implements TLVCodable {
 }
 
 export class Invoice implements TLVCodable {
-    private tlvMembers = {
-        "receiverUma": 0,
-        "invoiceUUID": 1,
-        "amount": 2,
-        "receivingCurrency": 3,
-        "expiration": 4,
-        "isSubectToTravelRule": 5,
-        "requiredPayerData": 6,
-        "umaVersion": 7,
-        "commentCharsAllowed": 8,
-        "senderUma": 9,
-        "invoiceLimit": 10,
-        "kycStatus": 11,
-        "callback": 12,
-        "signature": 100
-    }
+    tlvMembers = new Map([
+        ["receiverUma",  0],
+        ["invoiceUUID",  1],
+        ["amount",  2],
+        ["receivingCurrency",  3],
+        ["expiration",  4],
+        ["isSubectToTravelRule",  5],
+        ["requiredPayerData",  6],
+        ["umaVersion",  7],
+        ["commentCharsAllowed",  8],
+        ["senderUma",  9],
+        ["invoiceLimit",  10],
+        ["kycStatus",  11],
+        ["callback",  12],
+        ["signature",  10]
+    ]);
 
     constructor(
         // Receiving UMA address
@@ -61,7 +77,7 @@ export class Invoice implements TLVCodable {
         public readonly amount: number,
 
         // The currency of the invoice
-        public readonly receivingCurrency: Currency,
+        // public readonly receivingCurrency: Currency,
 
         // The unix timestamp the UMA invoice expires
         public readonly expiration: number,
@@ -70,7 +86,7 @@ export class Invoice implements TLVCodable {
         public readonly isSubectToTravelRule: boolean,
         
         // RequiredPayerData the data about the payer that the sending VASP must provide in order to send a payment.    
-        public readonly requiredPayerData: CounterPartyDataOptions | undefined, 
+        // public readonly requiredPayerData: CounterPartyDataOptions | undefined, 
         
         // UmaVersion is a list of UMA versions that the VASP supports for this transaction. It should be
 	    // containing the lowest minor version of each major version it supported, separated by commas.    
@@ -86,7 +102,7 @@ export class Invoice implements TLVCodable {
         public readonly invoiceLimit: number | undefined,
 
         // KYC status of the receiver, default is verified.
-        public readonly kycStatus: KycStatus | undefined,
+        // public readonly kycStatus: KycStatus | undefined,
 
         // The callback url that the sender should send the PayRequest to.    
         public readonly callback: string,
@@ -96,25 +112,29 @@ export class Invoice implements TLVCodable {
     ) {}
 
     toTLV(): Uint8Array {
-        var doByteThings = (a:any) => { console.log(a)}
+        const tlv = new Array<Uint8Array>();
         Object.keys(this).forEach(key => {
             if (key in this.tlvMembers) {
-                doByteThings(this[key as keyof Invoice])
-
+                let convert = convertToBytes(this[key as keyof Invoice])
+                let len = convert.length;
+                const subArray = new Uint8Array();
+                subArray[0] = this.tlvMembers.get(key) as number;
+                subArray[1] = length;
+                tlv.push(mergeByteArrays([subArray, convert]));
             } 
         })
-        return new Uint8Array();
-    }
-
-    unmarshalTLV(bytes: Uint8Array): void {
-
+        return mergeByteArrays(tlv);
     }
 
     toBech32String(): string { 
         return bech32.encode("uma", this.toTLV());
     }
+}
 
-    fromBech32String(): void {
-        // return bech32.decode(this.from)
-    }
+/**
+ * 
+ */
+export function fromBech32String(bech32String: string): Invoice | undefined {
+
+    return undefined
 }
