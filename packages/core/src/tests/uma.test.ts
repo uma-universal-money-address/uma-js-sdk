@@ -755,7 +755,7 @@ describe("uma", () => {
 
   it("does some stuff with invoices", async () => {
     expect(true).toEqual(true);
-    const invoice = await createUmaInvoice(
+    const dummyInvoiceTLV = await createUmaInvoice(
       "$foo@bar.com",
       "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
       1000,
@@ -766,8 +766,8 @@ describe("uma", () => {
       "sender_uma", 10,
        "https://example.com/callback", new TextEncoder().encode("sigature")
       );
-    const invoiceTLV = invoice.toTLV()
-    console.log(invoiceTLV);
+    console.log(`written tlv values are ${dummyInvoiceTLV.toTLV2()}`);
+    dummyInvoiceTLV.fromTLV2(dummyInvoiceTLV.toTLV2());
   })
 
   it("should serialize and deserialize pub key response", async () => {
