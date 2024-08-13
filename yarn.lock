@@ -4349,7 +4349,6 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@uma-sdk/uma-auth-client@workspace:packages/uma-auth-client"
   dependencies:
-    "@babel/core": ^7.21.4
     "@emotion/babel-plugin": ^11.11.0
     "@emotion/css": ^11.11.2
     "@emotion/react": ^11.11.4
