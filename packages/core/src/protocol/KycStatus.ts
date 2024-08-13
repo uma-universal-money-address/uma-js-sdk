@@ -5,6 +5,14 @@ export enum KycStatus {
   Verified = "VERIFIED",
 }
 
+export function kycStatustoBytes(k: KycStatus): Uint8Array {
+  return new TextEncoder().encode(kycStatusToString(k));
+}
+
+export function kycStatusFromBytes(bytes: Uint8Array): KycStatus {
+  return kycStatusFromString(new TextDecoder().decode(bytes));
+}
+
 export function kycStatusFromString(s: string): KycStatus {
   switch (s) {
     default:

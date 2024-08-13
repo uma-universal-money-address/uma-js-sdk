@@ -17,6 +17,7 @@ import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "../protocol/PubKeyResponse.js";
 import {
+  createUmaInvoice,
   getLnurlpResponse,
   getPayReqResponse,
   getPayRequest,
@@ -34,6 +35,7 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
+import { InvoiceCurrency } from "../protocol/Invoice.js";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -750,6 +752,23 @@ describe("uma", () => {
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
   });
+
+  it("does some stuff with invoices", async () => {
+    expect(true).toEqual(true);
+    const invoice = await createUmaInvoice(
+      "$foo@bar.com",
+      "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+      1000,
+      new InvoiceCurrency("USD","US Dollar","$",2),
+      100000,
+      true,
+      "1.0", 10,
+      "sender_uma", 10,
+       "https://example.com/callback", new TextEncoder().encode("sigature")
+      );
+    const invoiceTLV = invoice.toTLV()
+    console.log(invoiceTLV);
+  })
 
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {

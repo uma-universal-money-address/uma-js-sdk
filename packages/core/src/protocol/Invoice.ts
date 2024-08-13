@@ -1,7 +1,7 @@
 import { CounterPartyDataOptions } from "./CounterPartyData.js";
 import { Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
-import { bech32 } from "bech32";
+import { bech32m } from "bech32";
 import { TLVCodable, convertToBytes, mergeByteArrays } from "../tlvUtils.js"
 
 export class InvoiceCurrency implements TLVCodable {
@@ -31,12 +31,12 @@ export class InvoiceCurrency implements TLVCodable {
     toTLV(): Uint8Array {
         const tlv = new Array<Uint8Array>();
         Object.keys(this).forEach(key => {
-            if (key in this.tlvMembers) {
+            if (this.tlvMembers.has(key)) {
                 let convert = convertToBytes(this[key as keyof InvoiceCurrency])
                 let len = convert.length;
                 const subArray = new Uint8Array();
                 subArray[0] = this.tlvMembers.get(key) as number;
-                subArray[1] = length;
+                subArray[1] = len;
                 tlv.push(mergeByteArrays([subArray, convert]));
             } 
         })
@@ -77,7 +77,7 @@ export class Invoice implements TLVCodable {
         public readonly amount: number,
 
         // The currency of the invoice
-        // public readonly receivingCurrency: Currency,
+        public readonly receivingCurrency: InvoiceCurrency,
 
         // The unix timestamp the UMA invoice expires
         public readonly expiration: number,
@@ -114,12 +114,12 @@ export class Invoice implements TLVCodable {
     toTLV(): Uint8Array {
         const tlv = new Array<Uint8Array>();
         Object.keys(this).forEach(key => {
-            if (key in this.tlvMembers) {
+            if (this.tlvMembers.has(key)) {
                 let convert = convertToBytes(this[key as keyof Invoice])
                 let len = convert.length;
                 const subArray = new Uint8Array();
-                subArray[0] = this.tlvMembers.get(key) as number;
-                subArray[1] = length;
+                subArray[0] = this.tlvMembers.get(key) ?? 0;
+                subArray[1] = len;
                 tlv.push(mergeByteArrays([subArray, convert]));
             } 
         })
@@ -127,8 +127,13 @@ export class Invoice implements TLVCodable {
     }
 
     toBech32String(): string { 
-        return bech32.encode("uma", this.toTLV());
+        const bech32Str = bech32m.toWords(this.toTLV())
+        return bech32m.encode("uma", bech32Str);
     }
+}
+
+export function fromTLV() {
+
 }
 
 /**
