@@ -16,7 +16,18 @@ function App() {
           <Body content="Click the UMA Connect button to get started." />
         </Intro>
       </Section>
-      <UmaConnectButton />
+      <UmaConnectButton
+        style={{
+          "--uma-connect-background": "#7366C5",
+          "--uma-connect-radius": "8px",
+          "--uma-connect-padding-x": "32px",
+          "--uma-connect-padding-y": "16px",
+          "--uma-connect-text-color": "#F9F9F9",
+          "--uma-connect-font-family": "Arial",
+          "--uma-connect-font-size": "16px",
+          "--uma-connect-font-weight": "600",
+        }}
+      />
     </Main>
   );
 }
