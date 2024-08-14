@@ -2787,9 +2787,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@lightsparkdev/ui@portal:../webdev/js/packages/ui::locator=uma-sdk%40workspace%3A.":
-  version: 0.0.0-use.local
-  resolution: "@lightsparkdev/ui@portal:../webdev/js/packages/ui::locator=uma-sdk%40workspace%3A."
+"@lightsparkdev/ui@npm:^1.0.6":
+  version: 1.0.6
+  resolution: "@lightsparkdev/ui@npm:1.0.6"
   dependencies:
     "@emotion/css": ^11.11.0
     "@emotion/react": ^11.11.0
@@ -2799,6 +2799,8 @@ __metadata:
     "@simbathesailor/use-what-changed": ^2.0.0
     "@svgr/core": ^8.1.0
     deepmerge: ^4.3.1
+    gql: ^1.1.2
+    graphql-tag: ^2.12.6
     libphonenumber-js: ^1.11.1
     lodash-es: ^4.17.21
     nanoid: ^4.0.0
@@ -2810,8 +2812,9 @@ __metadata:
     react-router-dom: 6.11.2
     react-select: ^5.4.0
     react-tooltip: ^5.10.1
+  checksum: ebdcaf58e4aa400b75a7e64ccfd0682112234e2b42a680362a80231597fccd646d9066eac2560be7a63a1f232d9396d9a0d14b87ae4cfe90e3334c3685cd81bb
   languageName: node
-  linkType: soft
+  linkType: hard
 
 "@manypkg/cli@npm:^0.21.0":
   version: 0.21.4
@@ -6827,6 +6830,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"gql@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "gql@npm:1.1.2"
+  checksum: 47e6e195827b58568ccfb8655b5983ef9b6d9c8bf63cc96e323b7274edf73cc939164f8bfbfbf65f89e182c29829a60b2397685993d7fad05e3d8abc0e22982f
+  languageName: node
+  linkType: hard
+
 "graceful-fs@npm:4.2.10":
   version: 4.2.10
   resolution: "graceful-fs@npm:4.2.10"
@@ -6845,6 +6855,17 @@ __metadata:
   version: 1.4.0
   resolution: "graphemer@npm:1.4.0"
   checksum: bab8f0be9b568857c7bec9fda95a89f87b783546d02951c40c33f84d05bb7da3fd10f863a9beb901463669b6583173a8c8cc6d6b306ea2b9b9d5d3d943c3a673
+  languageName: node
+  linkType: hard
+
+"graphql-tag@npm:^2.12.6":
+  version: 2.12.6
+  resolution: "graphql-tag@npm:2.12.6"
+  dependencies:
+    tslib: ^2.1.0
+  peerDependencies:
+    graphql: ^0.9.0 || ^0.10.0 || ^0.11.0 || ^0.12.0 || ^0.13.0 || ^14.0.0 || ^15.0.0 || ^16.0.0
+  checksum: b15162a3d62f17b9b79302445b9ee330e041582f1c7faca74b9dec5daa74272c906ec1c34e1c50592bb6215e5c3eba80a309103f6ba9e4c1cddc350c46f010df
   languageName: node
   linkType: hard
 
@@ -11188,7 +11209,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.3, tslib@npm:^2.4.0":
+"tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.4.0":
   version: 2.6.3
   resolution: "tslib@npm:2.6.3"
   checksum: 74fce0e100f1ebd95b8995fbbd0e6c91bdd8f4c35c00d4da62e285a3363aaa534de40a80db30ecfd388ed7c313c42d930ee0eaf108e8114214b180eec3dbe6f5
