@@ -1,7 +1,4 @@
 import styled from "@emotion/styled";
-import { Body } from "@lightsparkdev/ui/components/typography/Body";
-import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { Spacing } from "@lightsparkdev/ui/styles/tokens/spacing";
 import { UmaConnectButton } from "@uma-sdk/uma-auth-client";
 import { useNavigate } from "react-router-dom";
 
@@ -12,8 +9,8 @@ function App() {
     <Main>
       <Section>
         <Intro>
-          <Title size="Large" content="UMA Auth Client SDK demo" />
-          <Body content="Click the UMA Connect button to get started." />
+          <h1>UMA Auth Client SDK demo</h1>
+          <body>Click the UMA Connect button to get started</body>
         </Intro>
       </Section>
       <UmaConnectButton
@@ -45,7 +42,7 @@ const Main = styled.main`
 const Intro = styled.div`
   display: flex;
   flex-direction: column;
-  gap: ${Spacing.sm};
+  gap: 8px;
   align-items: center;
 `;
 
