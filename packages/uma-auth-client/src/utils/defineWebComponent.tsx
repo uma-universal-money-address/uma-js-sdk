@@ -1,9 +1,10 @@
 import createCache from "@emotion/cache";
-import { CacheProvider, ThemeProvider } from "@emotion/react";
-import { themes } from "@lightsparkdev/ui/styles/themes";
+import { CacheProvider } from "@emotion/react";
+import { LightsparkProvider } from "@lightsparkdev/ui/components";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { GlobalStyles } from "src/GlobalStyles";
+
+type ComponentWithShadowRoot = React.FC;
 
 export default function defineWebComponent(
   tagName: string,
@@ -36,10 +37,9 @@ export default function defineWebComponent(
         const reactNode = (
           <React.StrictMode>
             <CacheProvider value={cache}>
-              <ThemeProvider theme={themes.umameDocsLight}>
-                <GlobalStyles />
+              <LightsparkProvider>
                 <Component />
-              </ThemeProvider>
+              </LightsparkProvider>
             </CacheProvider>
           </React.StrictMode>
         );
