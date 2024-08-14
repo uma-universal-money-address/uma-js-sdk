@@ -1,32 +1,42 @@
 import { css } from "@emotion/css";
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
+import { useRef, useState } from "react";
 import defineWebComponent from "src/utils/defineWebComponent";
+import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
 
 const UmaConnectButton = () => {
+  const buttonRef = useRef(null);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
   const clientId = "1";
   const redirectUri = "http://localhost:3001";
   const responseType = "code";
   const codeChallenge = "1234";
   const codeChallengeMethod = "S256";
 
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  }
+
   return (
-    <Button
-      onClick={() =>
-        (window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`)
-      }
-    >
-      <Icon
-        name="Uma"
-        width={36}
-        className={css`
-          color: var(--uma-connect-text-color, #ffffff);
-        `}
-      />
-      Connect
-    </Button>
+    <>
+      <Button
+        ref={buttonRef}
+        onClick={handleOpenModal}
+      >
+        <ButtonContents>
+          <Icon
+            name="Uma"
+            width={36}
+          />
+          Connect
+        </ButtonContents>
+      </Button>
+      <ConnectUmaModal visible={isModalOpen} onClose={() => setIsModalOpen(false)} insertionPoint={buttonRef.current!} />
+    </>
   );
 };
 
@@ -41,6 +51,17 @@ const Button = styled(UnstyledButton)`
   font-family: var(--uma-connect-font-family, "Manrope");
   font-size: var(--uma-connect-font-size, 16px);
   font-weight: var(--uma-connect-font-weight, 700);
+`;
+
+const ButtonContents = styled.div`
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+
+  span {
+    display: inline-flex;
+  }
 `;
 
 defineWebComponent(TAG_NAME, UmaConnectButton);

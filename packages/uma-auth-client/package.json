@@ -22,7 +22,8 @@
   },
   "module": "./dist/uma-auth-client.js",
   "scripts": {
-    "dev": "vite",
+    "dev:lib": "tsc && vite build --emptyOutDir=false --config vite.config.lib.js --watch",
+    "dev:webcomponents": "tsc && vite build --emptyOutDir=false --config vite.config.webcomponents.js --watch",
     "build": "tsc && vite build --config vite.config.lib.js && vite build --emptyOutDir=false --config vite.config.webcomponents.js",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "lint:fix": "eslint --fix .",
@@ -34,10 +35,10 @@
     "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@lightsparkdev/ui": "^1.0.3",
+    "@lightsparkdev/ui": "^1.0.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.25.1"
+    "react-router-dom": "6.11.2"
   },
   "devDependencies": {
     "@emotion/babel-plugin": "^11.11.0",
