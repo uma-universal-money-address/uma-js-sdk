@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "baseUrl": "src",
+    "paths": {
+      "src/*": ["./*"]
+    },
+    "target": "ES2022",
+    "allowJs": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "types": ["node", "jest"],
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "jsxImportSource": "@emotion/react"
+  },
+  "include": [
+    "src/**/*",
+  ],
+  "exclude": [
+    "node_modules",
+  ]
+}
