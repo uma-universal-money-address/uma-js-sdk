@@ -1,4 +1,5 @@
-import { ThemeProvider } from "@emotion/react";
+import createCache from "@emotion/cache";
+import { CacheProvider, ThemeProvider } from "@emotion/react";
 import { themes } from "@lightsparkdev/ui/styles/themes";
 import React from "react";
 import ReactDOM from "react-dom/client";
@@ -15,18 +16,34 @@ export default function defineWebComponent(
 
       constructor() {
         super();
-        this.root = ReactDOM.createRoot(this);
+        this.attachShadow({ mode: "open" });
+        this.root = ReactDOM.createRoot(this.shadowRoot as ShadowRoot);
       }
 
       connectedCallback() {
-        this.root.render(
+        // Create insertion node for Emotion
+        const emotionInsertionPoint = document.createElement("meta");
+        emotionInsertionPoint.setAttribute("name", "emotion-insertion-point");
+        this.shadowRoot?.appendChild(emotionInsertionPoint);
+
+        // Create emotion cache so dynamic styles get defined to the insertion node
+        const cache = createCache({
+          key: "uma-auth-client",
+          container: emotionInsertionPoint,
+        });
+
+        // Render the react node using the custom emotion cache
+        const reactNode = (
           <React.StrictMode>
-            <ThemeProvider theme={themes.umameDocsLight}>
-              <GlobalStyles />
-              <Component />
-            </ThemeProvider>
-          </React.StrictMode>,
+            <CacheProvider value={cache}>
+              <ThemeProvider theme={themes.umameDocsLight}>
+                <GlobalStyles />
+                <Component />
+              </ThemeProvider>
+            </CacheProvider>
+          </React.StrictMode>
         );
+        this.root.render(reactNode);
       }
 
       disconnectedCallback() {
