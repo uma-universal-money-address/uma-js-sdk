@@ -1,23 +1,11 @@
 import { CounterPartyDataOptions } from "./CounterPartyData.js";
-import { Currency } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { bech32m } from "bech32";
-import { TLVCodable, convertToBytes, mergeByteArrays } from "../tlvUtils.js"
-
-type TLVField = {
-    tag : number,
-    type: string
-}
+import { TLVCodable, convertToBytes, decodeFromBytes } from "../tlvUtils.js"
 
 export class InvoiceCurrency implements TLVCodable {
-    tlvMembers = new Map([
-        ["code", 0],
-        ["name", 1],
-        ["symbol", 2],
-        ["decimals", 3],
-    ])
 
-    tlvMembers2 = new Map<String, TLVField>([
+    tlvMembers = new Map([
         ["code", {
             tag : 0,
             type : "string"
@@ -68,30 +56,15 @@ export class InvoiceCurrency implements TLVCodable {
         return bech32m.fromWords(decoded.words);
     }
 
-    // toTLV(): Uint8Array {
-    //     const tlv = new Array<Uint8Array>();
-    //     Object.keys(this).forEach(key => {
-    //         if (this.tlvMembers.has(key)) {
-    //             let convert = convertToBytes(this[key as keyof InvoiceCurrency])
-    //             let len = convert.length;
-    //             const subArray = new Uint8Array();
-    //             subArray[0] = this.tlvMembers.get(key) as number;
-    //             subArray[1] = len;
-    //             tlv.push(mergeByteArrays([subArray, convert]));
-    //         } 
-    //     })
-    //     return mergeByteArrays(tlv);
-    // }
-
     toTLV(): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
         Object.keys(this).forEach(key => {
             if (this.tlvMembers.has(key)) {
-                let convert = this.convertToBytes(this[key as keyof InvoiceCurrency], this.tlvMembers2.get(key)?.type ?? "");
+                let convert = convertToBytes(this[key as keyof InvoiceCurrency], this.tlvMembers.get(key)?.type ?? "");
                 let len = convert.length;
-                view.setUint8(offset++, this.tlvMembers.get(key) as number);
+                view.setUint8(offset++, this.tlvMembers.get(key)?.tag as number);
                 view.setUint8(offset++, len);
                 for (let i = 0; i<convert.length; i++) {
                     view.setUint8(offset++, convert[i]);
@@ -101,7 +74,7 @@ export class InvoiceCurrency implements TLVCodable {
         return new Uint8Array(tlv).slice(0, offset);
     }
 
-    fromTLV2(tlvBytes: Uint8Array) {
+    fromTLV(tlvBytes: Uint8Array) {
         console.log(`Inbound TLV : ${tlvBytes}`);
         let offset = 0;
         while (offset < tlvBytes.length) {
@@ -111,125 +84,18 @@ export class InvoiceCurrency implements TLVCodable {
                 let reverseTag = this.reverseTlVMembers.get(tag) ?? "";
                 let len = tlvBytes[offset++];
                 let value = tlvBytes.slice(offset, offset+len);
-                let decodedValue = this.decodeFromBytes(value, this.tlvMembers2.get(reverseTag)?.type ?? "" )
+                let decodedValue = decodeFromBytes(value, this.tlvMembers.get(reverseTag)?.type ?? "" )
                 console.log(`data: ${ tlvBytes.slice(offset, offset+len)}, ${decodedValue}`);
                 offset+= len;
             }
         }
     } 
 
-    decodeFromBytes(value: Uint8Array, valueType: string): any {
-        let result;
-        switch(valueType) {
-            case "number" : {
-                result = value[0]
-                break;
-            }
-            case "string" : {
-                result = new TextDecoder().decode(value);
-                break;
-            }
-            case "boolean" : {
-                result = value[0] === 1;
-                break;
-            }
-            case "byte_codable" : {
-                break;
-            }
-            case "tlv" : {
-
-                break;
-            }
-            case "byte_array": {
-                result = value;
-                break;
-            }
-            default: {
-                break;
-            }
-            
-        }
-        return result;
-    }
-
-    convertToBytes(value: any, valueType: string): Uint8Array {
-        let result = new Uint8Array();
-    switch(valueType) {
-        case "number" : {
-            let valueAsNumber = value as number;
-            if (Number.isInteger(valueAsNumber)) {
-                if (valueAsNumber >= -128 || valueAsNumber <= 127) { // uint 8
-                    const buffer = new ArrayBuffer(1);
-                    const view = new DataView(buffer);
-                    view.setUint8(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -32768 || valueAsNumber <= 32767) { // uint 16
-                    const buffer = new ArrayBuffer(2);
-                    const view = new DataView(buffer);
-                    view.setUint16(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -2147483648 || valueAsNumber <= 2147483647) { // unint 32
-                    const buffer = new ArrayBuffer(4);
-                    const view = new DataView(buffer);
-                    view.setUint32(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                }
-            } else {
-                const buffer = new ArrayBuffer(4);
-                const view = new DataView(buffer);
-                view.setFloat32(0, valueAsNumber);
-                result = new Uint8Array(buffer);
-            }
-            break;
-        }
-        case "string" : {
-            const te = new TextEncoder();
-            result = te.encode(value);
-            break;
-        }
-        case "boolean" : {
-            result[0] = value as boolean === true ? 1 : 0
-            break;
-        }
-        case "tlv": {
-            let valueAsTLV = value as TLVCodable;
-            result = valueAsTLV.toTLV();
-            break;
-        }
-        case "byte_codable": {
-            break;
-        }
-        case "byte_array": {
-            result = value;
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    return result;
-    }
 }
 
 export class Invoice implements TLVCodable {
-    tlvMembers = new Map([
-        ["receiverUma",  0],
-        ["invoiceUUID",  1],
-        ["amount",  2],
-        ["receivingCurrency",  3],
-        ["expiration",  4],
-        ["isSubectToTravelRule",  5],
-        ["requiredPayerData",  6],
-        ["umaVersion",  7],
-        ["commentCharsAllowed",  8],
-        ["senderUma",  9],
-        ["invoiceLimit",  10],
-        ["kycStatus",  11],
-        ["callback",  12],
-        ["signature",  10]
-    ]);
 
-    tlvMembers2 = new Map<String, TLVField>([
+    tlvMembers = new Map([
         ["receiverUma",  {
             tag: 0, type: "string"
         }],
@@ -312,35 +178,26 @@ export class Invoice implements TLVCodable {
         public readonly signature: Uint8Array
     ) {}
 
-    toTLV(): Uint8Array {
-        const tlv = new Array<Uint8Array>();
-        Object.keys(this).forEach(key => {
-            if (this.tlvMembers.has(key)) {
-                let convert = convertToBytes(this[key as keyof Invoice])
-                let len = convert.length;
-                const subArray = new Uint8Array(2);
-                subArray[0] = this.tlvMembers.get(key) ?? 0;
-                subArray[1] = len;
-                tlv.push(mergeByteArrays([subArray, convert]));
-            } 
-        })
-        return mergeByteArrays(tlv);
-    }
-
     toBech32String(): string { 
         const bech32Str = bech32m.toWords(this.toTLV())
-        return bech32m.encode("uma", bech32Str);
+        return bech32m.encode("uma", bech32Str, 256);
     }
 
-    toTLV2(): Uint8Array {
+    fromBech32String(bvalue: string): number[] {
+        const decoded = bech32m.decode(bvalue, 256);
+        return bech32m.fromWords(decoded.words);
+    }
+
+    toTLV(): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
         Object.keys(this).forEach(key => {
             if (this.tlvMembers.has(key)) {
-                let convert = this.convertToBytes(this[key as keyof Invoice], this.tlvMembers2.get(key)?.type ?? "");
+                const {tag, type} = this.tlvMembers.get(key)!!;
+                let convert = convertToBytes(this[key as keyof Invoice], type);
                 let len = convert.length;
-                view.setUint8(offset++, this.tlvMembers.get(key) as number);
+                view.setUint8(offset++, tag as number);
                 view.setUint8(offset++, len);
                 for (let i = 0; i<convert.length; i++) {
                     view.setUint8(offset++, convert[i]);
@@ -350,124 +207,17 @@ export class Invoice implements TLVCodable {
         return new Uint8Array(tlv).slice(0, offset);
     }
 
-    fromTLV2(tlvBytes: Uint8Array) {
-        console.log(`Inbound TLV : ${tlvBytes}`);
+    fromTLV(tlvBytes: Uint8Array) {
         let offset = 0;
         while (offset < tlvBytes.length) {
             const tag = tlvBytes[offset++];
-            // console.log(`has reverse tag? ${tag}, ${typeof tag} ${this.reverseTlVMembers.has(tag)}`);
             if (this.reverseTlVMembers.has(tag)) {
-                let reverseTag = this.reverseTlVMembers.get(tag) ?? "";
+                let reverseTag = this.reverseTlVMembers.get(tag)!!;
                 let len = tlvBytes[offset++];
                 let value = tlvBytes.slice(offset, offset+len);
-                let decodedValue = this.decodeFromBytes(value, this.tlvMembers2.get(reverseTag)?.type ?? "" )
-                console.log(`data: ${ tlvBytes.slice(offset, offset+len)}, ${decodedValue}`);
+                let decodedValue = decodeFromBytes(value, this.tlvMembers.get(reverseTag)?.type ?? "" )
                 offset+= len;
             }
         }
     } 
-
-    decodeFromBytes(value: Uint8Array, valueType: string): any {
-        let result;
-        switch(valueType) {
-            case "number" : {
-                result = value[0]
-                break;
-            }
-            case "string" : {
-                result = new TextDecoder().decode(value);
-                break;
-            }
-            case "boolean" : {
-                result = value[0] === 1;
-                break;
-            }
-            case "byte_codable" : {
-                break;
-            }
-            case "tlv" : {
-
-                break;
-            }
-            case "byte_array": {
-                result = value;
-                break;
-            }
-            default: {
-                break;
-            }
-            
-        }
-        return result;
-    }
-
-    convertToBytes(value: any, valueType: string): Uint8Array {
-        let result = new Uint8Array();
-    switch(valueType) {
-        case "number" : {
-            let valueAsNumber = value as number;
-            if (Number.isInteger(valueAsNumber)) {
-                if (valueAsNumber >= -128 || valueAsNumber <= 127) { // uint 8
-                    const buffer = new ArrayBuffer(1);
-                    const view = new DataView(buffer);
-                    view.setUint8(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -32768 || valueAsNumber <= 32767) { // uint 16
-                    const buffer = new ArrayBuffer(2);
-                    const view = new DataView(buffer);
-                    view.setUint16(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -2147483648 || valueAsNumber <= 2147483647) { // unint 32
-                    const buffer = new ArrayBuffer(4);
-                    const view = new DataView(buffer);
-                    view.setUint32(0, valueAsNumber);
-                    result = new Uint8Array(buffer);
-                }
-            } else {
-                const buffer = new ArrayBuffer(4);
-                const view = new DataView(buffer);
-                view.setFloat32(0, valueAsNumber);
-                result = new Uint8Array(buffer);
-            }
-            break;
-        }
-        case "string" : {
-            const te = new TextEncoder();
-            result = te.encode(value);
-            break;
-        }
-        case "boolean" : {
-            result[0] = value as boolean === true ? 1 : 0
-            break;
-        }
-        case "tlv": {
-            let valueAsTLV = value as TLVCodable;
-            result = valueAsTLV.toTLV();
-            break;
-        }
-        case "byte_codable": {
-            break;
-        }
-        case "byte_array": {
-            result = value;
-            break;
-        }
-        default: {
-            break;
-        }
-    }
-    return result;
-    }
-}
-
-export function fromTLV() {
-
-}
-
-/**
- * 
- */
-export function fromBech32String(bech32String: string): Invoice | undefined {
-
-    return undefined
 }

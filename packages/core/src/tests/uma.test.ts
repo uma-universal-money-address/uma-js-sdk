@@ -766,8 +766,12 @@ describe("uma", () => {
       "sender_uma", 10,
        "https://example.com/callback", new TextEncoder().encode("sigature")
       );
-    console.log(`written tlv values are ${dummyInvoiceTLV.toTLV2()}`);
-    dummyInvoiceTLV.fromTLV2(dummyInvoiceTLV.toTLV2());
+    const tlv = dummyInvoiceTLV.toTLV()
+    console.log(`written tlv values are ${tlv}, length ${tlv.length}`);
+    const b32str = dummyInvoiceTLV.toBech32String();
+    console.log(`bech32 encoding ${b32str}`);
+    const b32strDecode = dummyInvoiceTLV.fromBech32String(b32str);
+    console.log(`decoded bech32 string is ${b32strDecode}, ${b32strDecode.length}`);
   })
 
   it("should serialize and deserialize pub key response", async () => {
