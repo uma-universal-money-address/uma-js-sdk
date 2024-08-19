@@ -24,21 +24,23 @@ export function convertToBytes(value: any, valueType: string): Uint8Array {
     switch (valueType) {
         case "number": {
             let valueAsNumber = value as number;
+            console.log(`number : ${valueAsNumber}`);
             if (Number.isInteger(valueAsNumber)) {
-                if (valueAsNumber >= -128 || valueAsNumber <= 127) { // uint 8
+                if (valueAsNumber >= -128 && valueAsNumber <= 127) { // uint 8
                     const buffer = new ArrayBuffer(1);
                     const view = new DataView(buffer);
-                    view.setUint8(0, valueAsNumber);
+                    view.setInt8(0, valueAsNumber);
                     result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -32768 || valueAsNumber <= 32767) { // uint 16
+                } else if (valueAsNumber >= -32768 && valueAsNumber <= 32767) { // uint 16
                     const buffer = new ArrayBuffer(2);
                     const view = new DataView(buffer);
-                    view.setUint16(0, valueAsNumber);
+                    view.setInt16(0, valueAsNumber);
                     result = new Uint8Array(buffer);
-                } else if (valueAsNumber >= -2147483648 || valueAsNumber <= 2147483647) { // unint 32
+                    console.log(result);
+                } else if (valueAsNumber >= -2147483648 && valueAsNumber <= 2147483647) { // unint 32
                     const buffer = new ArrayBuffer(4);
                     const view = new DataView(buffer);
-                    view.setUint32(0, valueAsNumber);
+                    view.setInt32(0, valueAsNumber);
                     result = new Uint8Array(buffer);
                 }
             } else {
@@ -55,7 +57,7 @@ export function convertToBytes(value: any, valueType: string): Uint8Array {
             break;
         }
         case "boolean": {
-            result[0] = value as boolean === true ? 1 : 0
+            result = new Uint8Array([value as boolean === true ? 1 : 0]);
             break;
         }
         case "tlv": {
@@ -83,18 +85,22 @@ export function decodeFromBytes(value: Uint8Array, valueType: string, length: nu
     let result;
     switch (valueType) {
         case "number": {
+            const view = new DataView(value.buffer)
             switch(length) {
                 case 1 : {
-                    result = value[0]
+                    result = view.getInt8(0);
                     break;
                 }
                 case 2 : { // 16 bit
+                    result = view.getInt16(0);
                     break
                 }
                 case 4 : { // 32 bit
+                    result = view.getInt32(0);
                     break;
                 }
                 case 8 : { // 64 bit
+                    result = view.getBigInt64(0);
                     break;
                 }
                 default: break;

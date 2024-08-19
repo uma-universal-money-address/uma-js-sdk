@@ -755,7 +755,6 @@ describe("uma", () => {
   });
 
   it ("should properly encode/decode InvoiceCurrency", async () => {
-    expect(true).toEqual(true);
     const invoiceCurrency = new InvoiceCurrency("USD","US Dollar","$",2);
     let tlvBytes = invoiceCurrency.toTLV()
     let decodedInvoiceCurrency = invoiceCurrency.fromTLV(tlvBytes)
@@ -767,6 +766,7 @@ describe("uma", () => {
 
   it("it should properly encode/decode Invoices", async () => {
     expect(true).toEqual(true);
+
     const dummyInvoiceTLV = await createUmaInvoice(
       "$foo@bar.com",
       "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
@@ -788,6 +788,7 @@ describe("uma", () => {
        "https://example.com/callback", new TextEncoder().encode("sigature")
       );
     const tlv = dummyInvoiceTLV.toTLV()
+    console.log(tlv);
     const tlvDecoded = dummyInvoiceTLV.fromTLV(tlv);
     console.log(tlvDecoded);
   })
