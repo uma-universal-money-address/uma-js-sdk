@@ -41,7 +41,7 @@ import {
   UmaProtocolVersion,
   UnsupportedVersionError,
 } from "./version.js";
-import { Invoice, InvoiceCurrency } from "./protocol/Invoice.js";
+import { Invoice, InvoiceCounterPartyDataOptions, InvoiceCurrency, InvoiceKycStatus } from "./protocol/Invoice.js";
 
 export const createSha256Hash = async (
   data: Uint8Array,
@@ -1047,12 +1047,12 @@ export async function createUmaInvoice(
     receivingCurrency: InvoiceCurrency,
     expiration: number,
     isSubectToTravelRule: boolean,
-    // requiredPayerData: CounterPartyDataOptions | undefined, 
+    requiredPayerData: CounterPartyDataOptions | undefined, 
     umaVersion: string,
     commentCharsAllowed: number | undefined,
     senderUma: string | undefined,
     invoiceLimit: number | undefined,
-    // kycStatus: KycStatus | undefined,    
+    kycStatus: KycStatus | undefined,    
     callback: string,
     signature: Uint8Array
 ): Promise<Invoice> {
@@ -1063,12 +1063,12 @@ export async function createUmaInvoice(
     receivingCurrency,
     expiration,
     isSubectToTravelRule,
-    // requiredPayerData, 
+    requiredPayerData ? new InvoiceCounterPartyDataOptions(requiredPayerData) : undefined, 
     umaVersion,
     commentCharsAllowed,
     senderUma,
     invoiceLimit,
-    // kycStatus,
+    kycStatus ? new InvoiceKycStatus(kycStatus) : undefined,
     callback,
     signature
   )

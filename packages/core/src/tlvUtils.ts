@@ -1,102 +1,118 @@
 
+/**
+ * indicates this object can be transformed into a binary Tag:Length:Value format
+ */
 export interface TLVCodable {
     tlvMembers: Map<string, TLVField>
     toTLV(): Uint8Array
 }
 
+/**
+ * used for constructor parameters in TLV classes to indicate type/tag
+ */
 type TLVField = {
-    tag : number,
+    tag: number,
     type: string
 }
 
-export function mergeByteArrays(byteArrays: Array<Uint8Array>): Uint8Array {
-    const totalLength = byteArrays.reduce((acc, curr) => acc + curr.length, 0);
-    let offset = 0;
-    const combinedArray = new Uint8Array(totalLength);
-    for (const array of byteArrays) {
-        combinedArray.set(array, offset);
-        offset+= array.length;
-    }
-    return combinedArray;
+export interface ByteCodable {
+    toBytes(): Uint8Array
 }
 
 export function convertToBytes(value: any, valueType: string): Uint8Array {
     let result = new Uint8Array();
-switch(valueType) {
-    case "number" : {
-        let valueAsNumber = value as number;
-        if (Number.isInteger(valueAsNumber)) {
-            if (valueAsNumber >= -128 || valueAsNumber <= 127) { // uint 8
-                const buffer = new ArrayBuffer(1);
-                const view = new DataView(buffer);
-                view.setUint8(0, valueAsNumber);
-                result = new Uint8Array(buffer);
-            } else if (valueAsNumber >= -32768 || valueAsNumber <= 32767) { // uint 16
-                const buffer = new ArrayBuffer(2);
-                const view = new DataView(buffer);
-                view.setUint16(0, valueAsNumber);
-                result = new Uint8Array(buffer);
-            } else if (valueAsNumber >= -2147483648 || valueAsNumber <= 2147483647) { // unint 32
+    switch (valueType) {
+        case "number": {
+            let valueAsNumber = value as number;
+            if (Number.isInteger(valueAsNumber)) {
+                if (valueAsNumber >= -128 || valueAsNumber <= 127) { // uint 8
+                    const buffer = new ArrayBuffer(1);
+                    const view = new DataView(buffer);
+                    view.setUint8(0, valueAsNumber);
+                    result = new Uint8Array(buffer);
+                } else if (valueAsNumber >= -32768 || valueAsNumber <= 32767) { // uint 16
+                    const buffer = new ArrayBuffer(2);
+                    const view = new DataView(buffer);
+                    view.setUint16(0, valueAsNumber);
+                    result = new Uint8Array(buffer);
+                } else if (valueAsNumber >= -2147483648 || valueAsNumber <= 2147483647) { // unint 32
+                    const buffer = new ArrayBuffer(4);
+                    const view = new DataView(buffer);
+                    view.setUint32(0, valueAsNumber);
+                    result = new Uint8Array(buffer);
+                }
+            } else {
                 const buffer = new ArrayBuffer(4);
                 const view = new DataView(buffer);
-                view.setUint32(0, valueAsNumber);
+                view.setFloat32(0, valueAsNumber);
                 result = new Uint8Array(buffer);
             }
-        } else {
-            const buffer = new ArrayBuffer(4);
-            const view = new DataView(buffer);
-            view.setFloat32(0, valueAsNumber);
-            result = new Uint8Array(buffer);
-        }
-        break;
-    }
-    case "string" : {
-        const te = new TextEncoder();
-        result = te.encode(value);
-        break;
-    }
-    case "boolean" : {
-        result[0] = value as boolean === true ? 1 : 0
-        break;
-    }
-    case "tlv": {
-        let valueAsTLV = value as TLVCodable;
-        result = valueAsTLV.toTLV();
-        break;
-    }
-    case "byte_codable": {
-        break;
-    }
-    case "byte_array": {
-        result = value;
-        break;
-    }
-    default: {
-        break;
-    }
-}
-return result;
-}
-
-export function decodeFromBytes(value: Uint8Array, valueType: string): any {
-    let result;
-    switch(valueType) {
-        case "number" : {
-            result = value[0]
             break;
         }
-        case "string" : {
+        case "string": {
+            const te = new TextEncoder();
+            result = te.encode(value);
+            break;
+        }
+        case "boolean": {
+            result[0] = value as boolean === true ? 1 : 0
+            break;
+        }
+        case "tlv": {
+            let valueAsTLV = value as TLVCodable;
+            result = valueAsTLV.toTLV();
+            break;
+        }
+        case "byte_codeable": {
+            let valueAsByteCodable = value as ByteCodable;
+            result = valueAsByteCodable.toBytes();
+            break;
+        }
+        case "byte_array": {
+            result = value;
+            break;
+        }
+        default: {
+            break;
+        }
+    }
+    return result;
+}
+
+export function decodeFromBytes(value: Uint8Array, valueType: string, length: number): any {
+    let result;
+    switch (valueType) {
+        case "number": {
+            switch(length) {
+                case 1 : {
+                    result = value[0]
+                    break;
+                }
+                case 2 : { // 16 bit
+                    break
+                }
+                case 4 : { // 32 bit
+                    break;
+                }
+                case 8 : { // 64 bit
+                    break;
+                }
+                default: break;
+            }
+            break;
+        }
+        case "string": {
             result = new TextDecoder().decode(value);
             break;
         }
-        case "boolean" : {
+        case "boolean": {
             result = value[0] === 1;
             break;
         }
-        case "byte_codable" : {
+        case "byte_codable": {
             break;
         }
-        case "tlv" : {
+        case "tlv": {
 
             break;
         }
@@ -107,7 +123,7 @@ export function decodeFromBytes(value: Uint8Array, valueType: string): any {
         default: {
             break;
         }
-        
+
     }
     return result;
 }

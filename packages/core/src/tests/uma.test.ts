@@ -35,7 +35,8 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
-import { InvoiceCurrency } from "../protocol/Invoice.js";
+import { Invoice, InvoiceCurrency } from "../protocol/Invoice.js";
+import { bech32m } from "bech32";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -753,7 +754,18 @@ describe("uma", () => {
     expect(decryptedTrInfo).toBe(trInfo);
   });
 
-  it("does some stuff with invoices", async () => {
+  it ("should properly encode/decode InvoiceCurrency", async () => {
+    expect(true).toEqual(true);
+    const invoiceCurrency = new InvoiceCurrency("USD","US Dollar","$",2);
+    let tlvBytes = invoiceCurrency.toTLV()
+    let decodedInvoiceCurrency = invoiceCurrency.fromTLV(tlvBytes)
+    expect(decodedInvoiceCurrency.code).toBe("USD");
+    expect(decodedInvoiceCurrency.name).toBe("US Dollar");
+    expect(decodedInvoiceCurrency.symbol).toBe("$");
+    expect(decodedInvoiceCurrency.decimals).toBe(2);
+  })
+
+  it("it should properly encode/decode Invoices", async () => {
     expect(true).toEqual(true);
     const dummyInvoiceTLV = await createUmaInvoice(
       "$foo@bar.com",
@@ -762,16 +774,22 @@ describe("uma", () => {
       new InvoiceCurrency("USD","US Dollar","$",2),
       100000,
       true,
+      {
+        name: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+      },
       "1.0", 10,
       "sender_uma", 10,
+      KycStatus.Pending,
        "https://example.com/callback", new TextEncoder().encode("sigature")
       );
     const tlv = dummyInvoiceTLV.toTLV()
-    console.log(`written tlv values are ${tlv}, length ${tlv.length}`);
-    const b32str = dummyInvoiceTLV.toBech32String();
-    console.log(`bech32 encoding ${b32str}`);
-    const b32strDecode = dummyInvoiceTLV.fromBech32String(b32str);
-    console.log(`decoded bech32 string is ${b32strDecode}, ${b32strDecode.length}`);
+    const tlvDecoded = dummyInvoiceTLV.fromTLV(tlv);
+    console.log(tlvDecoded);
   })
 
   it("should serialize and deserialize pub key response", async () => {
