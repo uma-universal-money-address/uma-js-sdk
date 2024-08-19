@@ -1,9 +1,12 @@
 import { CounterPartyDataOption, CounterPartyDataOptions, CounterPartyDataOptionSchema } from "./CounterPartyData.js";
-import { KycStatus, kycStatusToString } from "./KycStatus.js";
+import { KycStatus, kycStatusFromString, kycStatusToString } from "./KycStatus.js";
 import { bech32m } from "bech32";
 import { ByteCodable, TLVCodable, convertToBytes, decodeFromBytes } from "../tlvUtils.js"
 import { z } from "zod";
 import { optionalIgnoringNull } from "../zodUtils.js";
+
+const MAX_BECH32_LENGTH = 512;
+const UMA_PREFIX_STR = "uma";
 
 export class InvoiceKycStatus implements ByteCodable {
     constructor(
@@ -12,6 +15,10 @@ export class InvoiceKycStatus implements ByteCodable {
 
     toBytes(): Uint8Array {
         return new TextEncoder().encode(kycStatusToString(this.status));
+    }
+
+    static fromBytes(bytes: Uint8Array): KycStatus {
+        return kycStatusFromString(new TextDecoder().decode(bytes).toUpperCase());
     }
 }
 
@@ -126,11 +133,14 @@ export class InvoiceCurrency implements TLVCodable {
         } catch (e) {
             throw new Error("invalid invoice currency response", { cause: e });
         }
-        return new InvoiceCurrency(
-            validated.code, validated.name, validated.symbol, validated.decimals
-        )
+        return InvoiceCurrency.fromSchema(validated);
     }
 
+    static fromSchema(schema: z.infer<typeof InvoiceCurrencySchema>): InvoiceCurrency {
+        return new InvoiceCurrency(
+            schema.code, schema.name, schema.symbol, schema.decimals
+        )
+    } 
 }
 
 export class Invoice implements TLVCodable {
@@ -144,7 +154,7 @@ export class Invoice implements TLVCodable {
         ["amount", { tag: 2, type: "number" }],
         ["receivingCurrency", { tag: 3, type: "tlv" }],
         ["expiration", { tag: 4, type: "number" }],
-        ["isSubectToTravelRule", { tag: 5, type: "boolean" }],
+        ["isSubjectToTravelRule", { tag: 5, type: "boolean" }],
         ["requiredPayerData", { tag: 6, type: "byte_codeable" }],
         ["umaVersion", { tag: 7, type: "string" }],
         ["commentCharsAllowed", { tag: 8, type: "number" }],
@@ -189,7 +199,7 @@ export class Invoice implements TLVCodable {
         public readonly expiration: number,
 
         // Indicates whether the VASP is a financial institution that requires travel rule information.
-        public readonly isSubectToTravelRule: boolean,
+        public readonly isSubjectToTravelRule: boolean,
 
         // RequiredPayerData the data about the payer that the sending VASP must provide in order to send a payment.    
         public readonly requiredPayerData: InvoiceCounterPartyDataOptions | undefined,
@@ -219,11 +229,11 @@ export class Invoice implements TLVCodable {
 
     toBech32String(): string {
         const bech32Str = bech32m.toWords(this.toTLV())
-        return bech32m.encode("uma", bech32Str, 256);
+        return bech32m.encode(UMA_PREFIX_STR, bech32Str, MAX_BECH32_LENGTH);
     }
 
     static fromBech32String(bvalue: string): number[] {
-        const decoded = bech32m.decode(bvalue, 256);
+        const decoded = bech32m.decode(bvalue, MAX_BECH32_LENGTH);
         return bech32m.fromWords(decoded.words);
     }
 
@@ -265,20 +275,22 @@ export class Invoice implements TLVCodable {
                 offset += len;
             }
         }
+        console.log(result);
         let validated: z.infer<typeof InvoiceSchema>;
         try {
             validated = InvoiceSchema.parse(result);
         } catch (e) {
             throw new Error("invalid invoice response", { cause: e });
         }
+        
         // return new Invoice(
         //     validated.receiverUma,
         //     validated.invoiceUUID,
         //     validated.amount,
-        //     validated.receivingCurrency,
+        //     InvoiceCurrency.fromSchema(validated.receivingCurrency),
         //     validated.expiration,
         //     validated.isSubjectToTravelRule,
-        //     validated.requiredPayerData,
+        //     validated.requiredPayerData ?? new InvoiceCounterPartyDataOptions(validated.requiredPayerData) : undefined,
         //     validated.umaVersion,
         //     validated.commentCharsAllowed,
         //     validated.senderUma,
