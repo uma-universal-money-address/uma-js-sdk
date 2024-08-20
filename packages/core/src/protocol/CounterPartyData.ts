@@ -22,10 +22,10 @@ export type CounterPartyDataOptions = z.infer<
 
 export function counterPartyDataOptionsToBytes(options: CounterPartyDataOptions): Uint8Array {
   let formatArray = new Array<string>();
-  for (const key in options) {
-      let k = key as keyof CounterPartyDataOptions;
+  Object.keys(options).sort().forEach((key) => {
+    let k = key as keyof CounterPartyDataOptions;
       formatArray.push(`${key}:${options[k].mandatory ? "1" : "0"}`);
-  }
+  })
   let formatStr = formatArray.join(",");
   console.log(formatStr);
   return new TextEncoder().encode(formatStr);

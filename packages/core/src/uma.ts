@@ -1047,12 +1047,12 @@ export async function createUmaInvoice(
     receivingCurrency: IncomingCurrency,
     expiration: number,
     isSubectToTravelRule: boolean,
-    requiredPayerData: CounterPartyDataOptions | undefined, 
+    requiredPayerData: CounterPartyDataOptions | undefined = undefined, 
     umaVersion: string,
-    commentCharsAllowed: number | undefined,
-    senderUma: string | undefined,
-    invoiceLimit: number | undefined,
-    kycStatus: KycStatus | undefined,    
+    commentCharsAllowed: number | undefined = undefined,
+    senderUma: string | undefined = undefined,
+    invoiceLimit: number | undefined = undefined,
+    kycStatus: KycStatus | undefined = undefined,    
     callback: string,
     signature: Uint8Array
 ): Promise<Invoice2> {
