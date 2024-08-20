@@ -36,6 +36,7 @@ import {
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
 import { Invoice, InvoiceCurrency } from "../protocol/Invoice.js";
+import { Invoice2, TLVInvoiceSerializer } from "../protocol/Invoice2.js";
 import { bech32m } from "bech32";
 
 const generateKeypair = async () => {
@@ -764,34 +765,52 @@ describe("uma", () => {
     expect(decodedInvoiceCurrency.decimals).toBe(2);
   })
 
-  it("it should properly encode/decode Invoices", async () => {
-    expect(true).toEqual(true);
+it ("it should do better invoice v2", async() => {
+  const invoice: Invoice2 = {
+    receiverUma : "$matt@foo.bar",
+    amount : 1000,
+    receivingCurrency : {
+      name : "US Dollars",
+      code : "USD",
+      symbol : "$",
+      decimals : 3
+    },
+    kycStatus : KycStatus.Verified,
+    isSubjectToTravelRule : true
+  };
+  let tlv = TLVInvoiceSerializer.serializeInvoice(invoice);
+  console.log(tlv);
+  console.log(TLVInvoiceSerializer.deserializeInvoice(tlv));
+})
 
-    const dummyInvoiceTLV = await createUmaInvoice(
-      "$foo@bar.com",
-      "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
-      1000,
-      new InvoiceCurrency("USD","US Dollar","$",2),
-      100000,
-      true,
-      {
-        name: {
-          mandatory: false,
-        },
-        email: {
-          mandatory: false,
-        },
-      },
-      "1.0", 10,
-      "sender_uma", 10,
-      KycStatus.Pending,
-       "https://example.com/callback", new TextEncoder().encode("sigature")
-      );
-    const tlv = dummyInvoiceTLV.toTLV()
-    console.log(tlv);
-    const tlvDecoded = dummyInvoiceTLV.fromTLV(tlv);
-    console.log(tlvDecoded);
-  })
+  // it("it should properly encode/decode Invoices", async () => {
+  //   expect(true).toEqual(true);
+
+  //   const dummyInvoiceTLV = await createUmaInvoice(
+  //     "$foo@bar.com",
+  //     "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+  //     1000,
+  //     new InvoiceCurrency("USD","US Dollar","$",2),
+  //     100000,
+  //     true,
+  //     {
+  //       name: {
+  //         mandatory: false,
+  //       },
+  //       email: {
+  //         mandatory: false,
+  //       },
+  //     },
+  //     "1.0", 10,
+  //     "sender_uma", 10,
+  //     KycStatus.Pending,
+  //      "https://example.com/callback", new TextEncoder().encode("sigature")
+  //     );
+  //   const tlv = dummyInvoiceTLV.toTLV()
+  //   console.log(tlv);
+  //   const tlvDecoded = dummyInvoiceTLV.fromTLV(tlv);
+  //   console.log(tlvDecoded);
+  // })
 
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {
