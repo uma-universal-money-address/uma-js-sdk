@@ -24,7 +24,6 @@ export function convertToBytes(value: any, valueType: string): Uint8Array {
     switch (valueType) {
         case "number": {
             let valueAsNumber = value as number;
-            console.log(`number : ${valueAsNumber}`);
             if (Number.isInteger(valueAsNumber)) {
                 if (valueAsNumber >= -128 && valueAsNumber <= 127) { // uint 8
                     const buffer = new ArrayBuffer(1);

@@ -5,12 +5,17 @@ import {
     deserializeBoolean,
     deserializeNumber,
     deserializeString,
-    deserializeTLV,
     serializeBoolean,
     serializeNumber,
     serializeString,
-    serializeTLV
 } from "../serializerUtils.js";
+import { optionalIgnoringNull } from "../zodUtils.js";
+import {
+    CounterPartyDataOptionsSchema,
+    counterPartyDataOptionsFromBytes,
+    counterPartyDataOptionsToBytes
+} from "./CounterPartyData.js";
+
 /**
  * invoice mk 2
  * for each parameter store a serialize and a deserialize function
@@ -32,14 +37,23 @@ const InvoiceCurrencySchema = z.object({
 
 })
 
-type IncomingCurrency = z.infer<typeof InvoiceCurrencySchema>;
+export type IncomingCurrency = z.infer<typeof InvoiceCurrencySchema>;
 
 const InvoiceSchema = z.object({
-    "receiverUma": z.string(),
-    "amount": z.number(),
-    "receivingCurrency": InvoiceCurrencySchema,
-    "kycStatus": z.nativeEnum(KycStatus),
-    "isSubjectToTravelRule": z.boolean()
+    receiverUma: z.string(),
+    invoiceUUID: z.string(),
+    amount: z.number(),
+    receivingCurrency: InvoiceCurrencySchema,
+    expiration: z.number(),
+    isSubjectToTravelRule: z.boolean(),
+    requiredPayerData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+    umaVersion: z.string(),
+    commentCharsAllowed: optionalIgnoringNull(z.number()),
+    senderUma: optionalIgnoringNull(z.string()),
+    invoiceLimit: optionalIgnoringNull(z.number()),
+    kycStatus: optionalIgnoringNull(z.nativeEnum(KycStatus)),
+    callback: z.string(),
+    signature: optionalIgnoringNull(z.instanceof(Uint8Array))
 })
 
 export type Invoice2 = z.infer<typeof InvoiceSchema>
@@ -59,9 +73,10 @@ const TLVInvoiceCurrencySerializer = {
     registerTLV(field: string, helper: TLVSerial<any>) {
         this.reverseLookupSerialMap.set(helper.tag, field);
         this.serialMap.set(field, helper);
+        return this;
     },
 
-    serializeInvoice(invoice: IncomingCurrency): Uint8Array {
+    serialize(invoice: IncomingCurrency): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
@@ -80,7 +95,7 @@ const TLVInvoiceCurrencySerializer = {
         return new Uint8Array(tlv).slice(0, offset);
     },
 
-    deserializeInvoice(bytes: Uint8Array): IncomingCurrency {
+    deserialize(bytes: Uint8Array): IncomingCurrency {
         let offset = 0;
         let result: any = {};
         while (offset < bytes.length) {
@@ -104,30 +119,31 @@ const TLVInvoiceCurrencySerializer = {
     }
 }
 
-TLVInvoiceCurrencySerializer.registerTLV("code", {
-    tag: 0, 
-    type : "string",
-    serialize : serializeString,
-    deserialize : deserializeString
-});
-TLVInvoiceCurrencySerializer.registerTLV("name", {
-    tag: 1, 
-    type : "string",
-    serialize : serializeString,
-    deserialize : deserializeString
-});
-TLVInvoiceCurrencySerializer.registerTLV("symbol", {
-    tag: 2, 
-    type : "string",
-    serialize : serializeString,
-    deserialize : deserializeString
-});
-TLVInvoiceCurrencySerializer.registerTLV("decimals", {
-    tag: 3, 
-    type : "number",
-    serialize : serializeNumber,
-    deserialize : deserializeNumber
-});
+TLVInvoiceCurrencySerializer
+    .registerTLV("code", {
+        tag: 0,
+        type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("name", {
+        tag: 1,
+        type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("symbol", {
+        tag: 2,
+        type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("decimals", {
+        tag: 3,
+        type: "number",
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    });
 
 export const TLVInvoiceSerializer = {
     serialMap: new Map<string, TLVSerial<any>>(),
@@ -137,9 +153,10 @@ export const TLVInvoiceSerializer = {
     registerTLV(field: string, helper: TLVSerial<any>) {
         this.reverseLookupSerialMap.set(helper.tag, field);
         this.serialMap.set(field, helper);
+        return this;
     },
 
-    serializeInvoice(invoice: Invoice2): Uint8Array {
+    serialize(invoice: Invoice2): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
@@ -148,6 +165,7 @@ export const TLVInvoiceSerializer = {
                 const { type, tag, serialize } = this.serialMap.get(key)!!;
                 let convert = serialize(invoice[key as keyof Invoice2]);
                 let byteLength = convert.length;
+                // console.log(`serializing ${key}, ${byteLength}, ${convert}`);
                 view.setUint8(offset++, tag as number);
                 view.setUint8(offset++, byteLength);
                 for (let i = 0; i < convert.length; i++) {
@@ -158,7 +176,7 @@ export const TLVInvoiceSerializer = {
         return new Uint8Array(tlv).slice(0, offset);
     },
 
-    deserializeInvoice(bytes: Uint8Array): Invoice2 {
+    deserialize(bytes: Uint8Array): Invoice2 {
         let offset = 0;
         let result: any = {};
         while (offset < bytes.length) {
@@ -168,6 +186,7 @@ export const TLVInvoiceSerializer = {
                 let byteLength = bytes[offset++];
                 let value = bytes.slice(offset, offset + byteLength);
                 const { deserialize } = this.serialMap.get(reverseTag)!!
+                // console.log(`deserializing ${reverseTag}, ${byteLength}, ${value}, ${deserialize}`);
                 result[reverseTag] = deserialize(value);
                 offset += byteLength;
             }
@@ -189,44 +208,93 @@ TLVInvoiceSerializer.registerTLV(
     type: "string",
     serialize: serializeString,
     deserialize: deserializeString
-}
-);
-
-TLVInvoiceSerializer.registerTLV(
-    "amount", {
-    tag: 1,
-    type: "number",
-    serialize: serializeNumber,
-    deserialize: deserializeNumber
-}
-);
-
-TLVInvoiceSerializer.registerTLV(
-    "receivingCurrency", {
-        tag : 2,
-        type : "tlv",
-        serialize : (value: IncomingCurrency) => {
-            return TLVInvoiceCurrencySerializer.serializeInvoice(value);
+})
+    .registerTLV(
+        "invoiceUUID", {
+        tag: 1,
+        type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "amount", {
+        tag: 2,
+        type: "number",
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "receivingCurrency", {
+        tag: 3,
+        type: "tlv",
+        serialize: (value: IncomingCurrency) => {
+            return TLVInvoiceCurrencySerializer.serialize(value);
         },
-        deserialize : (value: Uint8Array) => {
-            return TLVInvoiceCurrencySerializer.deserializeInvoice(value);
-        } 
-    }
-);
-
-TLVInvoiceSerializer.registerTLV(
-    "kycStatus", {
-    tag: 3,
-    type: "bytes",
-    serialize: kycStatusToBytes,
-    deserialize: kycStatusFromBytes
-}
-);
-
-TLVInvoiceSerializer.registerTLV(
-    "isSubjectToTravelRule", {
-    tag: 4,
-    type: "boolean",
-    serialize: serializeBoolean,
-    deserialize: deserializeBoolean
-});
+        deserialize: (value: Uint8Array) => {
+            return TLVInvoiceCurrencySerializer.deserialize(value);
+        }
+    })
+    .registerTLV(
+        "expiration", {
+        tag: 4, type: "number",
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "isSubjectToTravelRule", {
+        tag: 5, type: "boolean",
+        serialize: serializeBoolean,
+        deserialize: deserializeBoolean
+    })
+    .registerTLV(
+        "requiredPayerData", {
+        tag: 6, type: "bytes",
+        serialize: counterPartyDataOptionsToBytes,
+        deserialize: counterPartyDataOptionsFromBytes
+    })
+    .registerTLV(
+        "umaVersion", {
+        tag: 7, type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "commentCharsAllowed", {
+        tag: 8, type: "number",
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "senderUma", {
+        tag: 9, type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "invoiceLimit", {
+        tag: 10, type: "number",
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "kycStatus", {
+        tag: 11, type: "bytes",
+        serialize: kycStatusToBytes,
+        deserialize: kycStatusFromBytes
+    })
+    .registerTLV(
+        "callback", {
+        tag: 12, type: "string",
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "signature", {
+        tag: 100, type: "bytes",
+        serialize: (bytes: Uint8Array) => {
+            return bytes
+        },
+        deserialize: (bytes: Uint8Array) => {
+            return bytes
+        }
+    });

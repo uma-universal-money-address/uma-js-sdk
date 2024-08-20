@@ -765,22 +765,35 @@ describe("uma", () => {
     expect(decodedInvoiceCurrency.decimals).toBe(2);
   })
 
-it ("it should do better invoice v2", async() => {
-  const invoice: Invoice2 = {
-    receiverUma : "$matt@foo.bar",
-    amount : 1000,
-    receivingCurrency : {
-      name : "US Dollars",
-      code : "USD",
-      symbol : "$",
-      decimals : 3
-    },
-    kycStatus : KycStatus.Verified,
-    isSubjectToTravelRule : true
-  };
-  let tlv = TLVInvoiceSerializer.serializeInvoice(invoice);
-  console.log(tlv);
-  console.log(TLVInvoiceSerializer.deserializeInvoice(tlv));
+it ("it should create / serialize / deserialize UMA Invoice", async() => {
+  const invoice = await createUmaInvoice(
+        "$foo@bar.com",
+        "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+        1000,
+        {
+          code: "USD",name:"US Dollar",symbol: "$",decimals: 2
+        },
+        1000000,
+        true,
+        {
+          name: {
+            mandatory: false,
+          },
+          email: {
+            mandatory: false,
+          },
+        },
+        "1.0", 
+        10,
+        "sender_uma", 
+        10,
+        KycStatus.Pending,
+        "https://example.com/callback", 
+        new TextEncoder().encode("sigature")
+  );
+  let tlvBytes = TLVInvoiceSerializer.serialize(invoice);
+  let decodedInvoice = TLVInvoiceSerializer.deserialize(tlvBytes);
+  expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
 })
 
   // it("it should properly encode/decode Invoices", async () => {
