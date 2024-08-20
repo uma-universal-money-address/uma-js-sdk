@@ -35,9 +35,7 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
-import { Invoice, InvoiceCurrency } from "../protocol/Invoice.js";
-import { Invoice2, TLVInvoiceSerializer } from "../protocol/Invoice2.js";
-import { bech32m } from "bech32";
+import { Invoice, TLVInvoiceSerializer } from "../protocol/Invoice.js";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -110,7 +108,7 @@ function createMetadataForBob(): string {
   return JSON.stringify(metadata);
 }
 
-function createTestUmaInvoice(): Promise<Invoice2> {
+function createTestUmaInvoice(): Promise<Invoice> {
     return createUmaInvoice(
       "$foo@bar.com",
       "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
@@ -785,16 +783,6 @@ describe("uma", () => {
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
   });
-
-  it("should properly encode/decode InvoiceCurrency", async () => {
-    const invoiceCurrency = new InvoiceCurrency("USD", "US Dollar", "$", 2);
-    let tlvBytes = invoiceCurrency.toTLV()
-    let decodedInvoiceCurrency = invoiceCurrency.fromTLV(tlvBytes)
-    expect(decodedInvoiceCurrency.code).toBe("USD");
-    expect(decodedInvoiceCurrency.name).toBe("US Dollar");
-    expect(decodedInvoiceCurrency.symbol).toBe("$");
-    expect(decodedInvoiceCurrency.decimals).toBe(2);
-  })
 
   it("it should create / serialize / deserialize UMA Invoice", async () => {
     const invoice = await createTestUmaInvoice();

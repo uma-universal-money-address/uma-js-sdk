@@ -1,108 +1,113 @@
-import { CounterPartyDataOption, CounterPartyDataOptions, CounterPartyDataOptionSchema } from "./CounterPartyData.js";
-import { KycStatus, kycStatusFromString, kycStatusToString } from "./KycStatus.js";
-import { bech32m } from "bech32";
-import { ByteCodable, TLVCodable, convertToBytes, decodeFromBytes } from "../tlvUtils.js"
 import { z } from "zod";
+import { bech32, bech32m } from "bech32";
+import { KycStatus, kycStatusFromBytes, kycStatusToBytes } from "./KycStatus.js";
+import {
+    deserializeBoolean,
+    deserializeNumber,
+    deserializeString,
+    serializeBoolean,
+    serializeNumber,
+    serializeString,
+} from "../serializerUtils.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
+import {
+    CounterPartyDataOptionsSchema,
+    counterPartyDataOptionsFromBytes,
+    counterPartyDataOptionsToBytes
+} from "./CounterPartyData.js";
 
-const MAX_BECH32_LENGTH = 512;
-const UMA_PREFIX_STR = "uma";
 
-export class InvoiceKycStatus implements ByteCodable {
-    constructor(
-        public readonly status: KycStatus
-    ) { }
+const UMA_BECH32_PREFIX = "uma";
+const BECH_32_MAX_LENGTH = 512;
 
-    toBytes(): Uint8Array {
-        return new TextEncoder().encode(kycStatusToString(this.status));
-    }
+const InvoiceCurrencySchema = z.object({
+    name: z.string(),
+    code: z.string(),
+    symbol: z.string(),
+    decimals: z.number()
+})
 
-    static fromBytes(bytes: Uint8Array): KycStatus {
-        return kycStatusFromString(new TextDecoder().decode(bytes).toUpperCase());
-    }
+/**
+ * Sub object describing receiving currency in more detail
+ * 
+ * @param name
+ * @param code
+ * @param symbol
+ * @param decimals
+ */
+export type InvoiceCurrency = z.infer<typeof InvoiceCurrencySchema>;
+
+
+const InvoiceSchema = z.object({
+    receiverUma: z.string(),
+    invoiceUUID: z.string().uuid(),
+    amount: z.number(),
+    receivingCurrency: InvoiceCurrencySchema,
+    expiration: z.number(),
+    isSubjectToTravelRule: z.boolean(),
+    requiredPayerData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
+    umaVersion: z.string(),
+    commentCharsAllowed: optionalIgnoringNull(z.number()),
+    senderUma: optionalIgnoringNull(z.string()),
+    invoiceLimit: optionalIgnoringNull(z.number()),
+    kycStatus: optionalIgnoringNull(z.nativeEnum(KycStatus)),
+    callback: z.string(),
+    signature: optionalIgnoringNull(z.instanceof(Uint8Array))
+})
+
+/**
+ * Invoice
+ * represents a UMA invoice 
+ * 
+ * @param receiverUma 
+ * @param invoiceUUID - Invoice UUID Served as both the identifier of the UMA invoice, and the validation of proof of payment
+ * @param amount - The amount of invoice to be paid in the smallest unit of the ReceivingCurrency.
+ * @param receivingCurrency - The currency of the invoice
+ * @param expiration - The unix timestamp of when the UMA invoice expires
+ * @param isSubjectToTravelRule -  Indicates whether the VASP is a financial institution that requires travel rule information.
+ * @param requiredPayerData - the data about the payer that the sending VASP must provide in order to send a payment
+ * @param umaVersion - UmaVersion is a list of UMA versions that the VASP supports for this transaction. It should be
+ * containing the lowest minor version of each major version it supported, separated by commas
+ * @param commentCharsAllowed - is the number of characters that the sender can include in the comment field of the pay request.
+ * @param senderUma - The sender's UMA address. If this field presents, the UMA invoice should directly go to the sending VASP 
+ * instead of showing in other formats
+ * @param invoiceLimit - The maximum number of the invoice can be paid
+ * @param kycStatus - YC status of the receiver, default is verified
+ * @param callback - The callback url that the sender should send the PayRequest to
+ * @param signature - The signature of the UMA invoice
+ */
+export type Invoice = z.infer<typeof InvoiceSchema>
+
+
+type TLVSerial<T> = {
+    tag: number,
+    serialize: (value: T) => Uint8Array,
+    deserialize: (bytes: Uint8Array) => T
 }
 
-export class InvoiceCounterPartyDataOptions implements ByteCodable {
-    constructor(
-        public readonly options: CounterPartyDataOptions
-    ) { }
+/**
+ * Serializer object converts InvoiceCurrency to Uint8Array, 
+ * or creates InvoiceCurrency based on properly validated Uint8Array
+ */
+const TLVInvoiceCurrencySerializer = {
+    serialMap: new Map<string, TLVSerial<any>>(),
 
-    toBytes(): Uint8Array {
-        let formatArray = new Array<string>();
-        for (const key in this.options) {
-            let k = key as keyof CounterPartyDataOptions;
-            formatArray.push(`${key}:${this.options[k].mandatory ? "1" : "0"}`);
-        }
-        let formatStr = formatArray.join(",");
-        return new TextEncoder().encode(formatStr);
-    }
+    reverseLookupSerialMap: new Map<number, string>(),
 
-    static fromBytes(bytes: Uint8Array): CounterPartyDataOptions {
-        let result: CounterPartyDataOptions = {};
-        let options = new TextDecoder().decode(bytes);
-        options.split(",").forEach((dataOption) => {
-            let dataOptionsSplit = dataOption.split(":");
-            if (dataOptionsSplit.length == 2) {
-                result[dataOptionsSplit[0]] = {
-                    mandatory: dataOptionsSplit[1] === "1"
-                }
-            }
-        });
-        return result;
-    }
-}
+    registerTLV(field: string, helper: TLVSerial<any>) {
+        this.reverseLookupSerialMap.set(helper.tag, field);
+        this.serialMap.set(field, helper);
+        return this;
+    },
 
-export class InvoiceCurrency implements TLVCodable {
-
-    tlvMembers = new Map([
-        ["code", {
-            tag: 0,
-            type: "string"
-        }],
-        ["name", {
-            tag: 1,
-            type: "string"
-        }],
-        ["symbol", {
-            tag: 2,
-            type: "string"
-        }],
-        ["decimals", {
-            tag: 3,
-            type: "number"
-        }],
-    ])
-
-    reverseTlVMembers = new Map([
-        [0, "code"],
-        [1, "name"],
-        [2, "symbol"],
-        [3, "decimals"]
-    ])
-
-    constructor(
-        // code is the ISO 4217 (if applicable) currency code (eg. "USD"). For cryptocurrencies, this will  be a ticker
-        // symbol, such as BTC for Bitcoin.
-        public readonly code: string,
-
-        // name is the full display name of the currency (eg. US Dollars).
-        public readonly name: string,
-
-        // symbol is the symbol used to represent the currency (eg. $).
-        public readonly symbol: string,
-
-        // The number of digits after the decimal point for display on the sender side
-        public readonly decimals: number
-    ) { }
-
-    toTLV(): Uint8Array {
+    serialize(invoice: InvoiceCurrency): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
-        Object.keys(this).forEach(key => {
-            if (this[key as keyof InvoiceCurrency] !== undefined && this.tlvMembers.get(key) !== undefined) {
-                const { tag, type } = this.tlvMembers.get(key)!!;
-                let convert = convertToBytes(this[key as keyof InvoiceCurrency], type);
+        Object.keys(invoice).forEach(key => {
+            if (invoice[key as keyof InvoiceCurrency] !== undefined && this.serialMap.has(key)) {
+                const { tag, serialize } = this.serialMap.get(key)!!;
+                let convert = serialize(invoice[key as keyof InvoiceCurrency]);
                 let byteLength = convert.length;
                 view.setUint8(offset++, tag as number);
                 view.setUint8(offset++, byteLength);
@@ -112,19 +117,20 @@ export class InvoiceCurrency implements TLVCodable {
             }
         })
         return new Uint8Array(tlv).slice(0, offset);
-    }
+    },
 
-    fromTLV(tlvBytes: Uint8Array): InvoiceCurrency {
+    deserialize(bytes: Uint8Array): InvoiceCurrency {
         let offset = 0;
         let result: any = {};
-        while (offset < tlvBytes.length) {
-            const tag = tlvBytes[offset++];
-            if (this.reverseTlVMembers.has(tag)) {
-                let reverseTag = this.reverseTlVMembers.get(tag) ?? "";
-                let len = tlvBytes[offset++];
-                let value = tlvBytes.slice(offset, offset + len);
-                result[reverseTag] = decodeFromBytes(value, this.tlvMembers.get(reverseTag)?.type ?? "", len)
-                offset += len;
+        while (offset < bytes.length) {
+            const tag = bytes[offset++];
+            if (this.reverseLookupSerialMap.has(tag)) {
+                let reverseTag = this.reverseLookupSerialMap.get(tag)!!;
+                let byteLength = bytes[offset++];
+                let value = bytes.slice(offset, offset + byteLength);
+                const { deserialize } = this.serialMap.get(reverseTag)!!
+                result[reverseTag] = deserialize(value);
+                offset += byteLength;
             }
         }
         let validated: z.infer<typeof InvoiceCurrencySchema>;
@@ -133,203 +139,197 @@ export class InvoiceCurrency implements TLVCodable {
         } catch (e) {
             throw new Error("invalid invoice currency response", { cause: e });
         }
-        return InvoiceCurrency.fromSchema(validated);
+        return validated;
     }
-
-    static fromSchema(schema: z.infer<typeof InvoiceCurrencySchema>): InvoiceCurrency {
-        return new InvoiceCurrency(
-            schema.code, schema.name, schema.symbol, schema.decimals
-        )
-    } 
 }
 
-export class Invoice implements TLVCodable {
-    tlvMembers = new Map([
-        ["receiverUma", {
-            tag: 0, type: "string"
-        }],
-        ["invoiceUUID", {
-            tag: 1, type: "string"
-        }],
-        ["amount", { tag: 2, type: "number" }],
-        ["receivingCurrency", { tag: 3, type: "tlv" }],
-        ["expiration", { tag: 4, type: "number" }],
-        ["isSubjectToTravelRule", { tag: 5, type: "boolean" }],
-        ["requiredPayerData", { tag: 6, type: "byte_codeable" }],
-        ["umaVersion", { tag: 7, type: "string" }],
-        ["commentCharsAllowed", { tag: 8, type: "number" }],
-        ["senderUma", { tag: 9, type: "string" }],
-        ["invoiceLimit", { tag: 10, type: "number" }],
-        ["kycStatus", { tag: 11, type: "byte_codeable" }],
-        ["callback", { tag: 12, type: "string" }],
-        ["signature", { tag: 100, type: "byte_array" }]
-    ])
+TLVInvoiceCurrencySerializer
+    .registerTLV("code", {
+        tag: 0,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("name", {
+        tag: 1,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("symbol", {
+        tag: 2,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV("decimals", {
+        tag: 3,
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    });
 
-    reverseTlVMembers = new Map([
-        [0, "receiverUma"],
-        [1, "invoiceUUID"],
-        [2, "amount"],
-        [3, "receivingCurrency"],
-        [4, "expiration"],
-        [5, "isSubjectToTravelRule"],
-        [6, "requiredPayerData"],
-        [7, "umaVersion"],
-        [8, "commentCharsAllowed"],
-        [9, "senderUma"],
-        [10, "invoiceLimit"],
-        [11, "kycStatus"],
-        [12, "callback"],
-        [100, "signature"],
-    ])
 
-    constructor(
-        // Receiving UMA address
-        public readonly receiverUma: string,
+/**
+ * Serializer object converts Invoice to Uint8Array in type-length-value format, 
+ * or creates Invoice based on properly validated Uint8Array
+ * 
+ * additionally, can convert a tlv formatted Invoice into a bech32 string
+ */
+export const TLVInvoiceSerializer = {
+    serialMap: new Map<string, TLVSerial<any>>(),
 
-        // Invoice UUID Served as both the identifier of the UMA invoice, and the validation of proof of payment.
-        public readonly invoiceUUID: string,
+    reverseLookupSerialMap: new Map<number, string>(),
 
-        // The amount of invoice to be paid in the smalest unit of the ReceivingCurrency.
-        public readonly amount: number,
+    registerTLV(field: string, helper: TLVSerial<any>) {
+        this.reverseLookupSerialMap.set(helper.tag, field);
+        this.serialMap.set(field, helper);
+        return this;
+    },
 
-        // The currency of the invoice
-        public readonly receivingCurrency: InvoiceCurrency,
-
-        // The unix timestamp the UMA invoice expires
-        public readonly expiration: number,
-
-        // Indicates whether the VASP is a financial institution that requires travel rule information.
-        public readonly isSubjectToTravelRule: boolean,
-
-        // RequiredPayerData the data about the payer that the sending VASP must provide in order to send a payment.    
-        public readonly requiredPayerData: InvoiceCounterPartyDataOptions | undefined,
-
-        // UmaVersion is a list of UMA versions that the VASP supports for this transaction. It should be
-        // containing the lowest minor version of each major version it supported, separated by commas.    
-        public readonly umaVersion: string,
-
-        // CommentCharsAllowed is the number of characters that the sender can include in the comment field of the pay request.    
-        public readonly commentCharsAllowed: number | undefined,
-
-        // The sender's UMA address. If this field presents, the UMA invoice should directly go to the sending VASP instead of showing in other formats.
-        public readonly senderUma: string | undefined,
-
-        // The maximum number of the invoice can be paid
-        public readonly invoiceLimit: number | undefined,
-
-        // KYC status of the receiver, default is verified.
-        public readonly kycStatus: InvoiceKycStatus | undefined,
-
-        // The callback url that the sender should send the PayRequest to.    
-        public readonly callback: string,
-
-        // The signature of the UMA invoice
-        public readonly signature: Uint8Array | undefined
-    ) { }
-
-    toBech32String(): string {
-        const bech32Str = bech32m.toWords(this.toTLV())
-        return bech32m.encode(UMA_PREFIX_STR, bech32Str, MAX_BECH32_LENGTH);
-    }
-
-    static fromBech32String(bvalue: string): number[] {
-        const decoded = bech32m.decode(bvalue, MAX_BECH32_LENGTH);
-        return bech32m.fromWords(decoded.words);
-    }
-
-    toTLV(): Uint8Array {
+    serialize(invoice: Invoice): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
-        Object.keys(this).forEach(key => {
-            if (this.tlvMembers.has(key)) {
-                if (this[key as keyof Invoice] !== undefined && this.tlvMembers.get(key) !== undefined) {
-                    const { tag, type } = this.tlvMembers.get(key)!!;
-                    let convert = convertToBytes(this[key as keyof Invoice], type);
-                    let byteLength = convert.length;
-                    view.setUint8(offset++, tag as number);
-                    view.setUint8(offset++, byteLength);
-                    for (let i = 0; i < convert.length; i++) {
-                        view.setUint8(offset++, convert[i]);
-                    }
+        Object.keys(invoice).forEach(key => {
+            if (invoice[key as keyof Invoice] !== undefined && this.serialMap.has(key)) {
+                const { tag, serialize } = this.serialMap.get(key)!!;
+                let convert = serialize(invoice[key as keyof Invoice]);
+                let byteLength = convert.length;
+                view.setUint8(offset++, tag as number);
+                view.setUint8(offset++, byteLength);
+                for (let i = 0; i < convert.length; i++) {
+                    view.setUint8(offset++, convert[i]);
                 }
             }
         })
         return new Uint8Array(tlv).slice(0, offset);
-    }
+    },
 
-    fromTLV(tlvBytes: Uint8Array) {
+    toBech32(invoice: Invoice): string {
+        return bech32.encode(
+            UMA_BECH32_PREFIX,
+            bech32m.toWords(this.serialize(invoice)),
+            BECH_32_MAX_LENGTH
+        );
+    },
+
+    deserialize(bytes: Uint8Array): Invoice {
         let offset = 0;
         let result: any = {};
-        while (offset < tlvBytes.length) {
-            const tag = tlvBytes[offset++];
-            if (this.reverseTlVMembers.has(tag)) {
-                let reverseTag = this.reverseTlVMembers.get(tag)!!;
-                let len = tlvBytes[offset++];
-                let value = tlvBytes.slice(offset, offset + len);
-                result[reverseTag] = decodeFromBytes(
-                    value,
-                    this.tlvMembers.get(reverseTag)?.type ?? "",
-                    len
-                )
-                offset += len;
+        while (offset < bytes.length) {
+            const tag = bytes[offset++];
+            if (this.reverseLookupSerialMap.has(tag)) {
+                let reverseTag = this.reverseLookupSerialMap.get(tag)!!;
+                let byteLength = bytes[offset++];
+                let value = bytes.slice(offset, offset + byteLength);
+                const { deserialize } = this.serialMap.get(reverseTag)!!
+                result[reverseTag] = deserialize(value);
+                offset += byteLength;
             }
         }
-        console.log(result);
         let validated: z.infer<typeof InvoiceSchema>;
         try {
             validated = InvoiceSchema.parse(result);
         } catch (e) {
             throw new Error("invalid invoice response", { cause: e });
         }
-        
-        // return new Invoice(
-        //     validated.receiverUma,
-        //     validated.invoiceUUID,
-        //     validated.amount,
-        //     InvoiceCurrency.fromSchema(validated.receivingCurrency),
-        //     validated.expiration,
-        //     validated.isSubjectToTravelRule,
-        //     validated.requiredPayerData ?? new InvoiceCounterPartyDataOptions(validated.requiredPayerData) : undefined,
-        //     validated.umaVersion,
-        //     validated.commentCharsAllowed,
-        //     validated.senderUma,
-        //     validated.invoiceLimit,
-        //     validated.kycStatus,
-        //     validated.callback,
-        //     new Uint8Array(1)
-        // );
+        return validated;
+    },
+
+    fromBech32(bech32str: string): Invoice {
+        const decoded = bech32.decode(bech32str, BECH_32_MAX_LENGTH);
+        return this.deserialize(
+            new Uint8Array(bech32m.fromWords(decoded.words))
+        );
     }
 }
 
-/**
- * deserialize plan - create an "any" object with all of the fields. validate it
- * then use this object to construct an invoice
- */
-const InvoiceCurrencySchema = z.object({
-    code: z.string(),
-    name: z.string(),
-    symbol: z.string(),
-    decimals: z.number()
-});
-
-export const InvoiceSchema = z.object({
-    receiverUma: z.string(),
-    invoiceUUID: z.string(),
-    amount: z.number(),
-    receivingCurrency: InvoiceCurrencySchema,
-    expiration: z.number(),
-    isSubjectToTravelRule: z.boolean(),
-    requiredPayerData: optionalIgnoringNull(CounterPartyDataOptionSchema),
-    umaVersion: z.string(),
-    commentCharsAllowed: optionalIgnoringNull(z.number()),
-    senderUma: optionalIgnoringNull(z.string()),
-    invoiceLimit: optionalIgnoringNull(z.number()),
-    kycStatus: optionalIgnoringNull(z.nativeEnum(KycStatus)),
-    callback: z.string(),
-    signature: optionalIgnoringNull(z.instanceof(Uint8Array))
-});
-
-export type InvoiceParameters = z.infer<
-    typeof InvoiceSchema
->;
+TLVInvoiceSerializer.registerTLV(
+    "receiverUma", {
+    tag: 0,
+    serialize: serializeString,
+    deserialize: deserializeString
+})
+    .registerTLV(
+        "invoiceUUID", {
+        tag: 1,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "amount", {
+        tag: 2,
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "receivingCurrency", {
+        tag: 3,
+        serialize: (value: InvoiceCurrency) => {
+            return TLVInvoiceCurrencySerializer.serialize(value);
+        },
+        deserialize: (value: Uint8Array) => {
+            return TLVInvoiceCurrencySerializer.deserialize(value);
+        }
+    })
+    .registerTLV(
+        "expiration", {
+        tag: 4,
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "isSubjectToTravelRule", {
+        tag: 5,
+        serialize: serializeBoolean,
+        deserialize: deserializeBoolean
+    })
+    .registerTLV(
+        "requiredPayerData", {
+        tag: 6,
+        serialize: counterPartyDataOptionsToBytes,
+        deserialize: counterPartyDataOptionsFromBytes
+    })
+    .registerTLV(
+        "umaVersion", {
+        tag: 7,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "commentCharsAllowed", {
+        tag: 8,
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "senderUma", {
+        tag: 9,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "invoiceLimit", {
+        tag: 10,
+        serialize: serializeNumber,
+        deserialize: deserializeNumber
+    })
+    .registerTLV(
+        "kycStatus", {
+        tag: 11,
+        serialize: kycStatusToBytes,
+        deserialize: kycStatusFromBytes
+    })
+    .registerTLV(
+        "callback", {
+        tag: 12,
+        serialize: serializeString,
+        deserialize: deserializeString
+    })
+    .registerTLV(
+        "signature", {
+        tag: 100,
+        serialize: (bytes: Uint8Array) => {
+            return bytes
+        },
+        deserialize: (bytes: Uint8Array) => {
+            return bytes
+        }
+    });
