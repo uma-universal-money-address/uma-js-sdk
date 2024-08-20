@@ -38,31 +38,27 @@ export function deserializeNumber(value: Uint8Array): number {
     let result;
     const length = value.length;
     const view = new DataView(value.buffer);
-    try {
-        switch(length) {
-            case 1 : {
-                result = view.getInt8(0);
-                break;
-            }
-            case 2 : { // 16 bit
-                result = view.getInt16(0);
-                break
-            }
-            case 4 : { // 32 bit
-                result = view.getInt32(0);
-                break;
-            }
-            // case 8 : { // 64 bit
-            //     result = view.getBigInt64(0);
-            //     break;
-            // }
-            default: {
-                result = view.getInt8(0);
-                break;
-            } break;
+    switch(length) {
+        case 1 : {
+            result = view.getInt8(0);
+            break;
         }
-    } catch (e) {
-        throw new Error(`range error ${e}. ${value}`);
+        case 2 : { // 16 bit
+            result = view.getInt16(0);
+            break
+        }
+        case 4 : { // 32 bit
+            result = view.getInt32(0);
+            break;
+        }
+        // case 8 : { // 64 bit
+        //     result = view.getBigInt64(0);
+        //     break;
+        // }
+        default: {
+            result = view.getInt8(0);
+            break;
+        } break;
     }
     return result;
 }

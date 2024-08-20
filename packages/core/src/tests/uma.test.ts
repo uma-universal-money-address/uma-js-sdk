@@ -110,6 +110,37 @@ function createMetadataForBob(): string {
   return JSON.stringify(metadata);
 }
 
+function createTestUmaInvoice(): Promise<Invoice2> {
+    return createUmaInvoice(
+      "$foo@bar.com",
+      "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+      1000,
+      {
+        code: "USD", name: "US Dollar", symbol: "$", decimals: 2
+      },
+      1000000,
+      true,
+      {
+        name: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+        compliance: {
+          mandatory: true
+        }
+      },
+      "0.3",
+      undefined,
+      undefined,
+      undefined,
+      KycStatus.Verified,
+      "https://example.com/callback",
+      new TextEncoder().encode("signature")
+    );
+}
+
 async function createLnurlpRequest(
   senderSigningPrivateKey: Uint8Array,
 ): Promise<LnurlpRequest> {
@@ -755,8 +786,8 @@ describe("uma", () => {
     expect(decryptedTrInfo).toBe(trInfo);
   });
 
-  it ("should properly encode/decode InvoiceCurrency", async () => {
-    const invoiceCurrency = new InvoiceCurrency("USD","US Dollar","$",2);
+  it("should properly encode/decode InvoiceCurrency", async () => {
+    const invoiceCurrency = new InvoiceCurrency("USD", "US Dollar", "$", 2);
     let tlvBytes = invoiceCurrency.toTLV()
     let decodedInvoiceCurrency = invoiceCurrency.fromTLV(tlvBytes)
     expect(decodedInvoiceCurrency.code).toBe("USD");
@@ -765,65 +796,27 @@ describe("uma", () => {
     expect(decodedInvoiceCurrency.decimals).toBe(2);
   })
 
-it ("it should create / serialize / deserialize UMA Invoice", async() => {
-  const invoice = await createUmaInvoice(
-        "$foo@bar.com",
-        "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
-        1000,
-        {
-          code: "USD",name:"US Dollar",symbol: "$",decimals: 2
-        },
-        1000000,
-        true,
-        {
-          name: {
-            mandatory: false,
-          },
-          email: {
-            mandatory: false,
-          },
-        },
-        "1.0", 
-        10,
-        "sender_uma", 
-        10,
-        KycStatus.Pending,
-        "https://example.com/callback", 
-        new TextEncoder().encode("sigature")
-  );
-  let tlvBytes = TLVInvoiceSerializer.serialize(invoice);
-  let decodedInvoice = TLVInvoiceSerializer.deserialize(tlvBytes);
-  expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
-})
+  it("it should create / serialize / deserialize UMA Invoice", async () => {
+    const invoice = await createTestUmaInvoice();
+    let tlvBytes = TLVInvoiceSerializer.serialize(invoice);
+    let decodedInvoice = TLVInvoiceSerializer.deserialize(tlvBytes);
+    expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
+    // TODO all the other fields
+  })
 
-  // it("it should properly encode/decode Invoices", async () => {
-  //   expect(true).toEqual(true);
+  it("should bech32 encode UMA Invoice", async () => {
+    const referenceBech32str = "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40"
+    const invoice = await createTestUmaInvoice();
+    const bech32str = TLVInvoiceSerializer.toBech32(invoice);
+    expect(bech32str).toBe(referenceBech32str);
+  })
 
-  //   const dummyInvoiceTLV = await createUmaInvoice(
-  //     "$foo@bar.com",
-  //     "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
-  //     1000,
-  //     new InvoiceCurrency("USD","US Dollar","$",2),
-  //     100000,
-  //     true,
-  //     {
-  //       name: {
-  //         mandatory: false,
-  //       },
-  //       email: {
-  //         mandatory: false,
-  //       },
-  //     },
-  //     "1.0", 10,
-  //     "sender_uma", 10,
-  //     KycStatus.Pending,
-  //      "https://example.com/callback", new TextEncoder().encode("sigature")
-  //     );
-  //   const tlv = dummyInvoiceTLV.toTLV()
-  //   console.log(tlv);
-  //   const tlvDecoded = dummyInvoiceTLV.fromTLV(tlv);
-  //   console.log(tlvDecoded);
-  // })
+  it("should decode a bech32 string into a UMA invoice", async () => {
+    const referenceBech32str = "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40"
+    const invoice = await createTestUmaInvoice();
+    const decodedInvoice = TLVInvoiceSerializer.fromBech32(referenceBech32str);
+    expect(decodedInvoice.receiverUma).toBe(invoice.receiverUma);
+  })
 
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {
