@@ -35,7 +35,7 @@ import {
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
 import { UmaProtocolVersion } from "../version.js";
-import { Invoice, TLVInvoiceSerializer } from "../protocol/Invoice.js";
+import { Invoice, InvoiceSerializer } from "../protocol/Invoice.js";
 
 const generateKeypair = async () => {
   let privateKey: Uint8Array;
@@ -784,26 +784,35 @@ describe("uma", () => {
     expect(decryptedTrInfo).toBe(trInfo);
   });
 
-  it("it should create / serialize / deserialize UMA Invoice", async () => {
+  it("should create / serialize / deserialize UMA Invoice in TLV Format", async () => {
     const invoice = await createTestUmaInvoice();
-    let tlvBytes = TLVInvoiceSerializer.serialize(invoice);
-    let decodedInvoice = TLVInvoiceSerializer.deserialize(tlvBytes);
+    let tlvBytes = InvoiceSerializer.toTLV(invoice);
+    let decodedInvoice = InvoiceSerializer.fromTLV(tlvBytes);
     expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
-    // TODO all the other fields
+    expect(decodedInvoice.amount).toBe(1000);
+    expect(decodedInvoice.invoiceUUID).toBe("c7c07fec-cf00-431c-916f-6c13fc4b69f9");
+    expect(decodedInvoice.expiration).toBe(1_000_000);
+    expect(decodedInvoice.umaVersion).toBe("0.3");
+    expect(decodedInvoice.kycStatus).toBe(KycStatus.Verified);
+    expect(decodedInvoice.callback).toBe("https://example.com/callback");
   })
 
   it("should bech32 encode UMA Invoice", async () => {
     const referenceBech32str = "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40"
     const invoice = await createTestUmaInvoice();
-    const bech32str = TLVInvoiceSerializer.toBech32(invoice);
+    const bech32str = InvoiceSerializer.toBech32(invoice);
     expect(bech32str).toBe(referenceBech32str);
   })
 
   it("should decode a bech32 string into a UMA invoice", async () => {
     const referenceBech32str = "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40"
     const invoice = await createTestUmaInvoice();
-    const decodedInvoice = TLVInvoiceSerializer.fromBech32(referenceBech32str);
+    const decodedInvoice = InvoiceSerializer.fromBech32(referenceBech32str);
     expect(decodedInvoice.receiverUma).toBe(invoice.receiverUma);
+    expect(decodedInvoice.amount).toBe(invoice.amount);
+    expect(decodedInvoice.callback).toBe(invoice.callback);
+    expect(decodedInvoice.expiration).toBe(invoice.expiration);
+    expect(decodedInvoice.invoiceUUID).toBe(invoice.invoiceUUID);
   })
 
   it("should serialize and deserialize pub key response", async () => {
