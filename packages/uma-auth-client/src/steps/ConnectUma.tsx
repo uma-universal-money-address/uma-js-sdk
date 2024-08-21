@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { Button, TextInput } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
-import { useState } from "react";
+import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 
 export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
@@ -12,14 +12,15 @@ export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
   const codeChallenge = "1234";
   const codeChallengeMethod = "S256";
 
-  const [uma, setUma] = useState("");
+  const { uma, setUma } = useUser();
 
   const handleChangeUma = (value: string) => {
     setUma(value);
   };
 
   const handleConnectYourUMA = () => {
-    window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
+    // window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
+    setStep(Step.WaitingForApproval);
   };
 
   const handleMoreOptions = () => {
@@ -36,7 +37,7 @@ export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
             side: "left",
             offset: "large",
           }}
-          value={uma}
+          value={uma || ""}
           onChange={handleChangeUma}
           borderRadius="round"
         />

@@ -36,9 +36,11 @@
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
     "@lightsparkdev/ui": "1.0.8",
+    "framer-motion": "^11.3.28",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "6.11.2"
+    "react-router-dom": "6.11.2",
+    "zustand": "^4.5.5"
   },
   "devDependencies": {
     "@emotion/babel-plugin": "^11.11.0",
