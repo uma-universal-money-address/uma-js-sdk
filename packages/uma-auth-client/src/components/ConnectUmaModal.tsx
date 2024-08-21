@@ -6,6 +6,8 @@ import {
   TextInput,
   UnstyledButton,
 } from "@lightsparkdev/ui/components";
+import { Label } from "@lightsparkdev/ui/components/typography/Label";
+import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import { useState } from "react";
 
 interface Props {
@@ -85,16 +87,42 @@ export const ConnectUmaModal = (props: Props) => {
               text="Connect your UMA"
               onClick={handleConnectYourUMA}
             />
-            <Button
-              kind="ghost"
-              text="More options"
-              typography={{
-                color: "secondary",
-              }}
-              onClick={handleMoreOptions}
-            />
+            <MoreOptionsButton>
+              <Button
+                kind="ghost"
+                text="More options"
+                typography={{
+                  color: "secondary",
+                }}
+                onClick={handleMoreOptions}
+              />
+            </MoreOptionsButton>
           </Buttons>
         </ModalBody>
+        <Footer>
+          <FooterInfo>
+            <LabelModerate
+              size="Large"
+              content="Don't have an UMA? Get yours today."
+            />
+            <Label
+              size="Large"
+              content="It's like email, but for money."
+              color="grayBlue43"
+            />
+          </FooterInfo>
+          <Button
+            text="Get UMA"
+            onClick={() => {
+              console.log("Learn more button clicked");
+            }}
+            typography={{
+              color: "link",
+              type: "Label Strong",
+            }}
+            paddingY="short"
+          />
+        </Footer>
       </ModalContents>
     </Modal>
   );
@@ -126,20 +154,41 @@ const ModalBody = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px 24px 0px 24px;
+  padding: 24px 24px 12px 24px;
   gap: 16px;
 `;
 
 const Buttons = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   align-items: center;
   width: 100%;
+`;
+
+const MoreOptionsButton = styled.div`
+  display: flex;
+  flex-direction: column;
+  place-content: center;
+  height: 56px;
 `;
 
 const CloseButton = styled(UnstyledButton)`
   width: 24px;
   height: 24px;
   justify-self: flex-end;
+`;
+
+const Footer = styled.div`
+  display: flex;
+  padding: 24px;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 0.5px solid #c0c9d6;
+`;
+
+const FooterInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 `;
