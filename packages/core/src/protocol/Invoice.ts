@@ -172,18 +172,18 @@ TLVInvoiceCurrencySerializer
  * 
  * additionally, can convert a tlv formatted Invoice into a bech32 string
  */
-export const TLVInvoiceSerializer = {
+export const InvoiceSerializer = {
     serialMap: new Map<string, TLVSerial<any>>(),
 
     reverseLookupSerialMap: new Map<number, string>(),
 
-    registerTLV(field: string, helper: TLVSerial<any>) {
+    registerSerializer(field: string, helper: TLVSerial<any>) {
         this.reverseLookupSerialMap.set(helper.tag, field);
         this.serialMap.set(field, helper);
         return this;
     },
 
-    serialize(invoice: Invoice): Uint8Array {
+    toTLV(invoice: Invoice): Uint8Array {
         const tlv = new ArrayBuffer(256);
         let offset = 0;
         const view = new DataView(tlv);
@@ -205,12 +205,12 @@ export const TLVInvoiceSerializer = {
     toBech32(invoice: Invoice): string {
         return bech32.encode(
             UMA_BECH32_PREFIX,
-            bech32m.toWords(this.serialize(invoice)),
+            bech32m.toWords(this.toTLV(invoice)),
             BECH_32_MAX_LENGTH
         );
     },
 
-    deserialize(bytes: Uint8Array): Invoice {
+    fromTLV(bytes: Uint8Array): Invoice {
         let offset = 0;
         let result: any = {};
         while (offset < bytes.length) {
@@ -235,31 +235,31 @@ export const TLVInvoiceSerializer = {
 
     fromBech32(bech32str: string): Invoice {
         const decoded = bech32.decode(bech32str, BECH_32_MAX_LENGTH);
-        return this.deserialize(
+        return this.fromTLV(
             new Uint8Array(bech32m.fromWords(decoded.words))
         );
     }
 }
 
-TLVInvoiceSerializer.registerTLV(
+InvoiceSerializer.registerSerializer(
     "receiverUma", {
     tag: 0,
     serialize: serializeString,
     deserialize: deserializeString
 })
-    .registerTLV(
+    .registerSerializer(
         "invoiceUUID", {
         tag: 1,
         serialize: serializeString,
         deserialize: deserializeString
     })
-    .registerTLV(
+    .registerSerializer(
         "amount", {
         tag: 2,
         serialize: serializeNumber,
         deserialize: deserializeNumber
     })
-    .registerTLV(
+    .registerSerializer(
         "receivingCurrency", {
         tag: 3,
         serialize: (value: InvoiceCurrency) => {
@@ -269,61 +269,61 @@ TLVInvoiceSerializer.registerTLV(
             return TLVInvoiceCurrencySerializer.deserialize(value);
         }
     })
-    .registerTLV(
+    .registerSerializer(
         "expiration", {
         tag: 4,
         serialize: serializeNumber,
         deserialize: deserializeNumber
     })
-    .registerTLV(
+    .registerSerializer(
         "isSubjectToTravelRule", {
         tag: 5,
         serialize: serializeBoolean,
         deserialize: deserializeBoolean
     })
-    .registerTLV(
+    .registerSerializer(
         "requiredPayerData", {
         tag: 6,
         serialize: counterPartyDataOptionsToBytes,
         deserialize: counterPartyDataOptionsFromBytes
     })
-    .registerTLV(
+    .registerSerializer(
         "umaVersion", {
         tag: 7,
         serialize: serializeString,
         deserialize: deserializeString
     })
-    .registerTLV(
+    .registerSerializer(
         "commentCharsAllowed", {
         tag: 8,
         serialize: serializeNumber,
         deserialize: deserializeNumber
     })
-    .registerTLV(
+    .registerSerializer(
         "senderUma", {
         tag: 9,
         serialize: serializeString,
         deserialize: deserializeString
     })
-    .registerTLV(
+    .registerSerializer(
         "invoiceLimit", {
         tag: 10,
         serialize: serializeNumber,
         deserialize: deserializeNumber
     })
-    .registerTLV(
+    .registerSerializer(
         "kycStatus", {
         tag: 11,
         serialize: kycStatusToBytes,
         deserialize: kycStatusFromBytes
     })
-    .registerTLV(
+    .registerSerializer(
         "callback", {
         tag: 12,
         serialize: serializeString,
         deserialize: deserializeString
     })
-    .registerTLV(
+    .registerSerializer(
         "signature", {
         tag: 100,
         serialize: (bytes: Uint8Array) => {
