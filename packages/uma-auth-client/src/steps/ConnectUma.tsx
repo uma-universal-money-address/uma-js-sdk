@@ -13,14 +13,12 @@ export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
   const codeChallengeMethod = "S256";
 
   const { uma, setUma } = useUser();
-
   const handleChangeUma = (value: string) => {
-    setUma(value);
+    setUma(`$${value}`);
   };
 
   const handleConnectYourUMA = () => {
-    // window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
-    setStep(Step.WaitingForApproval);
+    window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
   };
 
   const handleMoreOptions = () => {
@@ -37,7 +35,7 @@ export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
             side: "left",
             offset: "large",
           }}
-          value={uma || ""}
+          value={uma?.replace(/^\$/, "") || ""}
           onChange={handleChangeUma}
           borderRadius="round"
         />

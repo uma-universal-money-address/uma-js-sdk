@@ -33,7 +33,7 @@ export const UmaDisplay = ({
         <UmaTagInnerBorder />
         <UmaTagContainer>
           <UmaTag>
-            <Title content={`$${uma}`} color={["content", "secondary"]} />
+            <Title content={uma} color={["content", "secondary"]} />
             <Icon name="Uma" width={26} color={["content", "secondary"]} />
           </UmaTag>
         </UmaTagContainer>
