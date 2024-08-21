@@ -30,7 +30,7 @@ export function counterPartyDataOptionsToBytes(options: CounterPartyDataOptions)
   let formatArray = new Array<string>();
   Object.keys(options).sort().forEach((key) => {
     let k = key as keyof CounterPartyDataOptions;
-      formatArray.push(`${key}:${options[k].mandatory ? "1" : "0"}`);
+    formatArray.push(`${key}:${options[k].mandatory ? "1" : "0"}`);
   })
   let formatStr = formatArray.join(",");
   return new TextEncoder().encode(formatStr);
@@ -38,14 +38,14 @@ export function counterPartyDataOptionsToBytes(options: CounterPartyDataOptions)
 
 export function counterPartyDataOptionsFromBytes(bytes: Uint8Array): CounterPartyDataOptions {
   let result: CounterPartyDataOptions = {};
-        let options = new TextDecoder().decode(bytes);
-        options.split(",").forEach((dataOption) => {
-            let dataOptionsSplit = dataOption.split(":");
-            if (dataOptionsSplit.length == 2) {
-                result[dataOptionsSplit[0]] = {
-                    mandatory: dataOptionsSplit[1] === "1"
-                }
-            }
-        });
-        return result;
+  let options = new TextDecoder().decode(bytes);
+  options.split(",").forEach((dataOption) => {
+    let dataOptionsSplit = dataOption.split(":");
+    if (dataOptionsSplit.length == 2) {
+      result[dataOptionsSplit[0]] = {
+        mandatory: dataOptionsSplit[1] === "1"
+      }
+    }
+  });
+  return result;
 }
