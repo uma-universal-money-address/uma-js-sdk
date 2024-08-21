@@ -3,12 +3,10 @@ import {
   Button,
   Icon,
   Modal,
-  TextInput,
   UnstyledButton,
 } from "@lightsparkdev/ui/components";
-import { Label } from "@lightsparkdev/ui/components/typography/Label";
-import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
-import { useState } from "react";
+import { useStep } from "src/hooks/useStep";
+import { STEP_MAP, Step } from "src/types";
 
 interface Props {
   visible: boolean;
@@ -17,36 +15,23 @@ interface Props {
 }
 
 export const ConnectUmaModal = (props: Props) => {
-  const clientId = "1";
-  const redirectUri = "http://localhost:3001";
-  const responseType = "code";
-  const codeChallenge = "1234";
-  const codeChallengeMethod = "S256";
+  const { step, setStep, onBack } = useStep();
 
-  const [uma, setUma] = useState("");
-
-  const handleChangeUma = (value: string) => {
-    setUma(value);
-  };
-
-  const handleConnectYourUMA = () => {
-    window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
-  };
-
-  const handleMoreOptions = () => {
-    console.log("More options button clicked");
-  };
-
-  let backButton = null;
+  const stepInfo = STEP_MAP[step];
+  const stepComponent = stepInfo.component;
 
   const helpButton = (
     <Button
       kind="ghost"
       icon="QuestionCircle"
       onClick={() => {
-        console.log("Help button clicked");
+        setStep(Step.WhatIsUma);
       }}
     />
+  );
+
+  const backButton = (
+    <Button kind="ghost" icon="ChevronLeft" onClick={onBack} />
   );
 
   return (
@@ -62,67 +47,17 @@ export const ConnectUmaModal = (props: Props) => {
     >
       <ModalContents>
         <Header>
-          {backButton ? backButton : helpButton}
-          <Icon name="Uma" width={32} />
+          {stepInfo.prev ? backButton : helpButton}
+          {stepInfo.title ? (
+            <ModalTitle>{stepInfo.title}</ModalTitle>
+          ) : (
+            <Icon name="Uma" width={32} />
+          )}
           <CloseButton onClick={props.onClose} type="button">
             <Icon name="Close" width={8} />
           </CloseButton>
         </Header>
-        <ModalBody>
-          <TextInput
-            icon={{
-              name: "DollarManropeSmall",
-              width: 12,
-              side: "left",
-              offset: "large",
-            }}
-            value={uma}
-            onChange={handleChangeUma}
-            borderRadius="round"
-          />
-          <Buttons>
-            <Button
-              fullWidth
-              kind="primary"
-              text="Connect your UMA"
-              onClick={handleConnectYourUMA}
-            />
-            <MoreOptionsButton>
-              <Button
-                kind="ghost"
-                text="More options"
-                typography={{
-                  color: "secondary",
-                }}
-                onClick={handleMoreOptions}
-              />
-            </MoreOptionsButton>
-          </Buttons>
-        </ModalBody>
-        <Footer>
-          <FooterInfo>
-            <LabelModerate
-              size="Large"
-              content="Don't have an UMA? Get yours today."
-            />
-            <Label
-              size="Large"
-              content="It's like email, but for money."
-              color="grayBlue43"
-            />
-          </FooterInfo>
-          <Button
-            text="Get UMA"
-            onClick={() => {
-              console.log("Learn more button clicked");
-            }}
-            typography={{
-              color: "link",
-              type: "Label Strong",
-            }}
-            paddingY="short"
-          />
-        </Footer>
+        <stepInfo.component setStep={setStep} />
       </ModalContents>
     </Modal>
   );
@@ -150,45 +85,17 @@ const ModalContents = styled.div`
     0px 24px 24px -12px rgba(0, 0, 0, 0.06);
 `;
 
-const ModalBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 24px 24px 12px 24px;
-  gap: 16px;
-`;
-
-const Buttons = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  width: 100%;
-`;
-
-const MoreOptionsButton = styled.div`
-  display: flex;
-  flex-direction: column;
-  place-content: center;
-  height: 56px;
-`;
-
 const CloseButton = styled(UnstyledButton)`
   width: 24px;
   height: 24px;
   justify-self: flex-end;
 `;
 
-const Footer = styled.div`
-  display: flex;
-  padding: 24px;
-  justify-content: space-between;
-  align-items: center;
-  border-top: 0.5px solid #c0c9d6;
-`;
-
-const FooterInfo = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+const ModalTitle = styled.span`
+  color: ${({ theme }) => theme.text};
+  font-family: Manrope;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 28px;
 `;
