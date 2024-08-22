@@ -6,7 +6,7 @@ import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
 import { Currency } from "../protocol/Currency.js";
-import { type Invoice, InvoiceSerializer } from "../protocol/Invoice.js";
+import { InvoiceSerializer, type Invoice } from "../protocol/Invoice.js";
 import { KycStatus } from "../protocol/KycStatus.js";
 import {
   isLnurlpRequestForUma,

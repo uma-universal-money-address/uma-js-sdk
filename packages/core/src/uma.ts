@@ -7,9 +7,9 @@ import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
+  InvoiceSerializer,
   type Invoice,
   type InvoiceCurrency,
-  InvoiceSerializer,
 } from "./protocol/Invoice.js";
 import { type KycStatus } from "./protocol/KycStatus.js";
 import {
