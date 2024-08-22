@@ -26,25 +26,31 @@ export type CounterPartyDataOptions = z.infer<
  * @param options - incoming CounterPartyDataOptions
  * @returns Uint8Array representing byte encoded string of options
  */
-export function counterPartyDataOptionsToBytes(options: CounterPartyDataOptions): Uint8Array {
+export function counterPartyDataOptionsToBytes(
+  options: CounterPartyDataOptions,
+): Uint8Array {
   let formatArray = new Array<string>();
-  Object.keys(options).sort().forEach((key) => {
-    let k = key as keyof CounterPartyDataOptions;
-    formatArray.push(`${key}:${options[k].mandatory ? "1" : "0"}`);
-  })
+  Object.keys(options)
+    .sort()
+    .forEach((key) => {
+      let k = key as keyof CounterPartyDataOptions;
+      formatArray.push(`${key}:${options[k].mandatory ? "1" : "0"}`);
+    });
   let formatStr = formatArray.join(",");
   return new TextEncoder().encode(formatStr);
 }
 
-export function counterPartyDataOptionsFromBytes(bytes: Uint8Array): CounterPartyDataOptions {
+export function counterPartyDataOptionsFromBytes(
+  bytes: Uint8Array,
+): CounterPartyDataOptions {
   let result: CounterPartyDataOptions = {};
   let options = new TextDecoder().decode(bytes);
   options.split(",").forEach((dataOption) => {
     let dataOptionsSplit = dataOption.split(":");
     if (dataOptionsSplit.length == 2) {
       result[dataOptionsSplit[0]] = {
-        mandatory: dataOptionsSplit[1] === "1"
-      }
+        mandatory: dataOptionsSplit[1] === "1",
+      };
     }
   });
   return result;

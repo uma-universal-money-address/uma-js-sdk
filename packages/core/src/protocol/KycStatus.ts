@@ -40,5 +40,5 @@ export function kycStatusToBytes(k: KycStatus): Uint8Array {
 }
 
 export function kycStatusFromBytes(bytes: Uint8Array): KycStatus {
-    return kycStatusFromString(new TextDecoder().decode(bytes).toUpperCase());
+  return kycStatusFromString(new TextDecoder().decode(bytes).toUpperCase());
 }
