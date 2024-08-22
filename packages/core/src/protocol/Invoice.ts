@@ -137,9 +137,9 @@ const TLVInvoiceCurrencySerializer = {
         const byteLength = bytes[offset++];
         const value = bytes.slice(offset, offset + byteLength);
         if (this.serialMap.get(reverseTag) !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { deserialize } = this.serialMap.get(
             reverseTag,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ) as TLVSerial<any>;
           result[reverseTag] = deserialize(value);
         }
@@ -238,9 +238,9 @@ export const InvoiceSerializer = {
         const byteLength = bytes[offset++];
         const value = bytes.slice(offset, offset + byteLength);
         if (this.serialMap.get(reverseTag) !== undefined) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { deserialize } = this.serialMap.get(
             reverseTag,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
           ) as TLVSerial<any>;
           result[reverseTag] = deserialize(value);
         }
