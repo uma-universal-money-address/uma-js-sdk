@@ -91,10 +91,12 @@ type TLVSerial<T> = {
  * or creates InvoiceCurrency based on properly validated Uint8Array
  */
 const TLVInvoiceCurrencySerializer = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serialMap: new Map<string, TLVSerial<any>>(),
 
   reverseLookupSerialMap: new Map<number, string>(),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerTLV(field: string, helper: TLVSerial<any>) {
     this.reverseLookupSerialMap.set(helper.tag, field);
     this.serialMap.set(field, helper);
@@ -108,11 +110,12 @@ const TLVInvoiceCurrencySerializer = {
     Object.keys(invoice).forEach((key) => {
       if (
         invoice[key as keyof InvoiceCurrency] !== undefined &&
-        this.serialMap.has(key)
+        this.serialMap.get(key) !== undefined
       ) {
-        const { tag, serialize } = this.serialMap.get(key)!!;
-        let convert = serialize(invoice[key as keyof InvoiceCurrency]);
-        let byteLength = convert.length;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { tag, serialize } = this.serialMap.get(key) as TLVSerial<any>;
+        const convert = serialize(invoice[key as keyof InvoiceCurrency]);
+        const byteLength = convert.length;
         view.setUint8(offset++, tag as number);
         view.setUint8(offset++, byteLength);
         for (let i = 0; i < convert.length; i++) {
@@ -125,15 +128,19 @@ const TLVInvoiceCurrencySerializer = {
 
   deserialize(bytes: Uint8Array): InvoiceCurrency {
     let offset = 0;
-    let result: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = {}; 
     while (offset < bytes.length) {
       const tag = bytes[offset++];
-      if (this.reverseLookupSerialMap.has(tag)) {
-        let reverseTag = this.reverseLookupSerialMap.get(tag)!!;
-        let byteLength = bytes[offset++];
-        let value = bytes.slice(offset, offset + byteLength);
-        const { deserialize } = this.serialMap.get(reverseTag)!!;
-        result[reverseTag] = deserialize(value);
+      const reverseTag = this.reverseLookupSerialMap.get(tag);
+      if (reverseTag) {
+        const byteLength = bytes[offset++];
+        const value = bytes.slice(offset, offset + byteLength);
+        if (this.serialMap.get(reverseTag) !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { deserialize } = this.serialMap.get(reverseTag) as TLVSerial<any>;
+          result[reverseTag] = deserialize(value);
+        }
         offset += byteLength;
       }
     }
@@ -175,10 +182,12 @@ TLVInvoiceCurrencySerializer.registerTLV("code", {
  * additionally, can convert a tlv formatted Invoice into a bech32 string
  */
 export const InvoiceSerializer = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   serialMap: new Map<string, TLVSerial<any>>(),
 
   reverseLookupSerialMap: new Map<number, string>(),
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   registerSerializer(field: string, helper: TLVSerial<any>) {
     this.reverseLookupSerialMap.set(helper.tag, field);
     this.serialMap.set(field, helper);
@@ -192,11 +201,12 @@ export const InvoiceSerializer = {
     Object.keys(invoice).forEach((key) => {
       if (
         invoice[key as keyof Invoice] !== undefined &&
-        this.serialMap.has(key)
+        this.serialMap.get(key) !== undefined
       ) {
-        const { tag, serialize } = this.serialMap.get(key)!!;
-        let convert = serialize(invoice[key as keyof Invoice]);
-        let byteLength = convert.length;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { tag, serialize } = this.serialMap.get(key) as TLVSerial<any>;
+        const convert = serialize(invoice[key as keyof Invoice]);
+        const byteLength = convert.length;
         view.setUint8(offset++, tag as number);
         view.setUint8(offset++, byteLength);
         for (let i = 0; i < convert.length; i++) {
@@ -217,15 +227,19 @@ export const InvoiceSerializer = {
 
   fromTLV(bytes: Uint8Array): Invoice {
     let offset = 0;
-    let result: any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = {};
     while (offset < bytes.length) {
       const tag = bytes[offset++];
-      if (this.reverseLookupSerialMap.has(tag)) {
-        let reverseTag = this.reverseLookupSerialMap.get(tag)!!;
-        let byteLength = bytes[offset++];
-        let value = bytes.slice(offset, offset + byteLength);
-        const { deserialize } = this.serialMap.get(reverseTag)!!;
-        result[reverseTag] = deserialize(value);
+      const reverseTag = this.reverseLookupSerialMap.get(tag);
+      if (reverseTag) {
+        const byteLength = bytes[offset++];
+        const value = bytes.slice(offset, offset + byteLength);
+        if (this.serialMap.get(reverseTag) !== undefined) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { deserialize } = this.serialMap.get(reverseTag) as TLVSerial<any>;
+          result[reverseTag] = deserialize(value);
+        }
         offset += byteLength;
       }
     }

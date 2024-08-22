@@ -6,7 +6,7 @@ import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
 import { Currency } from "../protocol/Currency.js";
-import { Invoice, InvoiceSerializer } from "../protocol/Invoice.js";
+import { type Invoice, InvoiceSerializer } from "../protocol/Invoice.js";
 import { KycStatus } from "../protocol/KycStatus.js";
 import {
   isLnurlpRequestForUma,
@@ -788,8 +788,8 @@ describe("uma", () => {
 
   it("should create / serialize / deserialize UMA Invoice in TLV Format", async () => {
     const invoice = createTestUmaInvoice();
-    let tlvBytes = InvoiceSerializer.toTLV(invoice);
-    let decodedInvoice = InvoiceSerializer.fromTLV(tlvBytes);
+    const tlvBytes = InvoiceSerializer.toTLV(invoice);
+    const decodedInvoice = InvoiceSerializer.fromTLV(tlvBytes);
     expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
     expect(decodedInvoice.amount).toBe(1000);
     expect(decodedInvoice.invoiceUUID).toBe(
