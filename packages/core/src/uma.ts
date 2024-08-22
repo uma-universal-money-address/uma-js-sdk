@@ -7,8 +7,8 @@ import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
-  Invoice,
-  InvoiceCurrency,
+  type Invoice,
+  type InvoiceCurrency,
   InvoiceSerializer,
 } from "./protocol/Invoice.js";
 import { type KycStatus } from "./protocol/KycStatus.js";
@@ -1070,7 +1070,7 @@ export async function createUmaInvoice(
   callback: string,
   privateKeyBytes: Uint8Array,
 ): Promise<Invoice> {
-  let invoice: Invoice = {
+  const invoice: Invoice = {
     receiverUma: receiverUma,
     invoiceUUID: invoiceUUID,
     amount: amount,
