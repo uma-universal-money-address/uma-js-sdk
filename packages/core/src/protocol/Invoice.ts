@@ -91,8 +91,7 @@ type TLVSerial<T> = {
  * or creates InvoiceCurrency based on properly validated Uint8Array
  */
 const TLVInvoiceCurrencySerializer = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  serialMap: new Map<string, TLVSerial<any>>(),
+  serialMap: new Map<string, TLVSerial<unknown>>(),
 
   reverseLookupSerialMap: new Map<number, string>(),
 
@@ -112,8 +111,9 @@ const TLVInvoiceCurrencySerializer = {
         invoice[key as keyof InvoiceCurrency] !== undefined &&
         this.serialMap.get(key) !== undefined
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { tag, serialize } = this.serialMap.get(key) as TLVSerial<any>;
+        const { tag, serialize } = this.serialMap.get(
+          key,
+        ) as TLVSerial<unknown>;
         const convert = serialize(invoice[key as keyof InvoiceCurrency]);
         const byteLength = convert.length;
         view.setUint8(offset++, tag as number);
@@ -128,8 +128,7 @@ const TLVInvoiceCurrencySerializer = {
 
   deserialize(bytes: Uint8Array): InvoiceCurrency {
     let offset = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     while (offset < bytes.length) {
       const tag = bytes[offset++];
       const reverseTag = this.reverseLookupSerialMap.get(tag);
@@ -139,8 +138,7 @@ const TLVInvoiceCurrencySerializer = {
         if (this.serialMap.get(reverseTag) !== undefined) {
           const { deserialize } = this.serialMap.get(
             reverseTag,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ) as TLVSerial<any>;
+          ) as TLVSerial<unknown>;
           result[reverseTag] = deserialize(value);
         }
         offset += byteLength;
@@ -184,8 +182,7 @@ TLVInvoiceCurrencySerializer.registerTLV("code", {
  * additionally, can convert a tlv formatted Invoice into a bech32 string
  */
 export const InvoiceSerializer = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  serialMap: new Map<string, TLVSerial<any>>(),
+  serialMap: new Map<string, TLVSerial<unknown>>(),
 
   reverseLookupSerialMap: new Map<number, string>(),
 
@@ -205,8 +202,9 @@ export const InvoiceSerializer = {
         invoice[key as keyof Invoice] !== undefined &&
         this.serialMap.get(key) !== undefined
       ) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { tag, serialize } = this.serialMap.get(key) as TLVSerial<any>;
+        const { tag, serialize } = this.serialMap.get(
+          key,
+        ) as TLVSerial<unknown>;
         const convert = serialize(invoice[key as keyof Invoice]);
         const byteLength = convert.length;
         view.setUint8(offset++, tag as number);
@@ -229,8 +227,7 @@ export const InvoiceSerializer = {
 
   fromTLV(bytes: Uint8Array): Invoice {
     let offset = 0;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     while (offset < bytes.length) {
       const tag = bytes[offset++];
       const reverseTag = this.reverseLookupSerialMap.get(tag);
@@ -240,8 +237,7 @@ export const InvoiceSerializer = {
         if (this.serialMap.get(reverseTag) !== undefined) {
           const { deserialize } = this.serialMap.get(
             reverseTag,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          ) as TLVSerial<any>;
+          ) as TLVSerial<unknown>;
           result[reverseTag] = deserialize(value);
         }
         offset += byteLength;
