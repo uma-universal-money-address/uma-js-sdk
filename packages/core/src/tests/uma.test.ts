@@ -823,42 +823,47 @@ describe("uma", () => {
     expect(decodedInvoice.invoiceUUID).toBe(invoice.invoiceUUID);
   });
 
-  it ("should verify invoice signature", async () => {
-    const {privateKey, publicKey} = await generateKeypair();
+  it("should verify invoice signature", async () => {
+    const { privateKey, publicKey } = await generateKeypair();
     const invoice = await createUmaInvoice(
-      "$foo@bar.com",
-    "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
-    1000,
-    {
-      code: "USD",
-      name: "US Dollar",
-      symbol: "$",
-      decimals: 2,
-    },
-    1000000,
-    true,
-    {
-      name: {
-        mandatory: false,
+      {
+        receiverUma: "$foo@bar.com",
+        invoiceUUID: "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+        amount: 1000,
+        receivingCurrency: {
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          decimals: 2,
+        },
+        expiration: 1000000,
+        isSubjectToTravelRule: true,
+        requiredPayerData: {
+          name: {
+            mandatory: false,
+          },
+          email: {
+            mandatory: false,
+          },
+          compliance: {
+            mandatory: true,
+          },
+        },
+        umaVersion: "0.3",
+        senderUma: undefined,
+        invoiceLimit: undefined,
+        commentCharsAllowed: undefined,
+        kycStatus: KycStatus.Verified,
+        callback: "https://example.com/callback",
       },
-      email: {
-        mandatory: false,
-      },
-      compliance: {
-        mandatory: true,
-      },
-    },
-    "0.3",
-    undefined,
-    undefined,
-    undefined,
-    KycStatus.Verified,
-    "https://example.com/callback",
-    privateKey,
+      privateKey,
     );
-    const verifiedSignature = await verifyUmaInvoiceSignature(invoice, publicKey)
+    const verifiedSignature = await verifyUmaInvoiceSignature(
+      invoice,
+      publicKey,
+    );
     expect(verifiedSignature).toBe(true);
-  })
+  });
 
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {
