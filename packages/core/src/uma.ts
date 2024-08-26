@@ -299,7 +299,8 @@ export async function verifyUmaInvoiceSignature(
   publicKey: Uint8Array,
 ) {
   if (invoice.signature !== undefined) {
-    const { signature: invoiceSignature, ...unsignedInvoice }: Invoice = invoice;
+    const { signature: invoiceSignature, ...unsignedInvoice }: Invoice =
+      invoice;
     const hashedPayload = await createSha256Hash(
       InvoiceSerializer.toTLV(unsignedInvoice),
     );
