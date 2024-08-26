@@ -6,6 +6,7 @@ import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
 import { Currency } from "../protocol/Currency.js";
+import { InvoiceSerializer, type Invoice } from "../protocol/Invoice.js";
 import { KycStatus } from "../protocol/KycStatus.js";
 import {
   isLnurlpRequestForUma,
@@ -104,6 +105,40 @@ function createMetadataForBob(): string {
   ];
 
   return JSON.stringify(metadata);
+}
+
+function createTestUmaInvoice(): Invoice {
+  return {
+    receiverUma: "$foo@bar.com",
+    invoiceUUID: "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+    amount: 1000,
+    receivingCurrency: {
+      code: "USD",
+      name: "US Dollar",
+      symbol: "$",
+      decimals: 2,
+    },
+    expiration: 1000000,
+    isSubjectToTravelRule: true,
+    requiredPayerData: {
+      name: {
+        mandatory: false,
+      },
+      email: {
+        mandatory: false,
+      },
+      compliance: {
+        mandatory: true,
+      },
+    },
+    umaVersion: "0.3",
+    commentCharsAllowed: undefined,
+    senderUma: undefined,
+    invoiceLimit: undefined,
+    kycStatus: KycStatus.Verified,
+    callback: "https://example.com/callback",
+    signature: new TextEncoder().encode("signature"),
+  };
 }
 
 async function createLnurlpRequest(
@@ -749,6 +784,41 @@ describe("uma", () => {
       encryptedTrInfoBytes,
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
+  });
+
+  it("should create / serialize / deserialize UMA Invoice in TLV Format", async () => {
+    const invoice = createTestUmaInvoice();
+    const tlvBytes = InvoiceSerializer.toTLV(invoice);
+    const decodedInvoice = InvoiceSerializer.fromTLV(tlvBytes);
+    expect(decodedInvoice.receiverUma).toBe("$foo@bar.com");
+    expect(decodedInvoice.amount).toBe(1000);
+    expect(decodedInvoice.invoiceUUID).toBe(
+      "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+    );
+    expect(decodedInvoice.expiration).toBe(1_000_000);
+    expect(decodedInvoice.umaVersion).toBe("0.3");
+    expect(decodedInvoice.kycStatus).toBe(KycStatus.Verified);
+    expect(decodedInvoice.callback).toBe("https://example.com/callback");
+  });
+
+  it("should bech32 encode UMA Invoice", async () => {
+    const referenceBech32str =
+      "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40";
+    const invoice = createTestUmaInvoice();
+    const bech32str = InvoiceSerializer.toBech32(invoice);
+    expect(bech32str).toBe(referenceBech32str);
+  });
+
+  it("should decode a bech32 string into a UMA invoice", async () => {
+    const referenceBech32str =
+      "uma1qqxzgen0daqxyctj9e3k7mgpy33nwcesxanx2cedvdnrqvpdxsenzced8ycnve3dxe3nzvmxvv6xyd3evcusyqsraqp3vqqr24f5gqgf24fjq3r0d3kxzuszqyjqxqgzqszqqr6zgqzszqgxrd3k7mtsd35kzmnrv5arztr9d4skjmp6xqkxuctdv5arqpcrxqhrxzcg2ez4yj2xf9z5grqudp68gurn8ghj7etcv9khqmr99e3k7mf0vdskcmrzv93kkeqfwd5kwmnpw36hyeg73rn40";
+    const invoice = createTestUmaInvoice();
+    const decodedInvoice = InvoiceSerializer.fromBech32(referenceBech32str);
+    expect(decodedInvoice.receiverUma).toBe(invoice.receiverUma);
+    expect(decodedInvoice.amount).toBe(invoice.amount);
+    expect(decodedInvoice.callback).toBe(invoice.callback);
+    expect(decodedInvoice.expiration).toBe(invoice.expiration);
+    expect(decodedInvoice.invoiceUUID).toBe(invoice.invoiceUUID);
   });
 
   it("should serialize and deserialize pub key response", async () => {

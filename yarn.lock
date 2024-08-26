@@ -4643,6 +4643,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"bech32@npm:^2.0.0":
+  version: 2.0.0
+  resolution: "bech32@npm:2.0.0"
+  checksum: fa15acb270b59aa496734a01f9155677b478987b773bf701f465858bf1606c6a970085babd43d71ce61895f1baa594cb41a2cd1394bd2c6698f03cc2d811300e
+  languageName: node
+  linkType: hard
+
 "better-path-resolve@npm:1.0.0":
   version: 1.0.0
   resolution: "better-path-resolve@npm:1.0.0"
@@ -11469,6 +11476,7 @@ __metadata:
   dependencies:
     "@changesets/cli": ^2.26.1
     "@manypkg/cli": ^0.21.0
+    bech32: ^2.0.0
     ts-prune: ^0.10.3
     turbo: v1.10.1
     unimported: ^1.29.2

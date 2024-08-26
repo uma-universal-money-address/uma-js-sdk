@@ -34,3 +34,11 @@ export function kycStatusToString(k: KycStatus): string {
       return KycStatus.Verified;
   }
 }
+
+export function kycStatusToBytes(k: KycStatus): Uint8Array {
+  return new TextEncoder().encode(kycStatusToString(k));
+}
+
+export function kycStatusFromBytes(bytes: Uint8Array): KycStatus {
+  return kycStatusFromString(new TextDecoder().decode(bytes).toUpperCase());
+}
