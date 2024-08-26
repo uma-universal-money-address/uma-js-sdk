@@ -36,6 +36,7 @@
     "@changesets/cli": "^2.26.1",
     "@manypkg/cli": "^0.21.0",
     "bech32": "^2.0.0",
+    "eslint": "^8.57.0",
     "ts-prune": "^0.10.3",
     "turbo": "v1.10.1",
     "unimported": "^1.29.2"

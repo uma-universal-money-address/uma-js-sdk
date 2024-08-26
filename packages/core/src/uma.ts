@@ -294,15 +294,41 @@ export async function verifyUmaLnurlpQuerySignature(
     otherVaspSigningPubKey,
   );
 }
+export async function verifyUmaInvoiceSignature(
+  invoice: Invoice,
+  publicKey: Uint8Array
+) {
+  if (invoice.signature !== undefined) {
+    const {signature: _, ...unsignedInvoice}: Invoice = invoice;
+    const hashedPayload = await createSha256Hash(InvoiceSerializer.toTLV(unsignedInvoice))
+    return verifySignature(
+      hashedPayload,
+      invoice.signature, 
+      publicKey
+    );  
+  }
+  return false;
+}
 
+/**
+ * 
+ * @param hashedPayload - sha256 hash of target object
+ * @param signature - original encoded signature of object
+ * @param otherVaspPubKey - pub key to verify signature
+ * @returns 
+ */
 function verifySignature(
   hashedPayload: Uint8Array,
-  signature: string,
-  otherVaspPubKey: Uint8Array,
+  signature: string | Uint8Array,
+  otherVaspPubKey: Uint8Array
 ) {
-  const decodedSignature = secp256k1.signatureImport(
-    Buffer.from(signature, "hex"),
-  );
+  let localSignature;
+  if (typeof signature === "string") {
+    localSignature = Buffer.from(signature, "hex");
+  } else {
+    localSignature = signature;
+  }
+  const decodedSignature = secp256k1.signatureImport(localSignature);
 
   const verified = secp256k1.ecdsaVerify(
     secp256k1.signatureNormalize(decodedSignature),

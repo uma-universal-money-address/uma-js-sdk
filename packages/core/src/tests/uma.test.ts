@@ -18,6 +18,7 @@ import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "../protocol/PubKeyResponse.js";
 import {
+  createUmaInvoice,
   getLnurlpResponse,
   getPayReqResponse,
   getPayRequest,
@@ -31,6 +32,7 @@ import {
   verifyPayReqResponseSignature,
   verifyPayReqSignature,
   verifyPostTransactionCallbackSignature,
+  verifyUmaInvoiceSignature,
   verifyUmaLnurlpQuerySignature,
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
@@ -820,6 +822,43 @@ describe("uma", () => {
     expect(decodedInvoice.expiration).toBe(invoice.expiration);
     expect(decodedInvoice.invoiceUUID).toBe(invoice.invoiceUUID);
   });
+
+  it ("should verify invoice signature", async () => {
+    const {privateKey, publicKey} = await generateKeypair();
+    const invoice = await createUmaInvoice(
+      "$foo@bar.com",
+    "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+    1000,
+    {
+      code: "USD",
+      name: "US Dollar",
+      symbol: "$",
+      decimals: 2,
+    },
+    1000000,
+    true,
+    {
+      name: {
+        mandatory: false,
+      },
+      email: {
+        mandatory: false,
+      },
+      compliance: {
+        mandatory: true,
+      },
+    },
+    "0.3",
+    undefined,
+    undefined,
+    undefined,
+    KycStatus.Verified,
+    "https://example.com/callback",
+    privateKey,
+    );
+    const verifiedSignature = await verifyUmaInvoiceSignature(invoice, publicKey)
+    expect(verifiedSignature).toBe(true);
+  })
 
   it("should serialize and deserialize pub key response", async () => {
     const keysOnlyResponse = {
