@@ -294,15 +294,40 @@ export async function verifyUmaLnurlpQuerySignature(
     otherVaspSigningPubKey,
   );
 }
+export async function verifyUmaInvoiceSignature(
+  invoice: Invoice,
+  publicKey: Uint8Array,
+) {
+  if (invoice.signature !== undefined) {
+    const { signature: invoiceSignature, ...unsignedInvoice }: Invoice =
+      invoice;
+    const hashedPayload = await createSha256Hash(
+      InvoiceSerializer.toTLV(unsignedInvoice),
+    );
+    return verifySignature(hashedPayload, invoiceSignature, publicKey);
+  }
+  return false;
+}
 
+/**
+ *
+ * @param hashedPayload - sha256 hash of target object
+ * @param signature - original encoded signature of object
+ * @param otherVaspPubKey - pub key to verify signature
+ * @returns
+ */
 function verifySignature(
   hashedPayload: Uint8Array,
-  signature: string,
+  signature: string | Uint8Array,
   otherVaspPubKey: Uint8Array,
 ) {
-  const decodedSignature = secp256k1.signatureImport(
-    Buffer.from(signature, "hex"),
-  );
+  let localSignature;
+  if (typeof signature === "string") {
+    localSignature = Buffer.from(signature, "hex");
+  } else {
+    localSignature = signature;
+  }
+  const decodedSignature = secp256k1.signatureImport(localSignature);
 
   const verified = secp256k1.ecdsaVerify(
     secp256k1.signatureNormalize(decodedSignature),
@@ -1055,37 +1080,24 @@ export async function verifyPostTransactionCallbackSignature(
 }
 
 export async function createUmaInvoice(
-  receiverUma: string,
-  invoiceUUID: string,
-  amount: number,
-  receivingCurrency: InvoiceCurrency,
-  expiration: number,
-  isSubectToTravelRule: boolean,
-  requiredPayerData: CounterPartyDataOptions | undefined = undefined,
-  umaVersion: string,
-  commentCharsAllowed: number | undefined = undefined,
-  senderUma: string | undefined = undefined,
-  invoiceLimit: number | undefined = undefined,
-  kycStatus: KycStatus | undefined = undefined,
-  callback: string,
+  options: {
+    receiverUma: string;
+    invoiceUUID: string;
+    amount: number;
+    receivingCurrency: InvoiceCurrency;
+    expiration: number;
+    isSubjectToTravelRule: boolean;
+    requiredPayerData: CounterPartyDataOptions | undefined;
+    umaVersion: string;
+    commentCharsAllowed: number | undefined;
+    senderUma: string | undefined;
+    invoiceLimit: number | undefined;
+    kycStatus: KycStatus | undefined;
+    callback: string;
+  },
   privateKeyBytes: Uint8Array,
 ): Promise<Invoice> {
-  const invoice: Invoice = {
-    receiverUma: receiverUma,
-    invoiceUUID: invoiceUUID,
-    amount: amount,
-    receivingCurrency: receivingCurrency,
-    expiration: expiration,
-    isSubjectToTravelRule: isSubectToTravelRule,
-    requiredPayerData: requiredPayerData,
-    umaVersion: umaVersion,
-    commentCharsAllowed: commentCharsAllowed,
-    senderUma: senderUma,
-    invoiceLimit: invoiceLimit,
-    kycStatus: kycStatus,
-    callback: callback,
-    signature: undefined,
-  };
+  const invoice: Invoice = options;
   const invoicePayload = InvoiceSerializer.toTLV(invoice);
   const signature = await signBytePayload(invoicePayload, privateKeyBytes);
   invoice.signature = signature;

@@ -18,6 +18,7 @@ import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "../protocol/PubKeyResponse.js";
 import {
+  createUmaInvoice,
   getLnurlpResponse,
   getPayReqResponse,
   getPayRequest,
@@ -31,6 +32,7 @@ import {
   verifyPayReqResponseSignature,
   verifyPayReqSignature,
   verifyPostTransactionCallbackSignature,
+  verifyUmaInvoiceSignature,
   verifyUmaLnurlpQuerySignature,
   verifyUmaLnurlpResponseSignature,
 } from "../uma.js";
@@ -819,6 +821,48 @@ describe("uma", () => {
     expect(decodedInvoice.callback).toBe(invoice.callback);
     expect(decodedInvoice.expiration).toBe(invoice.expiration);
     expect(decodedInvoice.invoiceUUID).toBe(invoice.invoiceUUID);
+  });
+
+  it("should verify invoice signature", async () => {
+    const { privateKey, publicKey } = await generateKeypair();
+    const invoice = await createUmaInvoice(
+      {
+        receiverUma: "$foo@bar.com",
+        invoiceUUID: "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
+        amount: 1000,
+        receivingCurrency: {
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          decimals: 2,
+        },
+        expiration: 1000000,
+        isSubjectToTravelRule: true,
+        requiredPayerData: {
+          name: {
+            mandatory: false,
+          },
+          email: {
+            mandatory: false,
+          },
+          compliance: {
+            mandatory: true,
+          },
+        },
+        umaVersion: "0.3",
+        senderUma: undefined,
+        invoiceLimit: undefined,
+        commentCharsAllowed: undefined,
+        kycStatus: KycStatus.Verified,
+        callback: "https://example.com/callback",
+      },
+      privateKey,
+    );
+    const verifiedSignature = await verifyUmaInvoiceSignature(
+      invoice,
+      publicKey,
+    );
+    expect(verifiedSignature).toBe(true);
   });
 
   it("should serialize and deserialize pub key response", async () => {
