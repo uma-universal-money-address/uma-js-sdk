@@ -84,9 +84,9 @@ export function deserializeNumber(value: Uint8Array): number {
       break;
     }
     default: {
-        result = view.getInt8(0);
-        break;
-      }
+      result = view.getInt8(0);
+      break;
+    }
   }
   return result;
 }
