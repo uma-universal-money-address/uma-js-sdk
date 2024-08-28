@@ -1,9 +1,9 @@
 /**
  * converts a number into a byte representation
- * @param value - number or bigint to serialize
+ * @param value - number to serialize
  * @returns
  */
-export function serializeNumber(value: number | bigint): Uint8Array {
+export function serializeNumber(value: number): Uint8Array {
   let result = new Uint8Array();
   if (Number.isInteger(value)) {
     if (value >= -128 && value <= 127) {
@@ -27,7 +27,7 @@ export function serializeNumber(value: number | bigint): Uint8Array {
     } else {
       const buffer = new ArrayBuffer(8);
       const view = new DataView(buffer);
-      view.setBigUint64(0, value as bigint);
+      view.setBigInt64(0, BigInt(value));
       result = new Uint8Array(buffer);
     }
   } else {
@@ -49,11 +49,11 @@ export function serializeBoolean(value: boolean): Uint8Array {
 
 /**
  * there isn't enough info to infer int / float from a serialized number, so we recommend providing an explicit float
- * deserialize function for values intended to be integers or bigints.
+ * deserialize function for values intended to be integers.
  * @param value - Uint8Array representing a number serialized as bytes
- * @returns integer or bigint
+ * @returns integer
  */
-export function deserializeNumber(value: Uint8Array): number | bigint {
+export function deserializeNumber(value: Uint8Array): number {
   let result;
   const length = value.length;
   const view = new DataView(value.buffer);
@@ -74,15 +74,19 @@ export function deserializeNumber(value: Uint8Array): number | bigint {
     }
     case 8: {
       // 64 bit
-      result = view.getBigInt64(0);
+      const parsed = view.getBigInt64(0);
+      if (parsed >= Number.MIN_VALUE && parsed <= Number.MAX_VALUE) {
+        result = Number(parsed);
+      } else {
+        // TODO support bigint
+        result = -1;
+      }
       break;
     }
-    default:
-      {
+    default: {
         result = view.getInt8(0);
         break;
       }
-      break;
   }
   return result;
 }

@@ -103,7 +103,7 @@ const TLVInvoiceCurrencySerializer = {
   },
 
   serialize(invoice: InvoiceCurrency): Uint8Array {
-    const tlv = new ArrayBuffer(256);
+    const tlv = new ArrayBuffer(512);
     let offset = 0;
     const view = new DataView(tlv);
     Object.keys(invoice).forEach((key) => {
@@ -194,7 +194,7 @@ export const InvoiceSerializer = {
   },
 
   toTLV(invoice: Invoice): Uint8Array {
-    const tlv = new ArrayBuffer(256);
+    const tlv = new ArrayBuffer(512);
     let offset = 0;
     const view = new DataView(tlv);
     Object.keys(invoice).forEach((key) => {
