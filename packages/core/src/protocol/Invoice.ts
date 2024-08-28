@@ -21,7 +21,7 @@ import {
 } from "./KycStatus.js";
 
 const UMA_BECH32_PREFIX = "uma";
-const BECH_32_MAX_LENGTH = 512;
+const BECH_32_MAX_LENGTH = 1024;
 
 const InvoiceCurrencySchema = z.object({
   name: z.string(),
