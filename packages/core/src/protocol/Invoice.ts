@@ -21,7 +21,7 @@ import {
 } from "./KycStatus.js";
 
 const UMA_BECH32_PREFIX = "uma";
-const BECH_32_MAX_LENGTH = 512;
+const BECH_32_MAX_LENGTH = 1024;
 
 const InvoiceCurrencySchema = z.object({
   name: z.string(),
@@ -103,7 +103,7 @@ const TLVInvoiceCurrencySerializer = {
   },
 
   serialize(invoice: InvoiceCurrency): Uint8Array {
-    const tlv = new ArrayBuffer(256);
+    const tlv = new ArrayBuffer(512);
     let offset = 0;
     const view = new DataView(tlv);
     Object.keys(invoice).forEach((key) => {
@@ -194,7 +194,7 @@ export const InvoiceSerializer = {
   },
 
   toTLV(invoice: Invoice): Uint8Array {
-    const tlv = new ArrayBuffer(256);
+    const tlv = new ArrayBuffer(512);
     let offset = 0;
     const view = new DataView(tlv);
     Object.keys(invoice).forEach((key) => {
@@ -217,11 +217,14 @@ export const InvoiceSerializer = {
     return new Uint8Array(tlv).slice(0, offset);
   },
 
-  toBech32(invoice: Invoice): string {
+  toBech32(
+    invoice: Invoice,
+    maxLength: number | undefined = undefined,
+  ): string {
     return bech32.encode(
       UMA_BECH32_PREFIX,
       bech32m.toWords(this.toTLV(invoice)),
-      BECH_32_MAX_LENGTH,
+      maxLength ?? BECH_32_MAX_LENGTH,
     );
   },
 
@@ -252,8 +255,11 @@ export const InvoiceSerializer = {
     return validated;
   },
 
-  fromBech32(bech32str: string): Invoice {
-    const decoded = bech32.decode(bech32str, BECH_32_MAX_LENGTH);
+  fromBech32(
+    bech32str: string,
+    maxLength: number | undefined = undefined,
+  ): Invoice {
+    const decoded = bech32.decode(bech32str, maxLength ?? BECH_32_MAX_LENGTH);
     return this.fromTLV(new Uint8Array(bech32m.fromWords(decoded.words)));
   },
 };
