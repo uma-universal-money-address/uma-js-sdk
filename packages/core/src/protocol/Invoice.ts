@@ -217,11 +217,11 @@ export const InvoiceSerializer = {
     return new Uint8Array(tlv).slice(0, offset);
   },
 
-  toBech32(invoice: Invoice): string {
+  toBech32(invoice: Invoice, maxLength: number | undefined = undefined): string {
     return bech32.encode(
       UMA_BECH32_PREFIX,
       bech32m.toWords(this.toTLV(invoice)),
-      BECH_32_MAX_LENGTH,
+      maxLength ?? BECH_32_MAX_LENGTH,
     );
   },
 
@@ -252,8 +252,8 @@ export const InvoiceSerializer = {
     return validated;
   },
 
-  fromBech32(bech32str: string): Invoice {
-    const decoded = bech32.decode(bech32str, BECH_32_MAX_LENGTH);
+  fromBech32(bech32str: string, maxLength: number | undefined = undefined): Invoice {
+    const decoded = bech32.decode(bech32str, maxLength ?? BECH_32_MAX_LENGTH);
     return this.fromTLV(new Uint8Array(bech32m.fromWords(decoded.words)));
   },
 };
