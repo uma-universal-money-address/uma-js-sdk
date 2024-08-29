@@ -849,7 +849,6 @@ describe("uma", () => {
             mandatory: true,
           },
         },
-        umaVersion: "0.3",
         senderUma: undefined,
         invoiceLimit: undefined,
         commentCharsAllowed: undefined,

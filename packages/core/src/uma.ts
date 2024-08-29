@@ -1080,7 +1080,20 @@ export async function verifyPostTransactionCallbackSignature(
 }
 
 export async function createUmaInvoice(
-  options: {
+  {
+    receiverUma,
+    invoiceUUID,
+    amount,
+    receivingCurrency,
+    expiration,
+    isSubjectToTravelRule,
+    requiredPayerData,
+    commentCharsAllowed,
+    senderUma,
+    invoiceLimit,
+    kycStatus,
+    callback,
+  }: {
     receiverUma: string;
     invoiceUUID: string;
     amount: number;
@@ -1088,7 +1101,6 @@ export async function createUmaInvoice(
     expiration: number;
     isSubjectToTravelRule: boolean;
     requiredPayerData: CounterPartyDataOptions | undefined;
-    umaVersion: string;
     commentCharsAllowed: number | undefined;
     senderUma: string | undefined;
     invoiceLimit: number | undefined;
@@ -1097,7 +1109,21 @@ export async function createUmaInvoice(
   },
   privateKeyBytes: Uint8Array,
 ): Promise<Invoice> {
-  const invoice: Invoice = options;
+  const invoice: Invoice = {
+    receiverUma: receiverUma,
+    invoiceUUID: invoiceUUID,
+    amount: amount,
+    receivingCurrency: receivingCurrency,
+    expiration: expiration,
+    isSubjectToTravelRule: isSubjectToTravelRule,
+    requiredPayerData: requiredPayerData,
+    commentCharsAllowed: commentCharsAllowed,
+    senderUma: senderUma,
+    invoiceLimit: invoiceLimit,
+    kycStatus: kycStatus,
+    callback: callback,
+    umaVersion: UmaProtocolVersion,
+  };
   const invoicePayload = InvoiceSerializer.toTLV(invoice);
   const signature = await signBytePayload(invoicePayload, privateKeyBytes);
   invoice.signature = signature;
