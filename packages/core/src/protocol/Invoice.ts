@@ -217,7 +217,10 @@ export const InvoiceSerializer = {
     return new Uint8Array(tlv).slice(0, offset);
   },
 
-  toBech32(invoice: Invoice, maxLength: number | undefined = undefined): string {
+  toBech32(
+    invoice: Invoice,
+    maxLength: number | undefined = undefined,
+  ): string {
     return bech32.encode(
       UMA_BECH32_PREFIX,
       bech32m.toWords(this.toTLV(invoice)),
@@ -252,7 +255,10 @@ export const InvoiceSerializer = {
     return validated;
   },
 
-  fromBech32(bech32str: string, maxLength: number | undefined = undefined): Invoice {
+  fromBech32(
+    bech32str: string,
+    maxLength: number | undefined = undefined,
+  ): Invoice {
     const decoded = bech32.decode(bech32str, maxLength ?? BECH_32_MAX_LENGTH);
     return this.fromTLV(new Uint8Array(bech32m.fromWords(decoded.words)));
   },
