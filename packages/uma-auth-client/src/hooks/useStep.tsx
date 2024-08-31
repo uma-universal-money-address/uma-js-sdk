@@ -1,20 +1,21 @@
-import { useState } from "react";
 import { STEP_MAP, Step } from "src/types";
+import { create } from "zustand";
 
-export const useStep = () => {
-  const [step, setStep] = useState<Step>(Step.Connect);
+interface StepState {
+  step: Step;
+  setStep: (step: Step) => void;
+  onBack: () => void;
+}
 
-  const stepInfo = STEP_MAP[step];
-
-  const onBack = () => {
-    if (stepInfo.prev) {
-      setStep(stepInfo.prev);
-    }
-  };
-
-  return {
-    step,
-    setStep,
-    onBack,
-  };
-};
+export const useStep = create<StepState>((set) => ({
+  step: Step.Connect,
+  setStep: (step) => set({ step }),
+  onBack: () =>
+    set(({ step }) => {
+      const stepInfo = STEP_MAP[step];
+      if (stepInfo.prev) {
+        return { step: stepInfo.prev };
+      }
+      return { step };
+    }),
+}));

@@ -1,5 +1,4 @@
 import { ConnectUma } from "./steps/ConnectUma";
-import { ConnectedUma } from "./steps/ConnectedUma";
 import { ConnectedWallet } from "./steps/ConnectedWallet";
 import { ForgotYourUma } from "./steps/ForgotYourUma";
 import { MoreOptions } from "./steps/MoreOptions";
@@ -21,7 +20,7 @@ export enum Step {
 }
 
 interface StepInfo {
-  component: React.ComponentType<{ setStep: (step: Step) => void }>;
+  component: React.ComponentType;
   title?: string;
   prev?: Step;
 }
@@ -45,7 +44,7 @@ export const STEP_MAP: Record<Step, StepInfo> = {
     title: "Connected wallet",
   },
   [Step.ConnectedUma]: {
-    component: ConnectedUma,
+    component: ConnectedWallet,
     title: "Connected UMA",
   },
   [Step.WaitingForApproval]: {

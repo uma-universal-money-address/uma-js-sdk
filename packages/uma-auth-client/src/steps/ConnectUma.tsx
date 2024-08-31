@@ -2,23 +2,59 @@ import styled from "@emotion/styled";
 import { Button, TextInput } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
+import { useStep } from "src/hooks/useStep";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
+import { getUmaDomain } from "src/utils/getUmaDomain";
+import { setLocalStorage } from "src/utils/localStorage";
 
-export const ConnectUma = ({ setStep }: { setStep: (step: Step) => void }) => {
-  const clientId = "1";
-  const redirectUri = "http://localhost:3001";
-  const responseType = "code";
-  const codeChallenge = "1234";
-  const codeChallengeMethod = "S256";
+interface DiscoveryDocument {
+  authorization_endpoint: string;
+}
 
+export const ConnectUma = () => {
+  const { setStep } = useStep();
   const { uma, setUma } = useUser();
   const handleChangeUma = (value: string) => {
     setUma(`$${value}`);
   };
 
   const handleConnectYourUMA = () => {
-    window.location.href = `http://localhost:3000/apps/new?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=send_payments&optional_commands=read_balance,read_transactions&budget=10.USD%2Fmonthly&expiration_period=year`;
+    // TODO: validate the uma format
+    const validatedUma = uma!;
+
+    setLocalStorage("uma", validatedUma);
+    const umaDomain = getUmaDomain(validatedUma);
+
+    (async () => {
+      // TODO: get real discovery document for authorization_endpoint
+      // const discoveryDocument = await fetch(`https://${umaDomain}/.well-known/uma-configuration`);
+      // const discoveryDocumentJson = await discoveryDocument.json<DiscoveryDocument>();
+      const discoveryDocumentJson = {
+        authorization_endpoint: "http://localhost:3000/apps/new",
+      };
+
+      // TODO: get real client_id from vasp?
+      const clientId =
+        "npub1u2zfe9zpq2gcuduxatqa5k3alq5yny9qdeq8yrjfqxh4qywa6ejq8daqq6 wss://nos.lol";
+
+      // TODO: generate redirectUri based on current page or have it provided by client app
+      const redirectUri = "http://localhost:3001";
+
+      // TODO: use oauth library to get oauth params: response_type, code_challenge, code_challenge_method
+      const responseType = "code";
+      const codeChallenge = "1234";
+      const codeChallengeMethod = "S256";
+
+      // TODO: get required and optional commands, budget, and expirationPeriod from client app
+      const requiredCommands = "send_payments";
+      const optionalCommands = "read_balance,read_transactions";
+      const budget = "10.USD%2Fmonthly";
+      const expirationPeriod = "year";
+
+      // TODO: use oauth library to redirect to authorization_endpoint, don't build manually
+      window.location.href = `${discoveryDocumentJson.authorization_endpoint}?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&code_challenge=${codeChallenge}&code_challenge_method=${codeChallengeMethod}&required_commands=${requiredCommands}&optional_commands=${optionalCommands}&budget=${budget}&expiration_period=${expirationPeriod}`;
+    })();
   };
 
   const handleMoreOptions = () => {

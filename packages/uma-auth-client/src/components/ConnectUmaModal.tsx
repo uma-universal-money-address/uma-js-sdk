@@ -57,7 +57,7 @@ export const ConnectUmaModal = (props: Props) => {
             <Icon name="Close" width={8} />
           </CloseButton>
         </Header>
-        <stepInfo.component setStep={setStep} />
+        <stepInfo.component />
       </ModalContents>
     </Modal>
   );

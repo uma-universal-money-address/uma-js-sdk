@@ -1,7 +1,12 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
+import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { useRef, useState } from "react";
+import { useStep } from "src/hooks/useStep";
+import { useUser } from "src/hooks/useUser";
+import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
+import { getLocalStorage } from "src/utils/localStorage";
 import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
@@ -9,14 +14,29 @@ export const TAG_NAME = "uma-connect-button";
 const UmaConnectButton = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const { uma, setUma } = useUser();
+  const { setStep } = useStep();
 
-  const clientId = "1";
-  const redirectUri = "http://localhost:3001";
-  const responseType = "code";
-  const codeChallenge = "1234";
-  const codeChallengeMethod = "S256";
+  // Check if already connected
+  const isConnected = getLocalStorage("connectionUri");
+  if (isConnected && !uma) {
+    const persistedUma = getLocalStorage("uma");
+    if (persistedUma) {
+      setUma(persistedUma);
+    }
+  }
 
   const handleOpenModal = () => {
+    if (isConnected) {
+      if (uma) {
+        setStep(Step.ConnectedUma);
+      } else {
+        setStep(Step.ConnectedWallet);
+      }
+    } else {
+      setStep(Step.Connect);
+    }
+
     setIsModalOpen(true);
   };
 
@@ -24,8 +44,17 @@ const UmaConnectButton = () => {
     <>
       <Button onClick={handleOpenModal} ref={buttonRef}>
         <ButtonContents>
-          <Icon name="Uma" width={36} />
-          Connect
+          {isConnected ? (
+            <>
+              <Title size="Medium" content={uma} />
+              <Icon name="Uma" width={24} />
+            </>
+          ) : (
+            <>
+              <Icon name="Uma" width={24} />
+              <Title size="Medium" content="Connect" />
+            </>
+          )}
         </ButtonContents>
       </Button>
       <ConnectUmaModal
