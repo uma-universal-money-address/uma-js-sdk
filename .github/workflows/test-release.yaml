@@ -83,17 +83,6 @@ jobs:
         with:
           cwd: "."
 
-      - name: Restore turbo cache
-        uses: actions/cache@v3
-        with:
-          path: ./node_modules/.cache/turbo
-          # see https://bit.ly/43Til68 - we only need a single cache for all turbo files
-          # but the cache still needs a unique id in order for it to properly save each time.
-          # restore-keys will always take the latest matching cache:
-          key: turbo-checks-${{ runner.os }}-${{ github.run_id }} # Can use time based key as well
-          restore-keys: |
-            turbo-checks-${{ runner.os }}
-
       - run: "yarn checks"
 
   # turbo doesn't seem to parallelize builds with checks although they don't depend on one another,
@@ -122,21 +111,10 @@ jobs:
         with:
           cwd: "."
 
-      - name: Restore turbo cache
-        uses: actions/cache@v3
-        with:
-          path: ./node_modules/.cache/turbo
-          # see https://bit.ly/43Til68 - we only need a single cache for all turbo files
-          # but the cache still needs a unique id in order for it to properly save each time.
-          # restore-keys will always take the latest matching cache:
-          key: turbo-build-${{ runner.os }}-${{ github.run_id }} # Can use time based key as well
-          restore-keys: |
-            turbo-build-${{ runner.os }}
-
       - run: "yarn build"
 
   reset-develop-to-main:
-    name: Hard reset develop to sync to main
+    name: Reset develop to sync to main
     if: "github.event_name == 'push'"
     runs-on: ubuntu-latest
     environment: npm
