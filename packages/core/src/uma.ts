@@ -426,6 +426,11 @@ type GetPayRequestArgs = {
    * LUD-21 spec, this should be 1.
    */
   umaMajorVersion: number;
+
+  /**
+   * associated invoice id, for PayRequest version1+
+   */
+  invoiceUUID?: string | undefined
 };
 
 /**
@@ -449,6 +454,7 @@ export async function getPayRequest({
   requestedPayeeData,
   comment,
   umaMajorVersion,
+  invoiceUUID
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -478,6 +484,7 @@ export async function getPayRequest({
     },
     requestedPayeeData,
     comment,
+    invoiceUUID
   );
 }
 
@@ -654,11 +661,13 @@ export async function getPayReqResponse({
     ? Math.round((request.amount - receiverFeesMillisats) / conversionRate)
     : request.amount;
 
+  const encodedInvoiceUUID = request.invoiceUUID ?? JSON.stringify(request.invoiceUUID);
+
   const encodedPayerData =
     request.payerData && JSON.stringify(request.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
-    metadata + (encodedPayerData || ""),
+    metadata + (encodedPayerData || "") + (encodedInvoiceUUID),
     payeeIdentifier,
   );
   if (!encodedInvoice) {
