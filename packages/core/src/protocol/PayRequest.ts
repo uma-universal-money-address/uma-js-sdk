@@ -31,7 +31,7 @@ const V1PayRequestSchema = z
      * InvoiceUUID is the invoice UUID that the sender is paying.
      * This only exists in the v1 pay request since the v0 SDK won't support invoices.
      */
-    invoiceUUID: optionalIgnoringNull(z.string().uuid())
+    invoiceUUID: optionalIgnoringNull(z.string().uuid()),
   })
   .passthrough()
   .refine((data) => {
@@ -134,7 +134,7 @@ export class PayRequest {
     /**
      * Associated UMA Invoice UUID
      */
-    public readonly invoiceUUID?: string | undefined
+    public readonly invoiceUUID?: string | undefined,
   ) {}
 
   /**
@@ -221,6 +221,7 @@ export class PayRequest {
       schema.payerData as PayerData | undefined,
       schema.payeeData,
       schema.comment,
+      schema.invoiceUUID,
     );
   }
 
@@ -241,6 +242,8 @@ export class PayRequest {
   /**
    * Parse a PayRequest from a URLSearchParams object. Should only be used for
    * non-UMA pay requests because UMA uses POST requests for payreq.
+   *
+   * edit - because this is non UMA only, do not search for invoiceUUID field
    */
   static fromUrlSearchParams(params: URLSearchParams): PayRequest {
     const convert = params.get("convert");
