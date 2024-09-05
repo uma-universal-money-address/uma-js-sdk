@@ -4,6 +4,7 @@ import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
 import { ConnectionCard } from "src/components/ConnectionCard";
+import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useUser } from "src/hooks/useUser";
 import {
   Connection,
@@ -12,7 +13,6 @@ import {
   PermissionType,
 } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
-import { getUmaDomain } from "src/utils/getUmaDomain";
 
 const RENEWAL_DATE_FUNCTIONS = {
   [LimitFrequency.DAILY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "day"),
@@ -48,6 +48,8 @@ const getRenewalString = (connection: Connection) => {
 
 export const ConnectedWallet = () => {
   const { uma } = useUser();
+  const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
+    useDiscoveryDocument();
 
   // TODO: Get connection details with NWC connection
   const connection: Connection = {
@@ -158,9 +160,10 @@ export const ConnectedWallet = () => {
           icon="LinkIcon"
           text="Manage connection"
           kind="secondary"
+          loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma
-              ? `https://nwc.${getUmaDomain(uma)}/connection/${connection.connectionId}`
+            uma && discoveryDocument
+              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
               : undefined
           }
           fullWidth
@@ -169,9 +172,10 @@ export const ConnectedWallet = () => {
           icon="ArrowCornerDownRight"
           text="Disconnect"
           kind="danger"
+          loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma
-              ? `https://nwc.${getUmaDomain(uma)}/connection/${connection.connectionId}`
+            uma && discoveryDocument
+              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
               : undefined
           }
           fullWidth
