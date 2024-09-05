@@ -3,5 +3,4 @@
 "react-demo": patch
 "@uma-sdk/core": minor
 ---
-
-- adding UMA Invoice creation & bech32 encoding capabilities
+adding UMA Invoice creation and bech32 encoding capabilities
