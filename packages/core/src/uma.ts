@@ -668,7 +668,7 @@ export async function getPayReqResponse({
     request.payerData && JSON.stringify(request.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
-    metadata + (encodedPayerData || "") + encodedInvoiceUUID,
+    metadata + (encodedPayerData || "") + (encodedInvoiceUUID || ""),
     payeeIdentifier,
   );
   if (!encodedInvoice) {
