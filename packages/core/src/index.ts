@@ -1,6 +1,7 @@
 export * from "./NonceValidator.js";
 export * from "./protocol/CounterPartyData.js";
 export * from "./protocol/Currency.js";
+export * from "./protocol/Invoice.js";
 export * from "./protocol/KycStatus.js";
 export * from "./protocol/LnurlpRequest.js";
 export * from "./protocol/LnurlpResponse.js";

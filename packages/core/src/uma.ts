@@ -6,6 +6,11 @@ import { InvalidInputError } from "./errors.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
 import { type Currency } from "./protocol/Currency.js";
+import {
+  InvoiceSerializer,
+  type Invoice,
+  type InvoiceCurrency,
+} from "./protocol/Invoice.js";
 import { type KycStatus } from "./protocol/KycStatus.js";
 import {
   encodeToUrl,
@@ -251,6 +256,16 @@ async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
   return uint8ArrayToHexString(secp256k1.signatureExport(signature));
 }
 
+async function signBytePayload(
+  payload: Uint8Array,
+  privateKeyBytes: Uint8Array,
+) {
+  const hashedPayload = await createSha256Hash(payload);
+
+  const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
+  return secp256k1.signatureExport(signature);
+}
+
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspPubKeyResponse: PubKeyResponse,
@@ -279,15 +294,40 @@ export async function verifyUmaLnurlpQuerySignature(
     otherVaspSigningPubKey,
   );
 }
+export async function verifyUmaInvoiceSignature(
+  invoice: Invoice,
+  publicKey: Uint8Array,
+) {
+  if (invoice.signature !== undefined) {
+    const { signature: invoiceSignature, ...unsignedInvoice }: Invoice =
+      invoice;
+    const hashedPayload = await createSha256Hash(
+      InvoiceSerializer.toTLV(unsignedInvoice),
+    );
+    return verifySignature(hashedPayload, invoiceSignature, publicKey);
+  }
+  return false;
+}
 
+/**
+ *
+ * @param hashedPayload - sha256 hash of target object
+ * @param signature - original encoded signature of object
+ * @param otherVaspPubKey - pub key to verify signature
+ * @returns
+ */
 function verifySignature(
   hashedPayload: Uint8Array,
-  signature: string,
+  signature: string | Uint8Array,
   otherVaspPubKey: Uint8Array,
 ) {
-  const decodedSignature = secp256k1.signatureImport(
-    Buffer.from(signature, "hex"),
-  );
+  let localSignature;
+  if (typeof signature === "string") {
+    localSignature = Buffer.from(signature, "hex");
+  } else {
+    localSignature = signature;
+  }
+  const decodedSignature = secp256k1.signatureImport(localSignature);
 
   const verified = secp256k1.ecdsaVerify(
     secp256k1.signatureNormalize(decodedSignature),
@@ -1037,4 +1077,55 @@ export async function verifyPostTransactionCallbackSignature(
   const hashedPayload = await createSha256Hash(encodedQuery);
   const otherVaspPubKey = otherVaspPubKeyResponse.getSigningPubKey();
   return verifySignature(hashedPayload, callback.signature, otherVaspPubKey);
+}
+
+export async function createUmaInvoice(
+  {
+    receiverUma,
+    invoiceUUID,
+    amount,
+    receivingCurrency,
+    expiration,
+    isSubjectToTravelRule,
+    requiredPayerData,
+    commentCharsAllowed,
+    senderUma,
+    invoiceLimit,
+    kycStatus,
+    callback,
+  }: {
+    receiverUma: string;
+    invoiceUUID: string;
+    amount: number;
+    receivingCurrency: InvoiceCurrency;
+    expiration: number;
+    isSubjectToTravelRule: boolean;
+    requiredPayerData: CounterPartyDataOptions | undefined;
+    commentCharsAllowed: number | undefined;
+    senderUma: string | undefined;
+    invoiceLimit: number | undefined;
+    kycStatus: KycStatus | undefined;
+    callback: string;
+  },
+  privateKeyBytes: Uint8Array,
+): Promise<Invoice> {
+  const invoice: Invoice = {
+    receiverUma: receiverUma,
+    invoiceUUID: invoiceUUID,
+    amount: amount,
+    receivingCurrency: receivingCurrency,
+    expiration: expiration,
+    isSubjectToTravelRule: isSubjectToTravelRule,
+    requiredPayerData: requiredPayerData,
+    commentCharsAllowed: commentCharsAllowed,
+    senderUma: senderUma,
+    invoiceLimit: invoiceLimit,
+    kycStatus: kycStatus,
+    callback: callback,
+    umaVersion: UmaProtocolVersion,
+  };
+  const invoicePayload = InvoiceSerializer.toTLV(invoice);
+  const signature = await signBytePayload(invoicePayload, privateKeyBytes);
+  invoice.signature = signature;
+  return invoice;
 }

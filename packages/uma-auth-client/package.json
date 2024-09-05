@@ -1,0 +1,64 @@
+{
+  "name": "@uma-sdk/uma-auth-client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/uma-auth-client.umd.cjs",
+  "exports": {
+    ".": {
+      "types": "./dist/uma-auth-client.d.ts",
+      "import": {
+        "types": "./dist/uma-auth-client.d.ts",
+        "default": "./dist/uma-auth-client.js"
+      },
+      "require": {
+        "types": "./dist/uma-auth-client.d.ts",
+        "default": "./dist/uma-auth-client.umd.cjs"
+      }
+    }
+  },
+  "module": "./dist/uma-auth-client.js",
+  "scripts": {
+    "dev:lib": "tsc && vite build --emptyOutDir=false --config vite.config.lib.js --watch",
+    "dev:webcomponents": "tsc && vite build --emptyOutDir=false --config vite.config.webcomponents.js --watch",
+    "build": "tsc && vite build --config vite.config.lib.js && vite build --emptyOutDir=false --config vite.config.webcomponents.js",
+    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint --fix .",
+    "preview": "vite preview",
+    "format:fix": "prettier src --write",
+    "format": "prettier src --check"
+  },
+  "dependencies": {
+    "@emotion/css": "^11.11.2",
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@lightsparkdev/ui": "1.0.8",
+    "dayjs": "^1.11.13",
+    "framer-motion": "^11.3.28",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "6.11.2",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@emotion/babel-plugin": "^11.11.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "babel-loader": "^9.1.2",
+    "babel-plugin-named-asset-import": "^0.3.8",
+    "babel-preset-react-app": "^10.0.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react": "^7.34.3",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-react-refresh": "^0.4.7",
+    "prettier": "^3.3.3",
+    "prettier-plugin-organize-imports": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^5.3.4",
+    "vite-plugin-dts": "^4.0.1"
+  }
+}
