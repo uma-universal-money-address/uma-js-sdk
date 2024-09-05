@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.2.0
+
+### Minor Changes
+
+- 9458b5c: add UMA invoice creation and bech32 encoding
+
 ## 1.1.0
 
 ### Minor Changes
