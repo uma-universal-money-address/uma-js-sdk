@@ -33,7 +33,7 @@
     "examples/*"
   ],
   "dependencies": {
-    "@changesets/cli": "^2.26.1",
+    "@changesets/cli": "^2.27.1",
     "@manypkg/cli": "^0.21.0",
     "bech32": "^2.0.0",
     "ts-prune": "^0.10.3",
