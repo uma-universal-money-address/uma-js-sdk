@@ -31,7 +31,7 @@ const V1PayRequestSchema = z
      * InvoiceUUID is the invoice UUID that the sender is paying.
      * This only exists in the v1 pay request since the v0 SDK won't support invoices.
      */
-    invoiceUUID: optionalIgnoringNull(z.string().uuid())
+    invoiceUUID: optionalIgnoringNull(z.string().uuid()),
   })
   .passthrough()
   .refine((data) => {
@@ -134,7 +134,7 @@ export class PayRequest {
     /**
      * Associated UMA Invoice UUID
      */
-    public readonly invoiceUUID?: string | undefined
+    public readonly invoiceUUID?: string | undefined,
   ) {}
 
   /**
