@@ -426,6 +426,11 @@ type GetPayRequestArgs = {
    * LUD-21 spec, this should be 1.
    */
   umaMajorVersion: number;
+
+  /**
+   * associated invoice id, for PayRequest version1+
+   */
+  invoiceUUID?: string | undefined;
 };
 
 /**
@@ -449,6 +454,7 @@ export async function getPayRequest({
   requestedPayeeData,
   comment,
   umaMajorVersion,
+  invoiceUUID,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -478,6 +484,7 @@ export async function getPayRequest({
     },
     requestedPayeeData,
     comment,
+    invoiceUUID,
   );
 }
 
@@ -654,11 +661,15 @@ export async function getPayReqResponse({
     ? Math.round((request.amount - receiverFeesMillisats) / conversionRate)
     : request.amount;
 
+  const encodedMetadataWithInvoiceUUID = request.invoiceUUID
+    ? addInvoiceUUIDToEncodedMetadata(metadata, request.invoiceUUID)
+    : metadata;
+
   const encodedPayerData =
     request.payerData && JSON.stringify(request.payerData);
   const encodedInvoice = await invoiceCreator.createUmaInvoice(
     msatsAmount,
-    metadata + (encodedPayerData || ""),
+    encodedMetadataWithInvoiceUUID + (encodedPayerData || ""),
     payeeIdentifier,
   );
   if (!encodedInvoice) {
@@ -705,6 +716,28 @@ export async function getPayReqResponse({
     successAction,
     request.umaMajorVersion,
   );
+}
+
+/**
+ * PayReq / PayReqResponse metadata is encoded as a list of pairs, of format
+ * ["type", "value"]
+ * @param metadata - existing json encoded metadata, which should deserialized to string[][]
+ * @param invoiceUUID - reference invoice uuid
+ * @returns re-json encoded metadata.
+ */
+function addInvoiceUUIDToEncodedMetadata(
+  metadata: string,
+  invoiceUUID: string,
+): string {
+  let encodedString;
+  try {
+    const decodedMetadata: string[][] = JSON.parse(metadata);
+    decodedMetadata.push(["text/plain", invoiceUUID]);
+    encodedString = JSON.stringify(decodedMetadata);
+  } catch (e) {
+    encodedString = metadata;
+  }
+  return encodedString;
 }
 
 function validateUmaFields({
