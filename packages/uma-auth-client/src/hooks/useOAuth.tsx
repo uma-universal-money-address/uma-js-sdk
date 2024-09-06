@@ -17,18 +17,32 @@ interface TokenState {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
+  commands?: string[];
+  budget?: string;
+}
+
+export interface BudgetConfig {
+  amountInLowestDenom: string;
+  currency: string;
+  period: string;
+}
+
+export interface AuthConfig {
+  identityNpub: string;
+  identityRelayUrl: string;
+  redirectUri: string;
+  requiredCommands?: string[] | undefined;
+  optionalCommands?: string[] | undefined;
+  budget?: BudgetConfig | undefined;
 }
 
 interface OAuthState {
   codeVerifier?: string;
   token?: TokenState | undefined;
-  identityNpub?: string;
-  identityRelayUrl?: string;
-  redirectUri?: string;
+  authConfig?: AuthConfig;
   nwcConnectionUri?: string;
-  commands?: string[];
-  budget?: string;
   nwcExpiresAt?: number;
+  setAuthConfig: (config: AuthConfig) => void;
   setToken: (token?: TokenState) => void;
   /** The initial OAuth request that starts the OAuth handshake. */
   initialOAuthRequest: (uma: string) => Promise<void>;
@@ -39,10 +53,7 @@ interface OAuthState {
 export const useOAuth = create<OAuthState>()(
   persist(
     (set, get) => ({
-      identityNpub:
-        "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d", // TODO: remove this
-      identityRelayUrl: "wss://nos.lol", // TODO: remove this
-      redirectUri: "http://localhost:3001", // TODO: remove this
+      setAuthConfig: (authConfig) => set({ authConfig }),
       setToken: (token) =>
         set({
           token,
@@ -70,24 +81,29 @@ export const useOAuth = create<OAuthState>()(
 );
 
 const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
-  const { identityNpub, identityRelayUrl, redirectUri, codeVerifier } = state;
+  const { codeVerifier, authConfig } = state;
+  if (!authConfig) {
+    throw new Error("Auth config not set.");
+  }
+
   const discoveryDocument = await fetchDiscoveryDocument(uma);
 
   const authClient = new auth.OAuth2User({
-    client_id: `${identityNpub} ${identityRelayUrl}`,
-    callback: redirectUri!,
+    client_id: `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`,
+    callback: authConfig.redirectUri,
     scopes: [],
     user_agent: "uma-connect",
   });
 
-  // TODO: get requiredCommands, optionalCommands, budget, expirationPeriod from client app
-  const requiredCommands = ["pay_invoice"];
-  const optionalCommands = ["get_balance", "list_transactions"];
-  const budget = "10.USD%2Fmonthly";
-  const expirationPeriod = "year";
+  const requiredCommands = authConfig.requiredCommands?.join(",") || "";
+  const optionalCommands = authConfig.optionalCommands?.join(",") || "";
+  let budget = "";
+  if (authConfig.budget) {
+    budget = `${authConfig.budget.amountInLowestDenom}.${authConfig.budget.currency}%2F${authConfig.budget.period}`;
+  }
 
   const authUrl = await authClient.generateAuthURL({
-    authorizeUrl: `${discoveryDocument.authorization_endpoint}?required_commands=${requiredCommands.join(",")}&optional_commands=${optionalCommands.join(",")}&budget=${budget}&expiration_period=${expirationPeriod}`,
+    authorizeUrl: `${discoveryDocument.authorization_endpoint}?required_commands=${requiredCommands}&optional_commands=${optionalCommands}&budget=${budget}`,
     code_challenge_method: "S256",
   });
 
@@ -98,15 +114,12 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
 };
 
 const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
-  const {
-    identityNpub,
-    identityRelayUrl,
-    redirectUri,
-    codeVerifier,
-    token,
-    nwcConnectionUri,
-    nwcExpiresAt,
-  } = state;
+  const { codeVerifier, token, nwcConnectionUri, nwcExpiresAt, authConfig } =
+    state;
+  if (!authConfig) {
+    throw new Error("Auth config not set.");
+  }
+
   const discoveryDocument = await fetchDiscoveryDocument(uma);
 
   // If we have a connection URI and a token that hasn't expired, we don't need to do anything
@@ -119,8 +132,8 @@ const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
   }
 
   const authClient = new auth.OAuth2User({
-    client_id: `${identityNpub} ${identityRelayUrl}`,
-    callback: redirectUri!, // TODO: get this from client app
+    client_id: `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`,
+    callback: authConfig.redirectUri,
     scopes: [],
     user_agent: "uma-connect",
     request_options: {
@@ -162,10 +175,10 @@ const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
       accessToken: resultToken.access_token,
       refreshToken: resultToken.refresh_token,
       expiresAt: resultToken.expires_at,
+      commands: resultToken.commands,
+      budget: resultToken.budget,
     },
     nwcConnectionUri: resultToken.nwc_connection_uri,
-    commands: resultToken.commands,
-    budget: resultToken.budget,
     nwcExpiresAt: resultToken.nwc_expires_at,
   };
 };
