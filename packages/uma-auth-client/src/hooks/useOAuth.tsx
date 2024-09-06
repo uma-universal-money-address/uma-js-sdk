@@ -95,21 +95,21 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
     user_agent: "uma-connect",
   });
 
-  const requiredCommands = authConfig.requiredCommands?.join(",") || "";
-  const optionalCommands = authConfig.optionalCommands?.join(",") || "";
+  const requiredCommands = authConfig.requiredCommands?.join(" ") || "";
+  const optionalCommands = authConfig.optionalCommands?.join(" ") || "";
   let budget = "";
   if (authConfig.budget) {
     budget = `${authConfig.budget.amountInLowestDenom}.${authConfig.budget.currency}%2F${authConfig.budget.period}`;
   }
 
   const authUrl = await authClient.generateAuthURL({
-    authorizeUrl: `${discoveryDocument.authorization_endpoint}?required_commands=${requiredCommands}&optional_commands=${optionalCommands}&budget=${budget}`,
+    authorizeUrl: discoveryDocument.authorization_endpoint,
     code_challenge_method: "S256",
   });
 
   return {
     codeVerifier: authClient.code_verifier || "",
-    authUrl,
+    authUrl: `${authUrl}&required_commands=${requiredCommands}&optional_commands=${optionalCommands}&budget=${budget}`,
   };
 };
 
