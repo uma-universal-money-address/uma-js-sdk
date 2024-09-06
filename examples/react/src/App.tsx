@@ -14,6 +14,14 @@ function App() {
         </Intro>
       </Section>
       <UmaConnectButton
+        app-identity-pubkey="npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
+        nostr-relay="wss://nos.lol"
+        redirect-uri="http://localhost:3001"
+        required-commands={["pay_invoice", "get_balance"]}
+        optional-commands={["list_transactions"]}
+        budget-amount="500"
+        budget-currency="USD"
+        budget-period="monthly"
         style={{
           "--uma-connect-background": "#7366C5",
           "--uma-connect-radius": "8px",

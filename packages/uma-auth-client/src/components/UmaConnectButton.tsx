@@ -2,7 +2,7 @@ import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { useRef, useState } from "react";
-import { useOAuth } from "src/hooks/useOAuth";
+import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { useStep } from "src/hooks/useStep";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
@@ -12,12 +12,21 @@ import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
 
-const UmaConnectButton = () => {
+interface Props {
+  authConfig: AuthConfig;
+}
+
+const UmaConnectButton = (props: Props) => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
   const { step, setStep } = useStep();
-  const { codeVerifier, oAuthTokenExchange } = useOAuth();
+  const { authConfig, codeVerifier, oAuthTokenExchange, setAuthConfig } =
+    useOAuth();
+
+  if (!authConfig) {
+    setAuthConfig(props.authConfig);
+  }
 
   // Check if already connected
   const isConnected = getLocalStorage("connectionUri");
