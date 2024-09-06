@@ -21,7 +21,7 @@ const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
   const { step, setStep } = useStep();
-  const { authConfig, codeVerifier, oAuthTokenExchange, setAuthConfig } =
+  const { authConfig, codeVerifier, oAuthTokenExchange, setAuthConfig, nwcConnectionUri } =
     useOAuth();
 
   if (!authConfig) {
@@ -29,7 +29,7 @@ const UmaConnectButton = (props: Props) => {
   }
 
   // Check if already connected
-  const isConnected = getLocalStorage("connectionUri");
+  const isConnected = !!nwcConnectionUri;
   if (!uma) {
     const persistedUma = getLocalStorage("uma");
     if (persistedUma) {
