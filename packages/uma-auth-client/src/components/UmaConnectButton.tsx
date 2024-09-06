@@ -21,8 +21,13 @@ const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
   const { step, setStep } = useStep();
-  const { authConfig, codeVerifier, oAuthTokenExchange, setAuthConfig, nwcConnectionUri } =
-    useOAuth();
+  const {
+    authConfig,
+    codeVerifier,
+    oAuthTokenExchange,
+    setAuthConfig,
+    nwcConnectionUri,
+  } = useOAuth();
 
   if (!authConfig) {
     setAuthConfig(props.authConfig);
