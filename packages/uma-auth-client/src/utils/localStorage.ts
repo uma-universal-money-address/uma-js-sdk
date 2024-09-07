@@ -1,4 +1,4 @@
-type LocalStorageKey = "uma" | "connectionUri";
+type LocalStorageKey = "uma";
 
 export function getLocalStorage(key: LocalStorageKey) {
   try {
