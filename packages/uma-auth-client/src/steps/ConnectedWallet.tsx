@@ -3,9 +3,12 @@ import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react";
 import { ConnectionCard } from "src/components/ConnectionCard";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
+import { useNwcRequester } from "src/hooks/useNwcRequester";
 import { useUser } from "src/hooks/useUser";
+import * as Nip47 from "src/Nip47Types";
 import {
   Connection,
   ConnectionStatus,
@@ -50,6 +53,10 @@ export const ConnectedWallet = () => {
   const { uma } = useUser();
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
+  const { nwcRequester } = useNwcRequester();
+  const [balance, setBalance] = useState<
+    Nip47.GetBalanceResponse | undefined
+  >();
 
   // TODO: Get connection details with NWC connection
   const connection: Connection = {
@@ -87,17 +94,16 @@ export const ConnectedWallet = () => {
     lastUsed: "2024-09-01",
   };
 
-  // TODO: Get balance details with NWC connection
-  const balance = {
-    amountInLowestDenom: 50000,
-    currency: {
-      code: "USD",
-      name: "US Dollar",
-      symbol: "$",
-      decimals: 2,
-      type: "fiat",
-    },
-  };
+  useEffect(() => {
+    async function fetchBalance() {
+      const res = await nwcRequester?.getBalance();
+      setBalance(res);
+      console.log(res);
+    }
+    if (nwcRequester) {
+      fetchBalance();
+    }
+  }, [nwcRequester]);
 
   let limitRenewalString = "";
   if (connection.limitEnabled) {
@@ -112,7 +118,20 @@ export const ConnectedWallet = () => {
   return (
     <Container>
       <ConnectionSection>
-        <ConnectionCard uma={uma} connection={connection} balance={balance} />
+        <ConnectionCard
+          uma={uma}
+          connection={connection}
+          balance={{
+            amountInLowestDenom: balance?.balance || 0,
+            currency: {
+              code: "USD",
+              name: "US Dollar",
+              symbol: "$",
+              decimals: 2,
+              type: "fiat",
+            },
+          }}
+        />
         <TextContainer>
           {balance ? (
             <Row>

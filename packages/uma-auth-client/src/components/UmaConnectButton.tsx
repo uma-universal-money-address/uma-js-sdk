@@ -21,15 +21,23 @@ const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
   const { step, setStep } = useStep();
-  const { authConfig, codeVerifier, oAuthTokenExchange, setAuthConfig } =
-    useOAuth();
+  const {
+    isPendingAuth,
+    finishAuth,
+    authConfig,
+    codeVerifier,
+    nwcConnectionUri,
+    oAuthTokenExchange,
+    setAuthConfig,
+  } = useOAuth();
+
+  // TODO: check if token is still valid
+  const isConnected = !!nwcConnectionUri;
 
   if (!authConfig) {
     setAuthConfig(props.authConfig);
   }
 
-  // Check if already connected
-  const isConnected = getLocalStorage("connectionUri");
   if (!uma) {
     const persistedUma = getLocalStorage("uma");
     if (persistedUma) {
@@ -37,15 +45,23 @@ const UmaConnectButton = (props: Props) => {
     }
   }
 
-  // TODO: Check if code is provided by client app
-  if (uma && codeVerifier && step !== Step.WaitingForApproval) {
-    setStep(Step.WaitingForApproval);
-    oAuthTokenExchange(uma);
+  if (
+    isPendingAuth &&
+    step !== Step.WaitingForApproval &&
+    step !== Step.ConnectedUma
+  ) {
+    if (uma && codeVerifier) {
+      setStep(Step.WaitingForApproval);
+      oAuthTokenExchange(uma);
+    } else {
+      setStep(Step.ConnectedUma);
+      finishAuth();
+    }
 
     // TODO: Styles are not loaded if the modal is opened immediately
     setTimeout(() => {
       setIsModalOpen(true);
-    }, 1000);
+    }, 200);
   }
 
   const handleOpenModal = () => {
@@ -55,6 +71,8 @@ const UmaConnectButton = (props: Props) => {
       } else {
         setStep(Step.ConnectedWallet);
       }
+    } else if (codeVerifier && !isConnected) {
+      setStep(Step.WaitingForApproval);
     } else {
       setStep(Step.Connect);
     }

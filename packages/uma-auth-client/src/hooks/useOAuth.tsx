@@ -37,6 +37,8 @@ export interface AuthConfig {
 }
 
 interface OAuthState {
+  isPendingAuth: boolean;
+  finishAuth: () => void;
   codeVerifier?: string;
   token?: TokenState | undefined;
   authConfig?: AuthConfig;
@@ -53,6 +55,8 @@ interface OAuthState {
 export const useOAuth = create<OAuthState>()(
   persist(
     (set, get) => ({
+      isPendingAuth: false,
+      finishAuth: () => set({ isPendingAuth: false }),
       setAuthConfig: (authConfig) => set({ authConfig }),
       setToken: (token) =>
         set({
@@ -61,7 +65,7 @@ export const useOAuth = create<OAuthState>()(
       initialOAuthRequest: async (uma) => {
         const state = get();
         const { codeVerifier, authUrl } = await getAuthorizationUrl(state, uma);
-        set({ codeVerifier });
+        set({ codeVerifier, isPendingAuth: true });
         window.location.href = authUrl;
       },
       oAuthTokenExchange: async (uma) => {
@@ -73,6 +77,7 @@ export const useOAuth = create<OAuthState>()(
     {
       name: "uma-connect",
       partialize: (state) => ({
+        isPendingAuth: state.isPendingAuth,
         nwcConnectionUri: state.nwcConnectionUri,
         codeVerifier: state.codeVerifier,
       }),
