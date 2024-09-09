@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { useRef, useState } from "react";
+import { RefObject, useRef } from "react";
+import { useModalState } from "src/hooks/useModalState";
 import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
-import { useStep } from "src/hooks/useStep";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
@@ -17,10 +17,9 @@ interface Props {
 }
 
 const UmaConnectButton = (props: Props) => {
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
-  const { step, setStep } = useStep();
+  const { step, setStep, setIsModalOpen } = useModalState();
   const {
     isPendingAuth,
     finishAuth,
@@ -55,7 +54,7 @@ const UmaConnectButton = (props: Props) => {
       setStep(Step.WaitingForApproval);
       oAuthTokenExchange();
     } else {
-      setStep(Step.ConnectedUma);
+      setStep(Step.DoneConnecting);
       finishAuth();
     }
 
@@ -83,27 +82,43 @@ const UmaConnectButton = (props: Props) => {
 
   return (
     <>
-      <Button onClick={handleOpenModal} ref={buttonRef}>
-        <ButtonContents>
-          {isConnected ? (
-            <>
-              <Title size="Medium" content={uma} />
-              <Icon name="Uma" width={24} />
-            </>
-          ) : (
-            <>
-              <Icon name="Uma" width={24} />
-              <Title size="Medium" content="Connect" />
-            </>
-          )}
-        </ButtonContents>
-      </Button>
+      <StyledUmaConnectButton
+        buttonRef={buttonRef}
+        onClick={handleOpenModal}
+        uma={isConnected ? uma : undefined}
+      />
       <ConnectUmaModal
-        visible={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
         appendToElement={buttonRef.current?.parentNode as HTMLElement}
       />
     </>
+  );
+};
+
+export const StyledUmaConnectButton = ({
+  onClick,
+  buttonRef,
+  uma,
+}: {
+  onClick?: () => void;
+  buttonRef?: RefObject<HTMLButtonElement>;
+  uma?: string | undefined;
+}) => {
+  return (
+    <Button onClick={onClick} ref={buttonRef}>
+      <ButtonContents>
+        {uma ? (
+          <>
+            <Title size="Medium" content={uma} />
+            <Icon name="Uma" width={24} />
+          </>
+        ) : (
+          <>
+            <Icon name="Uma" width={24} />
+            <Title size="Medium" content="Connect" />
+          </>
+        )}
+      </ButtonContents>
+    </Button>
   );
 };
 

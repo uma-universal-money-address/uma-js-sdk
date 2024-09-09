@@ -1,13 +1,15 @@
 import { STEP_MAP, Step } from "src/types";
 import { create } from "zustand";
 
-interface StepState {
+interface ModalState {
   step: Step;
   setStep: (step: Step) => void;
   onBack: () => void;
+  isModalOpen: boolean;
+  setIsModalOpen: (isModalOpen: boolean) => void;
 }
 
-export const useStep = create<StepState>((set) => ({
+export const useModalState = create<ModalState>((set) => ({
   step: Step.Connect,
   setStep: (step) => set({ step }),
   onBack: () =>
@@ -18,4 +20,6 @@ export const useStep = create<StepState>((set) => ({
       }
       return { step };
     }),
+  isModalOpen: false,
+  setIsModalOpen: (isModalOpen) => set({ isModalOpen }),
 }));

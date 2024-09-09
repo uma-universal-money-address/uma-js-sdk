@@ -2,27 +2,36 @@ import styled from "@emotion/styled";
 import { Button, TextInput } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
+import { useState } from "react";
+import { useModalState } from "src/hooks/useModalState";
 import { useOAuth } from "src/hooks/useOAuth";
-import { useStep } from "src/hooks/useStep";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import { setLocalStorage } from "src/utils/localStorage";
 
 export const ConnectUma = () => {
-  const { setStep } = useStep();
+  const { setStep } = useModalState();
   const { uma, setUma } = useUser();
   const { initialOAuthRequest } = useOAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const handleChangeUma = (value: string) => {
     setUma(`$${value}`);
   };
 
-  const handleConnectYourUMA = () => {
+  const handleConnectYourUMA = async () => {
     // TODO: validate the uma format
     const validatedUma = uma!;
 
     setLocalStorage("uma", validatedUma);
 
-    initialOAuthRequest(validatedUma);
+    setIsLoading(true);
+    const { success } = await initialOAuthRequest(validatedUma);
+    if (success) {
+      setStep(Step.WaitingForApproval);
+    } else {
+      setStep(Step.ErrorConnecting);
+    }
+    setIsLoading(false);
   };
 
   const handleMoreOptions = () => {
@@ -48,6 +57,7 @@ export const ConnectUma = () => {
             fullWidth
             kind="primary"
             text="Connect your UMA"
+            loading={isLoading}
             onClick={handleConnectYourUMA}
           />
           <MoreOptionsButton>

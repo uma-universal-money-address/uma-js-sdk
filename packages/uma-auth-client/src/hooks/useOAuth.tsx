@@ -1,7 +1,10 @@
 import * as oauth from "oauth4webapi";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { fetchDiscoveryDocument } from "./useDiscoveryDocument";
+import {
+  DiscoveryDocument,
+  fetchDiscoveryDocument,
+} from "./useDiscoveryDocument";
 
 type UmaAuthToken = {
   access_token: string;
@@ -49,7 +52,7 @@ interface OAuthState {
   setAuthConfig: (config: AuthConfig) => void;
   setToken: (token?: TokenState) => void;
   /** The initial OAuth request that starts the OAuth handshake. */
-  initialOAuthRequest: (uma: string) => Promise<void>;
+  initialOAuthRequest: (uma: string) => Promise<{ success: boolean }>;
   /** OAuth token exchange occurs after the initialOAuthRequest has been made. */
   oAuthTokenExchange: () => Promise<void>;
 }
@@ -70,8 +73,11 @@ export const useOAuth = create<OAuthState>()(
           state,
           uma,
         );
-        set({ codeVerifier, isPendingAuth: true, csrfState, uma });
-        window.location.href = authUrl.toString();
+        if (authUrl) {
+          set({ codeVerifier, isPendingAuth: true, csrfState, uma });
+          window.location.href = authUrl.toString();
+        }
+        return { success: !!authUrl };
       },
       oAuthTokenExchange: async () => {
         const state = get();
@@ -98,7 +104,13 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
     throw new Error("Auth config not set.");
   }
 
-  const discoveryDocument = await fetchDiscoveryDocument(uma);
+  let discoveryDocument: DiscoveryDocument;
+  try {
+    discoveryDocument = await fetchDiscoveryDocument(uma);
+  } catch (e) {
+    console.error("Failed to fetch discovery document", e);
+    return { codeVerifier: "", authUrl: "" };
+  }
 
   const clientId = `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`;
   const requiredCommands = authConfig.requiredCommands?.join(" ") || "";
