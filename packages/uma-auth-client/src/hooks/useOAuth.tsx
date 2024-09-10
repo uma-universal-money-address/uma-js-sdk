@@ -131,8 +131,14 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
 };
 
 const oAuthTokenExchange = async (state: OAuthState) => {
-  const { codeVerifier, token, nwcConnectionUri, nwcExpiresAt, authConfig, uma } =
-    state;
+  const {
+    codeVerifier,
+    token,
+    nwcConnectionUri,
+    nwcExpiresAt,
+    authConfig,
+    uma,
+  } = state;
   if (!authConfig) {
     throw new Error("Auth config not set.");
   }
