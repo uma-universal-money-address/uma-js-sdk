@@ -47,12 +47,13 @@ const UmaConnectButton = (props: Props) => {
 
   if (
     isPendingAuth &&
+    uma &&
     step !== Step.WaitingForApproval &&
     step !== Step.ConnectedUma
   ) {
-    if (uma && codeVerifier) {
+    if (codeVerifier) {
       setStep(Step.WaitingForApproval);
-      oAuthTokenExchange(uma);
+      oAuthTokenExchange();
     } else {
       setStep(Step.ConnectedUma);
       finishAuth();
