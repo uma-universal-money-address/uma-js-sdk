@@ -52,7 +52,8 @@ interface OAuthState {
   /** The initial OAuth request that starts the OAuth handshake. */
   initialOAuthRequest: (uma: string) => Promise<{ success: boolean }>;
   /** OAuth token exchange occurs after the initialOAuthRequest has been made. */
-  oAuthTokenExchange: () => Promise<void>;
+  oAuthTokenExchange: () => Promise<Partial<OAuthState>>;
+  hasValidToken: () => boolean;
 }
 
 export const useOAuth = create<OAuthState>()(
@@ -79,6 +80,18 @@ export const useOAuth = create<OAuthState>()(
         const state = get();
         const result = await oAuthTokenExchange(state);
         set(result);
+        return get();
+      },
+      hasValidToken: () => {
+        const state = get();
+        const { token } = state;
+        if (!token) {
+          return false;
+        }
+        if (token.expiresAt && Date.now() >= token.expiresAt) {
+          return false;
+        }
+        return true;
       },
     }),
     {

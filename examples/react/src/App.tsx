@@ -1,11 +1,11 @@
 import styled from "@emotion/styled";
-import { UmaConnectButton } from "@uma-sdk/uma-auth-client";
+import { UmaConnectButton, useOAuth } from "@uma-sdk/uma-auth-client";
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import Balance from "./components/Balance";
+import InvoiceCreator from "./components/InvoiceCreator";
+import LookupUser from "./components/LookupUser";
 
 function App() {
-  const navigate = useNavigate();
-
   const [appIdentityPubkey, setAppIdentityPubkey] = useState(
     "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d",
   );
@@ -15,6 +15,7 @@ function App() {
     "pay_invoice",
     "get_balance",
     "get_info",
+    "make_invoice",
   ]);
   const [optionalCommands, setOptionalCommands] = useState([
     "list_transactions",
@@ -31,6 +32,7 @@ function App() {
   const [umaConnectFontFamily, setUmaConnectFontFamily] = useState("Arial");
   const [umaConnectFontSize, setUmaConnectFontSize] = useState("16px");
   const [umaConnectFontWeight, setUmaConnectFontWeight] = useState("600");
+  const { nwcConnectionUri } = useOAuth();
 
   const handleChangeInput =
     (setter: (value: string) => void) =>
@@ -153,6 +155,9 @@ function App() {
             "--uma-connect-font-weight": umaConnectFontWeight,
           }}
         />
+        {nwcConnectionUri && <Balance />}
+        {nwcConnectionUri && <InvoiceCreator />}
+        {nwcConnectionUri && <LookupUser />}
       </Section>
     </Main>
   );
