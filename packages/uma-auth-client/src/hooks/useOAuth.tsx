@@ -1,4 +1,4 @@
-import { auth } from "@getalby/sdk";
+import * as oauth from "oauth4webapi";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { fetchDiscoveryDocument } from "./useDiscoveryDocument";
@@ -10,7 +10,7 @@ type UmaAuthToken = {
   nwc_connection_uri: string;
   commands: string[];
   budget: string;
-  nwc_expires_at: number;
+  nwc_expires_at?: number | undefined;
 };
 
 interface TokenState {
@@ -40,16 +40,18 @@ interface OAuthState {
   isPendingAuth: boolean;
   finishAuth: () => void;
   codeVerifier?: string;
+  csrfState?: string;
+  uma?: string;
   token?: TokenState | undefined;
   authConfig?: AuthConfig;
   nwcConnectionUri?: string;
-  nwcExpiresAt?: number;
+  nwcExpiresAt?: number | undefined;
   setAuthConfig: (config: AuthConfig) => void;
   setToken: (token?: TokenState) => void;
   /** The initial OAuth request that starts the OAuth handshake. */
   initialOAuthRequest: (uma: string) => Promise<void>;
   /** OAuth token exchange occurs after the initialOAuthRequest has been made. */
-  oAuthTokenExchange: (uma: string) => Promise<void>;
+  oAuthTokenExchange: () => Promise<void>;
 }
 
 export const useOAuth = create<OAuthState>()(
@@ -64,13 +66,16 @@ export const useOAuth = create<OAuthState>()(
         }),
       initialOAuthRequest: async (uma) => {
         const state = get();
-        const { codeVerifier, authUrl } = await getAuthorizationUrl(state, uma);
-        set({ codeVerifier, isPendingAuth: true });
-        window.location.href = authUrl;
+        const { codeVerifier, authUrl, csrfState } = await getAuthorizationUrl(
+          state,
+          uma,
+        );
+        set({ codeVerifier, isPendingAuth: true, csrfState, uma });
+        window.location.href = authUrl.toString();
       },
-      oAuthTokenExchange: async (uma) => {
+      oAuthTokenExchange: async () => {
         const state = get();
-        const result = await oAuthTokenExchange(state, uma);
+        const result = await oAuthTokenExchange(state);
         set(result);
       },
     }),
@@ -80,26 +85,22 @@ export const useOAuth = create<OAuthState>()(
         isPendingAuth: state.isPendingAuth,
         nwcConnectionUri: state.nwcConnectionUri,
         codeVerifier: state.codeVerifier,
+        csrfState: state.csrfState,
+        uma: state.uma,
       }),
     },
   ),
 );
 
 const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
-  const { codeVerifier, authConfig } = state;
+  const { authConfig } = state;
   if (!authConfig) {
     throw new Error("Auth config not set.");
   }
 
   const discoveryDocument = await fetchDiscoveryDocument(uma);
 
-  const authClient = new auth.OAuth2User({
-    client_id: `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`,
-    callback: authConfig.redirectUri,
-    scopes: [],
-    user_agent: "uma-connect",
-  });
-
+  const clientId = `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`;
   const requiredCommands = authConfig.requiredCommands?.join(" ") || "";
   const optionalCommands = authConfig.optionalCommands?.join(" ") || "";
   let budget = "";
@@ -107,25 +108,43 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
     budget = `${authConfig.budget.amountInLowestDenom}.${authConfig.budget.currency}%2F${authConfig.budget.period}`;
   }
 
-  const authUrl = await authClient.generateAuthURL({
-    authorizeUrl: discoveryDocument.authorization_endpoint,
-    code_challenge_method: "S256",
-  });
+  const codeVerifier = oauth.generateRandomCodeVerifier();
+  const codeChallenge = await oauth.calculatePKCECodeChallenge(codeVerifier);
+  const csrfState = oauth.generateRandomState();
+
+  const authUrl = new URL(discoveryDocument.authorization_endpoint);
+  authUrl.searchParams.set("client_id", clientId);
+  authUrl.searchParams.set("redirect_uri", authConfig.redirectUri);
+  authUrl.searchParams.set("response_type", "code");
+  authUrl.searchParams.set("code_challenge", codeChallenge);
+  authUrl.searchParams.set("code_challenge_method", "S256");
+  authUrl.searchParams.set("state", csrfState);
+  authUrl.searchParams.set("required_commands", requiredCommands);
+  authUrl.searchParams.set("optional_commands", optionalCommands);
+  authUrl.searchParams.set("budget", budget);
 
   return {
-    codeVerifier: authClient.code_verifier || "",
-    authUrl: `${authUrl}&required_commands=${requiredCommands}&optional_commands=${optionalCommands}&budget=${budget}`,
+    codeVerifier,
+    authUrl,
+    csrfState,
   };
 };
 
-const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
-  const { codeVerifier, token, nwcConnectionUri, nwcExpiresAt, authConfig } =
-    state;
+const oAuthTokenExchange = async (state: OAuthState) => {
+  const {
+    codeVerifier,
+    token,
+    nwcConnectionUri,
+    nwcExpiresAt,
+    authConfig,
+    uma,
+  } = state;
   if (!authConfig) {
     throw new Error("Auth config not set.");
   }
-
-  const discoveryDocument = await fetchDiscoveryDocument(uma);
+  if (!uma) {
+    throw new Error("UMA not set.");
+  }
 
   // If we have a connection URI and a token that hasn't expired, we don't need to do anything
   if (
@@ -136,15 +155,19 @@ const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
     return state;
   }
 
-  const authClient = new auth.OAuth2User({
+  const discoveryDocument = await fetchDiscoveryDocument(uma);
+  const as: oauth.AuthorizationServer = {
+    issuer: new URL(discoveryDocument.authorization_endpoint).origin,
+    authorization_endpoint: discoveryDocument.authorization_endpoint,
+    token_endpoint: discoveryDocument.token_endpoint,
+    code_challenge_methods_supported:
+      discoveryDocument.code_challenge_methods_supported,
+  };
+
+  const authClient: oauth.Client = {
     client_id: `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`,
-    callback: authConfig.redirectUri,
-    scopes: [],
-    user_agent: "uma-connect",
-    request_options: {
-      base_url: new URL(discoveryDocument.token_endpoint).origin,
-    },
-  });
+    token_endpoint_auth_method: "none",
+  };
 
   let resultToken: UmaAuthToken;
   if (token?.refreshToken && nwcExpiresAt && Date.now() < nwcExpiresAt) {
@@ -154,25 +177,62 @@ const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
       expires_at: token.expiresAt,
     };
 
-    resultToken = (await authClient.refreshAccessToken()).token as UmaAuthToken;
+    const resultTokenResponse = await oauth.refreshTokenGrantRequest(
+      as,
+      authClient,
+      token.refreshToken,
+    );
+    const result = await oauth.processRefreshTokenResponse(
+      as,
+      authClient,
+      resultTokenResponse,
+    );
+    if (oauth.isOAuth2Error(result)) {
+      console.error("Error Response", result);
+      throw new Error(); // Handle OAuth 2.0 response body error
+    }
+
+    resultToken = processAsUmaAuthToken(result);
   } else {
     if (!codeVerifier) {
       throw new Error(
         "Code verifier not found. Make initial OAuth request first.",
       );
     }
-    authClient.code_verifier = codeVerifier;
 
     // TODO: get code from client app in cases where they change URL params
-    const code = new URLSearchParams(window.location.search).get("code");
-    if (!code) {
-      throw new Error("Code not found in URL params");
+    const params = oauth.validateAuthResponse(
+      as,
+      authClient,
+      new URL(window.location.href),
+      state.csrfState,
+    );
+    if (oauth.isOAuth2Error(params)) {
+      console.error("Error Response", params);
+      throw new Error("Invalid auth response"); // Handle OAuth 2.0 redirect error
     }
 
-    resultToken = (await authClient.requestAccessToken(code))
-      .token as UmaAuthToken;
+    const response = await oauth.authorizationCodeGrantRequest(
+      as,
+      authClient,
+      params,
+      authConfig.redirectUri,
+      codeVerifier,
+    );
+
+    const result = await oauth.processAuthorizationCodeOAuth2Response(
+      as,
+      authClient,
+      response,
+    );
+    if (oauth.isOAuth2Error(result)) {
+      console.error("Error Response", result);
+      throw new Error("Failed code exchange"); // Handle OAuth 2.0 response body error
+    }
+
+    console.log("Access Token Response", result);
+    resultToken = processAsUmaAuthToken(result);
   }
-  validateUmaAuthToken(resultToken);
 
   return {
     codeVerifier: "",
@@ -188,14 +248,51 @@ const oAuthTokenExchange = async (state: OAuthState, uma: string) => {
   };
 };
 
-const validateUmaAuthToken = (token: UmaAuthToken) => {
+const processAsUmaAuthToken = (
+  token: oauth.OAuth2TokenEndpointResponse | oauth.TokenEndpointResponse,
+): UmaAuthToken => {
   if (
     !token.access_token ||
     !token.refresh_token ||
-    !token.expires_at ||
+    !token.expires_in ||
     !token.nwc_connection_uri ||
     !token.commands
   ) {
     throw new Error("Invalid UMA token");
   }
+
+  if (typeof token.nwc_connection_uri !== "string") {
+    throw new Error("Invalid NWC connection URI");
+  }
+
+  const commandStrings: string[] = [];
+  if (!Array.isArray(token.commands)) {
+    throw new Error("Invalid commands");
+  }
+  for (const command of token.commands) {
+    if (typeof command !== "string") {
+      throw new Error("Invalid command");
+    }
+    commandStrings.push(command);
+  }
+
+  if (typeof token.budget !== "string") {
+    throw new Error("Invalid budget");
+  }
+
+  const expiresAt = Date.now() + token.expires_in * 1000;
+  const umaToken: UmaAuthToken = {
+    access_token: token.access_token,
+    refresh_token: token.refresh_token,
+    expires_at: expiresAt,
+    nwc_connection_uri: token.nwc_connection_uri,
+    commands: commandStrings,
+    budget: token.budget,
+  };
+
+  if (token.nwc_expires_at && typeof token.nwc_expires_at === "number") {
+    umaToken.nwc_expires_at = token.nwc_expires_at;
+  }
+
+  return umaToken;
 };
