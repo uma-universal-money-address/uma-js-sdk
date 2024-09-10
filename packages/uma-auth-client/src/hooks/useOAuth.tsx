@@ -40,8 +40,6 @@ export interface AuthConfig {
 }
 
 interface OAuthState {
-  isPendingAuth: boolean;
-  finishAuth: () => void;
   codeVerifier?: string;
   csrfState?: string;
   uma?: string;
@@ -60,8 +58,6 @@ interface OAuthState {
 export const useOAuth = create<OAuthState>()(
   persist(
     (set, get) => ({
-      isPendingAuth: false,
-      finishAuth: () => set({ isPendingAuth: false }),
       setAuthConfig: (authConfig) => set({ authConfig }),
       setToken: (token) =>
         set({
@@ -74,7 +70,7 @@ export const useOAuth = create<OAuthState>()(
           uma,
         );
         if (authUrl) {
-          set({ codeVerifier, isPendingAuth: true, csrfState, uma });
+          set({ codeVerifier, csrfState, uma });
           window.location.href = authUrl.toString();
         }
         return { success: !!authUrl };
@@ -88,7 +84,6 @@ export const useOAuth = create<OAuthState>()(
     {
       name: "uma-connect",
       partialize: (state) => ({
-        isPendingAuth: state.isPendingAuth,
         nwcConnectionUri: state.nwcConnectionUri,
         codeVerifier: state.codeVerifier,
         csrfState: state.csrfState,
@@ -109,7 +104,7 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
     discoveryDocument = await fetchDiscoveryDocument(uma);
   } catch (e) {
     console.error("Failed to fetch discovery document", e);
-    return { codeVerifier: "", authUrl: "" };
+    return { codeVerifier: "", authUrl: "", csrfState: "" };
   }
 
   const clientId = `${authConfig.identityNpub} ${authConfig.identityRelayUrl}`;
@@ -212,7 +207,6 @@ const oAuthTokenExchange = async (state: OAuthState) => {
       );
     }
 
-    // TODO: get code from client app in cases where they change URL params
     const params = oauth.validateAuthResponse(
       as,
       authClient,

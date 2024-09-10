@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { RefObject, useRef } from "react";
+import { RefObject, useEffect, useRef } from "react";
 import { useModalState } from "src/hooks/useModalState";
 import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
@@ -19,10 +19,8 @@ interface Props {
 const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
-  const { step, setStep, setIsModalOpen } = useModalState();
+  const { step, setStep, isModalOpen, setIsModalOpen } = useModalState();
   const {
-    isPendingAuth,
-    finishAuth,
     authConfig,
     codeVerifier,
     nwcConnectionUri,
@@ -44,25 +42,28 @@ const UmaConnectButton = (props: Props) => {
     }
   }
 
-  if (
-    isPendingAuth &&
-    uma &&
-    step !== Step.WaitingForApproval &&
-    step !== Step.ConnectedUma
-  ) {
-    if (codeVerifier) {
+  useEffect(() => {
+    if (!uma) {
+      return;
+    }
+
+    let shouldOpenModalImmediately: boolean = false;
+    if (codeVerifier && !isConnected && step !== Step.WaitingForApproval) {
       setStep(Step.WaitingForApproval);
       oAuthTokenExchange();
-    } else {
+      shouldOpenModalImmediately = true;
+    } else if (isConnected && step === Step.WaitingForApproval) {
       setStep(Step.DoneConnecting);
-      finishAuth();
+      shouldOpenModalImmediately = true;
     }
 
     // TODO: Styles are not loaded if the modal is opened immediately
-    setTimeout(() => {
-      setIsModalOpen(true);
-    }, 200);
-  }
+    if (!isModalOpen && shouldOpenModalImmediately) {
+      setTimeout(() => {
+        setIsModalOpen(true);
+      }, 200);
+    }
+  }, [codeVerifier, uma, isConnected, step]);
 
   const handleOpenModal = () => {
     if (isConnected) {
