@@ -1152,10 +1152,10 @@ export async function createUmaInvoice(
     requiredPayerData: requiredPayerData,
     commentCharsAllowed: commentCharsAllowed,
     senderUma: senderUma,
-    invoiceLimit: invoiceLimit,
+    maxNumPayments: invoiceLimit,
     kycStatus: kycStatus,
     callback: callback,
-    umaVersion: UmaProtocolVersion,
+    umaVersions: UmaProtocolVersion,
   };
   const invoicePayload = InvoiceSerializer.toTLV(invoice);
   const signature = await signBytePayload(invoicePayload, privateKeyBytes);
