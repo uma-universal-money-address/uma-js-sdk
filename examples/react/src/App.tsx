@@ -133,7 +133,9 @@ function App() {
       <Section>
         <Intro>
           <h1>UMA Auth Client SDK demo</h1>
-          <p>Click the UMA Connect button to get started</p>
+          {!nwcConnectionUri && (
+            <p>Click the UMA Connect button to get started</p>
+          )}
         </Intro>
         <UmaConnectButton
           app-identity-pubkey={appIdentityPubkey}

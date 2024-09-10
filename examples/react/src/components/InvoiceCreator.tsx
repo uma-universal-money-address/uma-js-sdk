@@ -19,12 +19,19 @@ const InvoiceCreator = () => {
   };
 
   return (
-    <div>
+    <CenteredDiv>
       <button onClick={createInvoice}>Create Invoice</button>
       {invoice && <InvoiceText>{invoice}</InvoiceText>}
-    </div>
+    </CenteredDiv>
   );
 };
+
+const CenteredDiv = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+`;
 
 const InvoiceText = styled.div`
   max-width: 400px;
