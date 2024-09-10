@@ -133,10 +133,10 @@ function createTestUmaInvoice(): Invoice {
         mandatory: true,
       },
     },
-    umaVersion: "0.3",
+    umaVersions: "0.3",
     commentCharsAllowed: undefined,
     senderUma: undefined,
-    invoiceLimit: undefined,
+    maxNumPayments: undefined,
     kycStatus: KycStatus.Verified,
     callback: "https://example.com/callback",
     signature: new TextEncoder().encode("signature"),
@@ -798,7 +798,7 @@ describe("uma", () => {
       "c7c07fec-cf00-431c-916f-6c13fc4b69f9",
     );
     expect(decodedInvoice.expiration).toBe(1_000_000);
-    expect(decodedInvoice.umaVersion).toBe("0.3");
+    expect(decodedInvoice.umaVersions).toBe("0.3");
     expect(decodedInvoice.kycStatus).toBe(KycStatus.Verified);
     expect(decodedInvoice.callback).toBe("https://example.com/callback");
   });
