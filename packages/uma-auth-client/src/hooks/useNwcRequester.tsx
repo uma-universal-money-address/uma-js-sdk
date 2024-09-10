@@ -1,17 +1,17 @@
 import { useEffect, useState } from "react";
-import { NwcRequester } from "../NwcRequester";
+import { NwcRequester } from "src/NwcRequester";
 import { useOAuth } from "./useOAuth";
 
 export const useNwcRequester = () => {
   const [nwcRequester, setNwcRequester] = useState<NwcRequester>();
-  // TODO(Brian): Handle expired token refreshes.
-  const { nwcConnectionUri } = useOAuth();
+  const { isConnectionValid, nwcConnectionUri, oAuthTokenExchange } =
+    useOAuth();
 
   useEffect(() => {
-    if (nwcConnectionUri) {
-      setNwcRequester(new NwcRequester(nwcConnectionUri));
+    if (isConnectionValid() && nwcConnectionUri) {
+      setNwcRequester(new NwcRequester(nwcConnectionUri, oAuthTokenExchange));
     }
-  }, [nwcConnectionUri]);
+  }, [isConnectionValid, nwcConnectionUri, oAuthTokenExchange]);
 
   return { nwcRequester };
 };

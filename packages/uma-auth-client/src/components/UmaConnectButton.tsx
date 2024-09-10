@@ -24,12 +24,12 @@ const UmaConnectButton = (props: Props) => {
     authConfig,
     codeVerifier,
     nwcConnectionUri,
+    isConnectionValid,
     oAuthTokenExchange,
     setAuthConfig,
   } = useOAuth();
 
-  // TODO: check if token is still valid
-  const isConnected = !!nwcConnectionUri;
+  const isConnected = isConnectionValid();
 
   if (!authConfig) {
     setAuthConfig(props.authConfig);

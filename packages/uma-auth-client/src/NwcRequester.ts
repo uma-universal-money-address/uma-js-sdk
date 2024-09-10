@@ -18,11 +18,12 @@ export interface NwcConnection {
 }
 
 export class NwcRequester {
-  relay: Relay;
-  relayUrl: string;
+  relay!: Relay;
+  relayUrl!: string;
+  walletPubkey!: string;
   secret: string | undefined;
   lud16: string | undefined;
-  walletPubkey: string;
+  tokenRefresh: () => Promise<{ nwcConnectionUri: string }>;
 
   static parseWalletConnectUrl(walletConnectUrl: string): NwcConnection {
     walletConnectUrl = walletConnectUrl
@@ -51,20 +52,26 @@ export class NwcRequester {
     return connection;
   }
 
-  constructor(url: string) {
-    const walletConnectUrl = NwcRequester.parseWalletConnectUrl(url);
-
-    this.relayUrl = walletConnectUrl.relayUrl;
+  private initNwcConnection(nwcConnection: NwcConnection) {
+    this.relayUrl = nwcConnection.relayUrl;
     this.relay = relayInit(this.relayUrl);
-    this.secret = walletConnectUrl.secret;
-    this.lud16 = walletConnectUrl.lud16;
-    this.walletPubkey = walletConnectUrl.walletPubkey;
+    this.secret = nwcConnection.secret;
+    this.lud16 = nwcConnection.lud16;
+    this.walletPubkey = nwcConnection.walletPubkey;
 
     if (globalThis.WebSocket === undefined) {
       console.error(
         "WebSocket is undefined. Make sure to `import websocket-polyfill` for nodejs environments",
       );
     }
+  }
+
+  constructor(
+    url: string,
+    tokenRefresh: () => Promise<{ nwcConnectionUri: string }>,
+  ) {
+    this.initNwcConnection(NwcRequester.parseWalletConnectUrl(url));
+    this.tokenRefresh = tokenRefresh;
   }
 
   get publicKey() {
@@ -412,6 +419,17 @@ export class NwcRequester {
     if (!this.secret) {
       throw new Error("Missing secret key");
     }
+
+    const { nwcConnectionUri } = await this.tokenRefresh();
+    if (!nwcConnectionUri) {
+      throw new Error("Missing nwcConnectionUri upon refreshing token");
+    }
+
+    const nwcConnection = NwcRequester.parseWalletConnectUrl(nwcConnectionUri);
+    if (nwcConnection.secret !== this.secret) {
+      this.initNwcConnection(nwcConnection);
+    }
+
     await this.relay.connect();
   }
 }
