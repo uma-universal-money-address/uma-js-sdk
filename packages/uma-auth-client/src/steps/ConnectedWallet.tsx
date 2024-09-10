@@ -7,8 +7,10 @@ import { useEffect, useState } from "react";
 import { ConnectionCard } from "src/components/ConnectionCard";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useNwcRequester } from "src/hooks/useNwcRequester";
+import { useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import * as Nip47 from "src/Nip47Types";
+import { NwcRequester } from "src/NwcRequester";
 import {
   Connection,
   ConnectionStatus,
@@ -53,10 +55,13 @@ export const ConnectedWallet = () => {
   const { uma } = useUser();
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
+  const { nwcExpiresAt } = useOAuth();
   const { nwcRequester } = useNwcRequester();
   const [balance, setBalance] = useState<
     Nip47.GetBalanceResponse | undefined
   >();
+
+  const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
   // TODO: Get connection details with NWC connection
   const connection: Connection = {
@@ -90,18 +95,16 @@ export const ConnectedWallet = () => {
     },
     status: ConnectionStatus.ACTIVE,
     limitFrequency: LimitFrequency.MONTHLY,
-    expiration: "2024-09-30",
-    lastUsed: "2024-09-01",
+    expiration,
   };
 
   useEffect(() => {
-    async function fetchBalance() {
-      const res = await nwcRequester?.getBalance();
+    async function fetchBalance(nwcRequester: NwcRequester) {
+      const res = await nwcRequester.getBalance();
       setBalance(res);
-      console.log(res);
     }
     if (nwcRequester) {
-      fetchBalance();
+      fetchBalance(nwcRequester);
     }
   }, [nwcRequester]);
 
@@ -158,13 +161,11 @@ export const ConnectedWallet = () => {
           <Row>
             <Icon name="Clock" width={16} />
             <Description>
-              {connection.expiration ? (
+              {expiration ? (
                 <>
                   <Label content="Connection expires" />{" "}
                   <LabelModerate
-                    content={dayjs(connection.expiration).format(
-                      "MMM DD, YYYY",
-                    )}
+                    content={dayjs(expiration).format("MMM DD, YYYY")}
                   />
                 </>
               ) : (
