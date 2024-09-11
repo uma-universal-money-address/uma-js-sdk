@@ -18,7 +18,7 @@ const Balance = () => {
       const response = await nwcRequester.getBalance();
       setBalance(response.balance);
     } catch (e) {
-        setError(`Error fetching balance: ${e}`);
+      setError(`Error fetching balance: ${e}`);
     }
     setIsFetching(false);
   };
