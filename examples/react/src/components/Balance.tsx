@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 const Balance = () => {
   const [balance, setBalance] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(true);
   const { nwcRequester } = useNwcRequester();
   const fetchBalance = async () => {
@@ -12,8 +13,13 @@ const Balance = () => {
       return;
     }
     setIsFetching(true);
-    const response = await nwcRequester.getBalance();
-    setBalance(response.balance);
+    setError(null);
+    try {
+      const response = await nwcRequester.getBalance();
+      setBalance(response.balance);
+    } catch (e) {
+        setError(`Error fetching balance: ${e}`);
+    }
     setIsFetching(false);
   };
   useEffect(() => {

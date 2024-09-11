@@ -82,19 +82,19 @@ const oauth = useOAuth();
 
 useEffect(() => {
   // TODO: Show token refreshes here too.
-  if (oauth.isPendingAuth) {
+  if (oauth.codeVerifier) {
     oauth.oAuthTokenExchange().then((res) => {
       if (res.token) {
         oauth.finishAuth();
       }
     });
   }
-}, [oauth.isPendingAuth]);
+}, [oauth.codeVerifier]);
 
-const hasValidToken = oauth.hasValidToken();
+const isConnectionValid = oauth.isConnectionValid();
 const nwcConnectionUri = oauth.nwcConnectionUri;
 
-if (hasValidToken) {
+if (isConnectionValid) {
   return <div>Connected!</div>;
 }
 ```
