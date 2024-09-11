@@ -29,7 +29,9 @@ const Balance = () => {
   return (
     <div>
       <BalanceText>
-        {isFetching ? "Fetching balance..." : `Balance: ${balance} sats`}
+        {isFetching
+          ? "Fetching balance..."
+          : (error ?? `Balance: ${balance} sats`)}
       </BalanceText>
     </div>
   );
