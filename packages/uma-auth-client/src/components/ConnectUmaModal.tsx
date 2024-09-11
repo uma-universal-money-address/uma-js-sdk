@@ -5,17 +5,16 @@ import {
   Modal,
   UnstyledButton,
 } from "@lightsparkdev/ui/components";
-import { useStep } from "src/hooks/useStep";
+import { useModalState } from "src/hooks/useModalState";
 import { STEP_MAP, Step } from "src/types";
 
 interface Props {
-  visible: boolean;
-  onClose: () => void;
   appendToElement: HTMLElement;
 }
 
 export const ConnectUmaModal = (props: Props) => {
-  const { step, setStep, onBack } = useStep();
+  const { step, setStep, onBack, isModalOpen, setIsModalOpen } =
+    useModalState();
 
   const stepInfo = STEP_MAP[step];
   const stepComponent = stepInfo.component;
@@ -34,15 +33,19 @@ export const ConnectUmaModal = (props: Props) => {
     <Button kind="ghost" icon="ChevronLeft" onClick={onBack} />
   );
 
+  const handleClose = () => {
+    setIsModalOpen(false);
+  };
+
   return (
     <Modal
       ghost
       width={432}
       smKind="drawer"
-      visible={props.visible}
+      visible={isModalOpen}
       cancelHidden
-      onClose={props.onClose}
-      onCancel={props.onClose}
+      onClose={handleClose}
+      onCancel={handleClose}
       appendToElement={props.appendToElement}
     >
       <ModalContents>
@@ -53,7 +56,7 @@ export const ConnectUmaModal = (props: Props) => {
           ) : (
             <Icon name="Uma" width={32} />
           )}
-          <CloseButton onClick={props.onClose} type="button">
+          <CloseButton onClick={handleClose} type="button">
             <Icon name="Close" width={8} />
           </CloseButton>
         </Header>
@@ -68,7 +71,7 @@ const Header = styled.div`
   justify-content: space-between;
   align-items: center;
   gap: 16px;
-  padding: 16px 16px 12px 16px;
+  padding: 24px 24px 12px 24px;
 `;
 
 const ModalContents = styled.div`

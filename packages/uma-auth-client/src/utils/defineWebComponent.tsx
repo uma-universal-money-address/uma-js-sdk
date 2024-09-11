@@ -4,12 +4,15 @@ import { themes } from "@lightsparkdev/ui/styles/themes";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { GlobalStyles } from "src/GlobalStyles";
+import { AuthConfig, BudgetConfig } from "src/hooks/useOAuth";
 
-type ComponentWithShadowRoot = React.FC;
+type ComponentWithAuth = React.FC<{
+  authConfig: AuthConfig;
+}>;
 
 export default function defineWebComponent(
   tagName: string,
-  Component: React.FC,
+  Component: ComponentWithAuth,
 ) {
   customElements.define(
     tagName,
@@ -45,13 +48,50 @@ export default function defineWebComponent(
           container: emotionInsertionPoint,
         });
 
+        const identityNpub = this.getAttribute("app-identity-pubkey");
+        if (identityNpub === null) {
+          throw new Error(
+            `${tagName}: app-identity-pubkey attribute is required.`,
+          );
+        }
+        const identityRelayUrl = this.getAttribute("nostr-relay");
+        if (identityRelayUrl === null) {
+          throw new Error(`${tagName}: nostr-relay attribute is required.`);
+        }
+        const redirectUri = this.getAttribute("redirect-uri");
+        if (redirectUri === null) {
+          throw new Error(`${tagName}: redirect-uri attribute is required.`);
+        }
+        const budgetAmount = this.getAttribute("budget-amount");
+        const budgetCurrency = this.getAttribute("budget-currency");
+        const budgetPeriod = this.getAttribute("budget-period");
+        let budget: BudgetConfig | undefined;
+        if (budgetAmount && budgetCurrency && budgetPeriod) {
+          budget = {
+            amountInLowestDenom: budgetAmount,
+            currency: budgetCurrency,
+            period: budgetPeriod,
+          };
+        }
+
         // Render the react node using the custom emotion cache
         const reactNode = (
           <React.StrictMode>
             <CacheProvider value={cache}>
               <ThemeProvider theme={themes.umaAuthSdkLight}>
                 <GlobalStyles />
-                <Component />
+                <Component
+                  authConfig={{
+                    identityNpub,
+                    identityRelayUrl,
+                    redirectUri,
+                    requiredCommands:
+                      this.getAttribute("required-commands")?.split(","),
+                    optionalCommands:
+                      this.getAttribute("optional-commands")?.split(","),
+                    budget,
+                  }}
+                />
               </ThemeProvider>
             </CacheProvider>
           </React.StrictMode>

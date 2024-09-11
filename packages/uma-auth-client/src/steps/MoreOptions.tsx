@@ -4,11 +4,11 @@ import { Button } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { useStep } from "src/hooks/useStep";
+import { useModalState } from "src/hooks/useModalState";
 import { Step } from "src/types";
 
 export const MoreOptions = () => {
-  const { setStep } = useStep();
+  const { setStep } = useModalState();
   const theme = useTheme();
 
   return (

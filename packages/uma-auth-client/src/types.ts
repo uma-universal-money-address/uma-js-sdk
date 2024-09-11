@@ -1,5 +1,7 @@
 import { ConnectUma } from "./steps/ConnectUma";
 import { ConnectedWallet } from "./steps/ConnectedWallet";
+import { DoneConnecting } from "./steps/DoneConnecting";
+import { ErrorConnecting } from "./steps/ErrorConnecting";
 import { ForgotYourUma } from "./steps/ForgotYourUma";
 import { MoreOptions } from "./steps/MoreOptions";
 import { NostrWalletConnect } from "./steps/NostrWalletConnect";
@@ -17,6 +19,8 @@ export enum Step {
   Unavailable = "Unavailable",
   WhatIsUma = "WhatIsUma",
   ForgotYourUma = "ForgotYourUma",
+  DoneConnecting = "DoneConnecting",
+  ErrorConnecting = "ErrorConnecting",
 }
 
 interface StepInfo {
@@ -66,5 +70,15 @@ export const STEP_MAP: Record<Step, StepInfo> = {
     component: ForgotYourUma,
     title: "Forgot your UMA?",
     prev: Step.MoreOptions,
+  },
+  [Step.DoneConnecting]: {
+    component: DoneConnecting,
+    title: "Connect your UMA",
+    prev: Step.Connect,
+  },
+  [Step.ErrorConnecting]: {
+    component: ErrorConnecting,
+    title: "Connect your UMA",
+    prev: Step.Connect,
   },
 };

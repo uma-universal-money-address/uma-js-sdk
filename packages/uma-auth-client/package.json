@@ -1,11 +1,19 @@
 {
   "name": "@uma-sdk/uma-auth-client",
-  "private": true,
+  "description": "UMA Auth Client SDK for Web (Alpha)",
   "version": "0.0.0",
   "type": "module",
   "files": [
     "dist"
   ],
+  "homepage": "https://github.com/uma-universal-money-address/uma-js-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uma-universal-money-address/uma-js-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uma-universal-money-address/uma-js-sdk/issues"
+  },
   "main": "./dist/uma-auth-client.umd.cjs",
   "exports": {
     ".": {
@@ -38,6 +46,8 @@
     "@lightsparkdev/ui": "1.0.8",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.3.28",
+    "nostr-tools": "^1.17.0",
+    "oauth4webapi": "^2.12.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "6.11.2",

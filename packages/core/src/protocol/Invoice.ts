@@ -48,10 +48,10 @@ const InvoiceSchema = z.object({
   expiration: z.number(),
   isSubjectToTravelRule: z.boolean(),
   requiredPayerData: optionalIgnoringNull(CounterPartyDataOptionsSchema),
-  umaVersion: z.string(),
+  umaVersions: z.string(),
   commentCharsAllowed: optionalIgnoringNull(z.number()),
   senderUma: optionalIgnoringNull(z.string()),
-  invoiceLimit: optionalIgnoringNull(z.number()),
+  maxNumPayments: optionalIgnoringNull(z.number()),
   kycStatus: optionalIgnoringNull(z.nativeEnum(KycStatus)),
   callback: z.string(),
   signature: optionalIgnoringNull(z.instanceof(Uint8Array)),
@@ -68,12 +68,12 @@ const InvoiceSchema = z.object({
  * @param expiration - The unix timestamp of when the UMA invoice expires
  * @param isSubjectToTravelRule -  Indicates whether the VASP is a financial institution that requires travel rule information.
  * @param requiredPayerData - the data about the payer that the sending VASP must provide in order to send a payment
- * @param umaVersion - UmaVersion is a list of UMA versions that the VASP supports for this transaction. It should be
- * containing the lowest minor version of each major version it supported, separated by commas
+ * @param umaVersions - UmaVersions is a list of UMA versions that the VASP supports for this transaction. It should
+ * contain the lowest minor version of each major version it supported, separated by commas
  * @param commentCharsAllowed - is the number of characters that the sender can include in the comment field of the pay request.
  * @param senderUma - The sender's UMA address. If this field presents, the UMA invoice should directly go to the sending VASP
  * instead of showing in other formats
- * @param invoiceLimit - The maximum number of the invoice can be paid
+ * @param maxNumPayments - The maximum number of times the invoice can be paid
  * @param kycStatus - YC status of the receiver, default is verified
  * @param callback - The callback url that the sender should send the PayRequest to
  * @param signature - The signature of the UMA invoice
@@ -303,7 +303,7 @@ InvoiceSerializer.registerSerializer("receiverUma", {
     serialize: counterPartyDataOptionsToBytes,
     deserialize: counterPartyDataOptionsFromBytes,
   })
-  .registerSerializer("umaVersion", {
+  .registerSerializer("umaVersions", {
     tag: 7,
     serialize: serializeString,
     deserialize: deserializeString,
@@ -318,7 +318,7 @@ InvoiceSerializer.registerSerializer("receiverUma", {
     serialize: serializeString,
     deserialize: deserializeString,
   })
-  .registerSerializer("invoiceLimit", {
+  .registerSerializer("maxNumPayments", {
     tag: 10,
     serialize: serializeNumber,
     deserialize: deserializeNumber,

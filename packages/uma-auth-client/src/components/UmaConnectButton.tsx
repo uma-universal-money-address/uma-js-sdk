@@ -1,8 +1,9 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { useRef, useState } from "react";
-import { useStep } from "src/hooks/useStep";
+import { RefObject, useEffect, useRef } from "react";
+import { useModalState } from "src/hooks/useModalState";
+import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
@@ -11,20 +12,58 @@ import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
 
-const UmaConnectButton = () => {
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+interface Props {
+  authConfig: AuthConfig;
+}
+
+const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const { uma, setUma } = useUser();
-  const { setStep } = useStep();
+  const { step, setStep, isModalOpen, setIsModalOpen } = useModalState();
+  const {
+    authConfig,
+    codeVerifier,
+    nwcConnectionUri,
+    oAuthTokenExchange,
+    setAuthConfig,
+  } = useOAuth();
 
-  // Check if already connected
-  const isConnected = getLocalStorage("connectionUri");
-  if (isConnected && !uma) {
+  // TODO: check if token is still valid
+  const isConnected = !!nwcConnectionUri;
+
+  if (!authConfig) {
+    setAuthConfig(props.authConfig);
+  }
+
+  if (!uma) {
     const persistedUma = getLocalStorage("uma");
     if (persistedUma) {
       setUma(persistedUma);
     }
   }
+
+  useEffect(() => {
+    if (!uma) {
+      return;
+    }
+
+    let shouldOpenModalImmediately: boolean = false;
+    if (codeVerifier && !isConnected && step !== Step.WaitingForApproval) {
+      setStep(Step.WaitingForApproval);
+      oAuthTokenExchange();
+      shouldOpenModalImmediately = true;
+    } else if (isConnected && step === Step.WaitingForApproval) {
+      setStep(Step.DoneConnecting);
+      shouldOpenModalImmediately = true;
+    }
+
+    // TODO: Styles are not loaded if the modal is opened immediately
+    if (!isModalOpen && shouldOpenModalImmediately) {
+      setTimeout(() => {
+        setIsModalOpen(true);
+      }, 200);
+    }
+  }, [codeVerifier, uma, isConnected, step]);
 
   const handleOpenModal = () => {
     if (isConnected) {
@@ -33,6 +72,8 @@ const UmaConnectButton = () => {
       } else {
         setStep(Step.ConnectedWallet);
       }
+    } else if (codeVerifier && !isConnected) {
+      setStep(Step.WaitingForApproval);
     } else {
       setStep(Step.Connect);
     }
@@ -42,27 +83,43 @@ const UmaConnectButton = () => {
 
   return (
     <>
-      <Button onClick={handleOpenModal} ref={buttonRef}>
-        <ButtonContents>
-          {isConnected ? (
-            <>
-              <Title size="Medium" content={uma} />
-              <Icon name="Uma" width={24} />
-            </>
-          ) : (
-            <>
-              <Icon name="Uma" width={24} />
-              <Title size="Medium" content="Connect" />
-            </>
-          )}
-        </ButtonContents>
-      </Button>
+      <StyledUmaConnectButton
+        buttonRef={buttonRef}
+        onClick={handleOpenModal}
+        uma={isConnected ? uma : undefined}
+      />
       <ConnectUmaModal
-        visible={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
         appendToElement={buttonRef.current?.parentNode as HTMLElement}
       />
     </>
+  );
+};
+
+export const StyledUmaConnectButton = ({
+  onClick,
+  buttonRef,
+  uma,
+}: {
+  onClick?: () => void;
+  buttonRef?: RefObject<HTMLButtonElement>;
+  uma?: string | undefined;
+}) => {
+  return (
+    <Button onClick={onClick} ref={buttonRef}>
+      <ButtonContents>
+        {uma ? (
+          <>
+            <Title size="Medium" content={uma} />
+            <Icon name="Uma" width={24} />
+          </>
+        ) : (
+          <>
+            <Icon name="Uma" width={24} />
+            <Title size="Medium" content="Connect" />
+          </>
+        )}
+      </ButtonContents>
+    </Button>
   );
 };
 

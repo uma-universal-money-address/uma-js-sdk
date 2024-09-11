@@ -3,8 +3,14 @@ import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
+import { useEffect, useState } from "react";
 import { ConnectionCard } from "src/components/ConnectionCard";
+import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
+import { useNwcRequester } from "src/hooks/useNwcRequester";
+import { useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
+import * as Nip47 from "src/Nip47Types";
+import { NwcRequester } from "src/NwcRequester";
 import {
   Connection,
   ConnectionStatus,
@@ -12,7 +18,6 @@ import {
   PermissionType,
 } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
-import { getUmaDomain } from "src/utils/getUmaDomain";
 
 const RENEWAL_DATE_FUNCTIONS = {
   [LimitFrequency.DAILY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "day"),
@@ -48,6 +53,15 @@ const getRenewalString = (connection: Connection) => {
 
 export const ConnectedWallet = () => {
   const { uma } = useUser();
+  const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
+    useDiscoveryDocument();
+  const { nwcExpiresAt } = useOAuth();
+  const { nwcRequester } = useNwcRequester();
+  const [balance, setBalance] = useState<
+    Nip47.GetBalanceResponse | undefined
+  >();
+
+  const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
   // TODO: Get connection details with NWC connection
   const connection: Connection = {
@@ -81,21 +95,18 @@ export const ConnectedWallet = () => {
     },
     status: ConnectionStatus.ACTIVE,
     limitFrequency: LimitFrequency.MONTHLY,
-    expiration: "2024-09-30",
-    lastUsed: "2024-09-01",
+    expiration,
   };
 
-  // TODO: Get balance details with NWC connection
-  const balance = {
-    amountInLowestDenom: 50000,
-    currency: {
-      code: "USD",
-      name: "US Dollar",
-      symbol: "$",
-      decimals: 2,
-      type: "fiat",
-    },
-  };
+  useEffect(() => {
+    async function fetchBalance(nwcRequester: NwcRequester) {
+      const res = await nwcRequester.getBalance();
+      setBalance(res);
+    }
+    if (nwcRequester) {
+      fetchBalance(nwcRequester);
+    }
+  }, [nwcRequester]);
 
   let limitRenewalString = "";
   if (connection.limitEnabled) {
@@ -110,7 +121,20 @@ export const ConnectedWallet = () => {
   return (
     <Container>
       <ConnectionSection>
-        <ConnectionCard uma={uma} connection={connection} balance={balance} />
+        <ConnectionCard
+          uma={uma}
+          connection={connection}
+          balance={{
+            amountInLowestDenom: balance?.balance || 0,
+            currency: {
+              code: "USD",
+              name: "US Dollar",
+              symbol: "$",
+              decimals: 2,
+              type: "fiat",
+            },
+          }}
+        />
         <TextContainer>
           {balance ? (
             <Row>
@@ -137,13 +161,11 @@ export const ConnectedWallet = () => {
           <Row>
             <Icon name="Clock" width={16} />
             <Description>
-              {connection.expiration ? (
+              {expiration ? (
                 <>
                   <Label content="Connection expires" />{" "}
                   <LabelModerate
-                    content={dayjs(connection.expiration).format(
-                      "MMM DD, YYYY",
-                    )}
+                    content={dayjs(expiration).format("MMM DD, YYYY")}
                   />
                 </>
               ) : (
@@ -158,9 +180,10 @@ export const ConnectedWallet = () => {
           icon="LinkIcon"
           text="Manage connection"
           kind="secondary"
+          loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma
-              ? `https://nwc.${getUmaDomain(uma)}/connection/${connection.connectionId}`
+            uma && discoveryDocument
+              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
               : undefined
           }
           fullWidth
@@ -169,9 +192,10 @@ export const ConnectedWallet = () => {
           icon="ArrowCornerDownRight"
           text="Disconnect"
           kind="danger"
+          loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma
-              ? `https://nwc.${getUmaDomain(uma)}/connection/${connection.connectionId}`
+            uma && discoveryDocument
+              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
               : undefined
           }
           fullWidth
