@@ -1,11 +1,19 @@
 {
   "name": "@uma-sdk/uma-auth-client",
-  "private": true,
-  "version": "0.0.0",
+  "description": "UMA Auth Client SDK for Web (Alpha)",
+  "version": "0.0.1",
   "type": "module",
   "files": [
     "dist"
   ],
+  "homepage": "https://github.com/uma-universal-money-address/uma-js-sdk",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/uma-universal-money-address/uma-js-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/uma-universal-money-address/uma-js-sdk/issues"
+  },
   "main": "./dist/uma-auth-client.umd.cjs",
   "exports": {
     ".": {
