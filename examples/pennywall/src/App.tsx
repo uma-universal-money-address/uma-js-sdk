@@ -79,18 +79,18 @@ function App() {
           const numScreensToPay = numScreensScrolled - shownScreens;
           const paymentAmount = numScreensToPay * 10;
 
-          try {
-            const response = await payToAddress(paymentAmount);
-            if (response) {
-              setShownScreens(numScreensScrolled);
-              updateNumShownViewports(numScreensScrolled);
-            } else {
-              alert("Payment Failed");
-            }
-          } catch (error) {
-            console.error("Error during turbo payment:", error);
-            alert("Turbo Payment Failed");
-          }
+          // try {
+          //   const response = await payToAddress(paymentAmount);
+          //   if (response) {
+          //     setShownScreens(numScreensScrolled);
+          //     updateNumShownViewports(numScreensScrolled);
+          //   } else {
+          //     alert("Payment Failed");
+          //   }
+          // } catch (error) {
+          //   console.error("Error during turbo payment:", error);
+          //   alert("Turbo Payment Failed");
+          // }
           setIsLoadingReveal(false);
         }
       })();
@@ -229,11 +229,6 @@ function App() {
               <br />
             </p>
 
-            <div>
-              <img src="./assets/article-1-hero.png" />
-              <span className="caption">Photo Credits to go here</span>
-            </div>
-
             <h2>The Warning</h2>
             <p>
               Lightspark management has issued a stern warning to all employees.
@@ -261,6 +256,18 @@ function App() {
               <br />
             </p>
 
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+              <div style={{ width: '48%' }}>
+                <img src="./assets/investigator.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Espresso machine at Lightspark HQ" />
+                <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Detective Joe Brewster examining coffee grounds for clues. Photo: CCPD</span>
+              </div>
+              <div style={{ width: '48%' }}>
+                <img src="./assets/wanted.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Wanted poster for the Espresso Bandit" />
+                <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Wanted poster for the "Espresso Bandit" circulated throughout Lightspark HQ. Photo: Lightspark Internal Security</span>
+              </div>
+            </div>
+
             <h2>Public Outcry</h2>
             <p>
               The incident has sparked a mix of outrage and amusement in the
@@ -273,6 +280,10 @@ function App() {
             </p>
 
             <h2>Prevention Measures</h2>
+            <div style={{ marginBottom: '24px' }}>
+              <img src="./assets/coffee-class.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Mandatory espresso machine etiquette class" />
+              <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Employees attending the mandatory espresso machine etiquette class. Photo: Lightspark HR Department</span>
+            </div>
             <p>
               In response to the crisis, Lightspark has implemented several
               preventative measures:
@@ -350,7 +361,7 @@ function App() {
             </div>
 
             <div>
-              <img src="./assets/article-3-hero.png" />
+              <img src="./assets/ac.png" />
               <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Startup Faces Meltdown: Lightspark's AC Goes Dark
                 <br />
@@ -367,7 +378,7 @@ function App() {
             </div>
 
             <div>
-              <img src="./assets/article-3-hero.png" />
+              <img src="./assets/office-tips.png" />
               <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Office Tips from a Dog's Perspective: How to Make Your Workday
                 More Fun
