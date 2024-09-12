@@ -1,19 +1,42 @@
+import { keyframes } from "@emotion/react";
 import styled from "@emotion/styled";
 import { UmaConnectButton, useOAuth } from "@uma-sdk/uma-auth-client";
 import React, { useEffect, useRef, useState } from "react";
 import { Toggle } from "./components/Toggle";
 import { usePayToAddress } from "./components/usePayToAddress";
 import { Header } from "./Header";
-import { keyframes } from "@emotion/react";
-
 
 const PennySVG = () => (
-  <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <svg
+    width="40"
+    height="40"
+    viewBox="0 0 100 100"
+    xmlns="http://www.w3.org/2000/svg"
+  >
     <circle cx="50" cy="50" r="48" fill="#00ff00" />
     <circle cx="50" cy="50" r="45" fill="#00ff00" />
-    <text x="50" y="65" fontSize="48" fontWeight="bold" textAnchor="middle" fill="black">1¢</text>
-    <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#00ff00" strokeWidth="3" />
-    <path d="M50 90 A40 40 0 0 1 10 50" fill="none" stroke="#00ff00" strokeWidth="3" />
+    <text
+      x="50"
+      y="65"
+      fontSize="48"
+      fontWeight="bold"
+      textAnchor="middle"
+      fill="black"
+    >
+      1¢
+    </text>
+    <path
+      d="M50 10 A40 40 0 0 1 90 50"
+      fill="none"
+      stroke="#00ff00"
+      strokeWidth="3"
+    />
+    <path
+      d="M50 90 A40 40 0 0 1 10 50"
+      fill="none"
+      stroke="#00ff00"
+      strokeWidth="3"
+    />
   </svg>
 );
 
@@ -26,17 +49,22 @@ function App() {
   ];
   const optionalCommands: string[] = [];
   const { nwcConnectionUri } = useOAuth();
-  const [notifications, setNotifications] = useState<{ id: number; amount: number }[]>([]);
+  const [notifications, setNotifications] = useState<
+    { id: number; amount: number }[]
+  >([]);
   const [totalCentsPaid, setTotalCentsPaid] = useState(0);
 
   const addNotification = (amount: number) => {
     const newNotification = { id: Date.now(), amount };
-    setNotifications(prev => [...prev, newNotification]);
-    setTotalCentsPaid(prev => prev + amount);
+    setNotifications((prev) => [...prev, newNotification]);
+    setTotalCentsPaid((prev) => prev + amount);
     setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+      setNotifications((prev) =>
+        prev.filter((n) => n.id !== newNotification.id),
+      );
     }, 2000);
-  };  const [shownScreens, setShownScreens] = useState(0.75);
+  };
+  const [shownScreens, setShownScreens] = useState(0.75);
   const [isUmaConnected, setIsUmaConnected] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const blurOverlayRef = useRef<HTMLDivElement>(null);
@@ -91,12 +119,11 @@ function App() {
           const paymentAmount = numScreensToPay * 10;
 
           try {
-
             setShownScreens(numScreensScrolled);
             updateNumShownViewports(numScreensScrolled);
             addNotification(1); // Add a notification for 1 cent
 
-            /*const response = await payToAddress(paymentAmount);
+            /*const response = await payToAddress();
             if (response) {
               setShownScreens(numScreensScrolled);
               updateNumShownViewports(numScreensScrolled);
@@ -288,15 +315,58 @@ function App() {
               <br />
             </p>
 
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-              <div style={{ width: '48%' }}>
-                <img src="./assets/investigator.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Espresso machine at Lightspark HQ" />
-                <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Detective Joe Brewster examining coffee grounds for clues. Photo: CCPD</span>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginBottom: "24px",
+              }}
+            >
+              <div style={{ width: "48%" }}>
+                <img
+                  src="./assets/investigator.png"
+                  style={{
+                    width: "100%",
+                    height: "auto",
+                    borderRadius: "9.6px",
+                  }}
+                  alt="Espresso machine at Lightspark HQ"
+                />
+                <span
+                  className="caption"
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    fontSize: "14.4px",
+                    color: "#666",
+                  }}
+                >
+                  Detective Joe Brewster examining coffee grounds for clues.
+                  Photo: CCPD
+                </span>
               </div>
-              <div style={{ width: '48%' }}>
-                <img src="./assets/wanted.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Wanted poster for the Espresso Bandit" />
-                <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Wanted poster for the "Espresso Bandit" circulated throughout Lightspark HQ. Photo: Lightspark Internal Security</span>
+              <div style={{ width: "48%" }}>
+                <img
+                  src="./assets/wanted.png"
+                  style={{
+                    width: "100%",
+                    height: "auto",
+                    borderRadius: "9.6px",
+                  }}
+                  alt="Wanted poster for the Espresso Bandit"
+                />
+                <span
+                  className="caption"
+                  style={{
+                    display: "block",
+                    marginTop: "6px",
+                    fontSize: "14.4px",
+                    color: "#666",
+                  }}
+                >
+                  Wanted poster for the "Espresso Bandit" circulated throughout
+                  Lightspark HQ. Photo: Lightspark Internal Security
+                </span>
               </div>
             </div>
 
@@ -312,9 +382,24 @@ function App() {
             </p>
 
             <h2>Prevention Measures</h2>
-            <div style={{ marginBottom: '24px' }}>
-              <img src="./assets/coffee-class.png" style={{ width: '100%', height: 'auto', borderRadius: '9.6px' }} alt="Mandatory espresso machine etiquette class" />
-              <span className="caption" style={{ display: 'block', marginTop: '6px', fontSize: '14.4px', color: '#666' }}>Employees attending the mandatory espresso machine etiquette class. Photo: Lightspark HR Department</span>
+            <div style={{ marginBottom: "24px" }}>
+              <img
+                src="./assets/coffee-class.png"
+                style={{ width: "100%", height: "auto", borderRadius: "9.6px" }}
+                alt="Mandatory espresso machine etiquette class"
+              />
+              <span
+                className="caption"
+                style={{
+                  display: "block",
+                  marginTop: "6px",
+                  fontSize: "14.4px",
+                  color: "#666",
+                }}
+              >
+                Employees attending the mandatory espresso machine etiquette
+                class. Photo: Lightspark HR Department
+              </span>
             </div>
             <p>
               In response to the crisis, Lightspark has implemented several
@@ -461,20 +546,34 @@ function App() {
               transition: "all 0.75s ease",
             }}
           />
-    {notifications.map(notification => (
-          <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
-            <PennySVG />
-          </UnlockedMessage>
-        ))}
-          <TotalCounter>
-            Total Paid: {totalCentsPaid}¢
-          </TotalCounter>
+          {notifications.map((notification) => (
+            <UnlockedMessage
+              key={notification.id}
+              leftOffset={getRandomLeftPosition()}
+            >
+              <PennySVG />
+            </UnlockedMessage>
+          ))}
+          <TotalCounter>Total Paid: {totalCentsPaid}¢</TotalCounter>
           <ButtonContainer>
-            {nwcConnectionUri != null && !isTurboPayOn ? (
+            {nwcConnectionUri && !isTurboPayOn ? (
               <RevealButton onClick={handleReveal} loading={isLoadingReveal}>
                 Reveal
               </RevealButton>
-            ) : null}
+            ) : (
+              <UmaConnectButton
+                app-identity-pubkey={
+                  "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
+                }
+                nostr-relay={"wss://nos.lol"}
+                redirect-uri={"http://localhost:3001"}
+                required-commands={requiredCommands}
+                optional-commands={optionalCommands}
+                budget-amount={"10"}
+                budget-currency={"USD"}
+                budget-period={"weekly"}
+              />
+            )}
           </ButtonContainer>
         </div>
       </div>
@@ -507,7 +606,7 @@ const ButtonContainer = styled.div`
 const RevealButton = styled.button<{ loading: boolean }>`
   padding: 20px 30px;
   font-size: 16px;
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 600;
   border-radius: 100px;
   cursor: pointer;
@@ -539,7 +638,7 @@ const TurboPay = styled.div`
   align-items: center;
   gap: 8px;
   color: #333;
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   font-weight: bold;
   padding: 10px 15px;
   background-color: rgba(255, 255, 255, 0.9);
@@ -559,7 +658,7 @@ const riseAndRotate = keyframes`
 const UnlockedMessage = styled.div<{ leftOffset: number }>`
   position: fixed;
   bottom: 200px;
-  left: ${props => 110 + props.leftOffset}px;
+  left: ${(props) => 110 + props.leftOffset}px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -587,10 +686,9 @@ const TotalCounter = styled.div`
   background-color: white;
   padding: 10px 15px;
   border-radius: 20px;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 20001;
 `;
-
 
 const TopRightUmaConnect = styled.div`
   position: fixed;
@@ -598,6 +696,5 @@ const TopRightUmaConnect = styled.div`
   right: 20px;
   z-index: 20000;
 `;
-
 
 export default App;

@@ -77,7 +77,7 @@ const ToggleButton = styled.button<ToggleButtonProps>`
     background-color: #fff;
     width: ${circleDim}px;
     height: ${circleDim}px;
-    top:1px;
+    top: 1px;
     right: ${({ isOn }) =>
       isOn ? `${circleOffset}px` : `${width - circleDim - circleOffset}px`};
   }
