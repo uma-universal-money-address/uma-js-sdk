@@ -64,7 +64,7 @@ const ToggleButton = styled.button<ToggleButtonProps>`
   height: 24px;
   opacity: ${({ disabled }) => (disabled ? 0.3 : 1)};
   position: relative;
-  background-color: ${({ isOn }) => "#1F84FA" || "#fff"};
+  background-color: ${({ isOn }) => (isOn ? "#1F84FA" : "#ccc")};
   &:after {
     content: "";
     display: block;
@@ -77,7 +77,7 @@ const ToggleButton = styled.button<ToggleButtonProps>`
     background-color: #fff;
     width: ${circleDim}px;
     height: ${circleDim}px;
-    top: 0px;
+    top:1px;
     right: ${({ isOn }) =>
       isOn ? `${circleOffset}px` : `${width - circleDim - circleOffset}px`};
   }

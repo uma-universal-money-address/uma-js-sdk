@@ -9,11 +9,11 @@ import { keyframes } from "@emotion/react";
 
 const PennySVG = () => (
   <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" fill="#b87333" />
-    <circle cx="50" cy="50" r="45" fill="#cd7f32" />
+    <circle cx="50" cy="50" r="48" fill="#00ff00" />
+    <circle cx="50" cy="50" r="45" fill="#00ff00" />
     <text x="50" y="65" fontSize="48" fontWeight="bold" textAnchor="middle" fill="black">1¢</text>
-    <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#b87333" strokeWidth="3" />
-    <path d="M50 90 A40 40 0 0 1 10 50" fill="none" stroke="#b87333" strokeWidth="3" />
+    <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#00ff00" strokeWidth="3" />
+    <path d="M50 90 A40 40 0 0 1 10 50" fill="none" stroke="#00ff00" strokeWidth="3" />
   </svg>
 );
 
@@ -508,8 +508,8 @@ const RevealButton = styled.button<{ loading: boolean }>`
   padding: 20px 30px;
   font-size: 16px;
   font-family: 'Roboto', sans-serif;
-  font-weight: 500;
-  border-radius: 20px;
+  font-weight: 600;
+  border-radius: 100px;
   cursor: pointer;
   background-color: ${({ loading }) => (loading ? "#4a90e2" : "#2172e5")};
   color: white;
@@ -539,7 +539,8 @@ const TurboPay = styled.div`
   align-items: center;
   gap: 8px;
   color: white;
-  fontweight: 700;
+  font-family: 'Roboto', sans-serif;
+  font-weight: bold;
   padding: 10px;
 `;
 
