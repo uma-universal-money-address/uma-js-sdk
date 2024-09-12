@@ -80,13 +80,18 @@ function App() {
           const paymentAmount = numScreensToPay * 10;
 
           try {
-            const response = await payToAddress(paymentAmount);
+
+            setShownScreens(numScreensScrolled);
+            updateNumShownViewports(numScreensScrolled);
+            addNotification(1); // Add a notification for 1 cent
+
+            /*const response = await payToAddress(paymentAmount);
             if (response) {
               setShownScreens(numScreensScrolled);
               updateNumShownViewports(numScreensScrolled);
             } else {
               alert("Payment Failed");
-            }
+            }*/
           } catch (error) {
             console.error("Error during turbo payment:", error);
             alert("Turbo Payment Failed");
@@ -125,11 +130,11 @@ function App() {
       setShownScreens((prev) => prev + 1);
       updateNumShownViewports(shownScreens + 1);
       addNotification(1); // Add a notification for 1 cent
-      const response = await payToAddress();
-      if (response) {
-      } else {
-        console.log("Payment Failed");
-      }
+      //const response = await payToAddress();
+      //if (response) {
+      //} else {
+      //  console.log("Payment Failed");
+      //}
     } catch (error) {
       console.error("Error during payment:", error);
       alert("Payment Failed");
@@ -161,6 +166,22 @@ function App() {
     <Main>
       <div className="content">
         <Header />
+        {nwcConnectionUri && (
+          <TopRightUmaConnect>
+            <UmaConnectButton
+              app-identity-pubkey={
+                "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
+              }
+              nostr-relay={"wss://nos.lol"}
+              redirect-uri={"http://localhost:3001"}
+              required-commands={requiredCommands}
+              optional-commands={optionalCommands}
+              budget-amount={"10"}
+              budget-currency={"USD"}
+              budget-period={"weekly"}
+            />
+          </TopRightUmaConnect>
+        )}
         <div className="container">
           <div className="article-header">
             <h4 style={{ marginBottom: "0px" }}>Breaking News</h4>
@@ -427,24 +448,11 @@ function App() {
             Total Paid: {totalCentsPaid}¢
           </TotalCounter>
           <ButtonContainer>
-            {nwcConnectionUri != null ? (
+            {nwcConnectionUri != null && !isTurboPayOn ? (
               <RevealButton onClick={handleReveal} loading={isLoadingReveal}>
                 Reveal
               </RevealButton>
-            ) : (
-              <UmaConnectButton
-                app-identity-pubkey={
-                  "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
-                }
-                nostr-relay={"wss://nos.lol"}
-                redirect-uri={"http://localhost:3001"}
-                required-commands={requiredCommands}
-                optional-commands={optionalCommands}
-                budget-amount={"10"}
-                budget-currency={"USD"}
-                budget-period={"weekly"}
-              />
-            )}
+            ) : null}
           </ButtonContainer>
         </div>
       </div>
@@ -475,12 +483,29 @@ const ButtonContainer = styled.div`
 `;
 
 const RevealButton = styled.button<{ loading: boolean }>`
-  padding: 20px 40px;
-  fontsize: 20px;
-  border-radius: 10px;
+  padding: 20px 30px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
   cursor: pointer;
+  background-color: ${({ loading }) => (loading ? "#4a90e2" : "#2172e5")};
+  color: white;
+  border: none;
+  transition: background-color 0.3s ease;
 
-  background-color: ${({ loading }) => (loading ? "#ccc" : "")};
+  &:hover {
+    background-color: #1a5bb8;
+  }
+
+  &:active {
+    background-color: #15478f;
+  }
+
+  &:disabled {
+    background-color: #4a90e2;
+    cursor: not-allowed;
+  }
 `;
 
 const TurboPay = styled.div`
@@ -523,7 +548,7 @@ const UnlockedMessage = styled.div<{ leftOffset: number }>`
 const Points = styled.div`
   font-size: 48px;
   font-weight: bold;
-  color: #ffcc00;
+  color: #00ff00;
   margin-bottom: 5px;
 `;
 
@@ -543,5 +568,13 @@ const TotalCounter = styled.div`
   z-index: 20001;
 `;
 
-// ... rest of the file ...
+
+const TopRightUmaConnect = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 20000;
+`;
+
+
 export default App;
