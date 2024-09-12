@@ -542,6 +542,7 @@ const TurboPay = styled.div`
   font-family: 'Roboto', sans-serif;
   font-weight: bold;
   padding: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 `;
 
 const riseAndRotate = keyframes`
