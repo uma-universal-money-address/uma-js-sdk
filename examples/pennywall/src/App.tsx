@@ -170,7 +170,7 @@ function App() {
   };
 
   const getRandomLeftPosition = () => {
-    return Math.floor(Math.random() * 81); // Random number between 0 and 40
+    return Math.floor(Math.random() * 30); // Random number between 0 and 40
   };
 
   return (
@@ -532,19 +532,20 @@ const RevealButton = styled.button<{ loading: boolean }>`
 
 const TurboPay = styled.div`
   position: fixed;
-  bottom: 20px;
+  bottom: 30px;
   right: 20px;
   z-index: 20000;
   display: flex;
   align-items: center;
   gap: 8px;
-  color: white;
+  color: #333;
   font-family: 'Roboto', sans-serif;
   font-weight: bold;
-  padding: 10px;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  padding: 10px 15px;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 `;
-
 const riseAndRotate = keyframes`
   0% { transform: translateY(100px) rotate(-10deg) scale(0.8); opacity: 0; }
   20% { transform: translateY(80px) rotate(8deg) scale(1.1); opacity: 0.5; }
@@ -558,7 +559,7 @@ const riseAndRotate = keyframes`
 const UnlockedMessage = styled.div<{ leftOffset: number }>`
   position: fixed;
   bottom: 200px;
-  left: ${props => 40 + props.leftOffset}px;
+  left: ${props => 110 + props.leftOffset}px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -576,15 +577,17 @@ const RewardText = styled.div`
   font-size: 24px;
   text-transform: uppercase;
 `;
-
 const TotalCounter = styled.div`
   position: fixed;
-  bottom: 50px;
+  bottom: 30px;
   left: 50px;
   font-size: 24px;
   font-weight: bold;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  color: #333;
+  background-color: white;
+  padding: 10px 15px;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
   z-index: 20001;
 `;
 
