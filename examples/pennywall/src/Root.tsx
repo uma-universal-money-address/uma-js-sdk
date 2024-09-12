@@ -18,5 +18,5 @@ export function Root() {
 }
 
 const Container = styled.div`
-        background-color: ${({ theme }) => theme.bg};
+  background-color: ${({ theme }) => theme.bg};
 `;

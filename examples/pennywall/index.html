@@ -4,6 +4,220 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pennywall hackathon demo</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+    }
+    
+    header {
+        position: sticky;
+        top: -112px;
+        left: 0;
+        margin: 0 auto;
+        background-color: #ffffff;
+    }
+    
+    header div {
+        position: relative;
+        margin: 0 auto;
+        text-align: center;
+        padding-top: 24px;
+        border-bottom: 1px solid #000;
+    }
+    
+    header div div {
+        text-align: right;
+        border: none;
+    }
+    
+    nav {
+        position: relative;
+    }
+    
+    nav div{
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        max-width: 1000px;
+        margin: 0px auto;
+        padding: 0px 24px;
+        font-size: 12px;
+        color: #979797;
+        padding-bottom: 12px;
+    }
+    
+    nav img {
+        display: none;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 32px;
+    }
+    
+    .btc {
+        position: absolute;
+        top: 0;
+        right: 0;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    #btc-change {
+        font-weight: 300;
+        color: gray;
+    }
+    
+  
+    .container {
+        margin: 0 auto;
+        padding: 0px 20px 96px 20px;
+        background-color: #fff;
+    }
+    h1, h2, h3, h4 {
+        color: #333;
+        font-family: serif;
+    }
+    
+    h1 {
+        font-style: italic;
+        font-size: 32px;
+        line-height: 32px;
+    }
+    
+    h3 {
+        font-weight: 300;
+    }
+    
+    p {
+        font-size: 14px;
+    }
+    .article-header {
+        width: 600px;
+        margin-bottom: 20px;
+        margin: 0 auto;
+    }
+    .article-header img {
+        width: 600px;
+        height: 400px;
+        object-fit: cover;
+    }
+    .article-header .article-info{
+        width: 600px;
+        margin: 0 auto;
+        text-align: left;
+    }
+    
+    
+    .article-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 0px;
+    }
+    
+    .article-share {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    
+    }
+    
+    .article-share div {
+        height: 32px;
+        width: 32px;
+        display: inline-flex;
+        align-items: center; 
+        justify-content: center;
+        border: 1px solid #aaa;
+        border-radius: 9999px;
+    }
+    
+    .article-share img{
+    width: 16px;
+    height: 16px;
+    }
+    
+    
+    .author-info {
+        margin-bottom: 16px;
+        font-family: serif;
+        color: gray;
+        margin: 0;
+    }
+    
+    .article-intro {
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .article-body {
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 16px;
+        color: #333;
+    }
+    
+    .article-body img {
+        display: block;
+        width: 400px;
+        height: 300px;
+        object-fit: cover;
+        margin: 0 auto;
+    }
+    
+    .article-body div {
+        width: 400px;
+        margin: 0 auto;
+        padding-bottom: 24px;
+    
+    }
+    
+    .caption {
+        font-size: 10px;
+    
+    }
+    
+    
+    .article-footer {
+        margin-top: 40px;
+        padding-top: 24px;
+        border-top: 1px solid #ccc;
+        display: flex;
+        gap: 24px;
+    }
+    
+    .article-footer div{
+        width: 25%;
+    
+    }
+    
+    .article-footer div img{
+        width: 100%;
+        aspect-ratio: 3 / 2;
+        object-fit: cover;
+    }
+    
+    
+    footer {
+        width: 100%;
+        margin: 0 auto;
+        background-color: #ffffff;
+    }
+    
+    footer div {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding-top: 24px;
+        border-top: 1px solid #000;
+    }
+    
+    footer div img {
+        width: 224px;
+    }
+  </style>
+  
   </head>
   <body>
     <div id="root"></div>
