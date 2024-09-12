@@ -4281,7 +4281,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@uma-sdk/uma-auth-client@^0.0.0, @uma-sdk/uma-auth-client@workspace:packages/uma-auth-client":
+"@uma-sdk/uma-auth-client@^0.0.1, @uma-sdk/uma-auth-client@workspace:packages/uma-auth-client":
   version: 0.0.0-use.local
   resolution: "@uma-sdk/uma-auth-client@workspace:packages/uma-auth-client"
   dependencies:
@@ -10113,7 +10113,7 @@ __metadata:
     "@emotion/styled": ^11.11.5
     "@types/react": ^18.3.3
     "@types/react-dom": ^18.3.0
-    "@uma-sdk/uma-auth-client": ^0.0.0
+    "@uma-sdk/uma-auth-client": ^0.0.1
     "@vitejs/plugin-react": ^4.3.1
     babel-loader: ^9.1.2
     babel-plugin-named-asset-import: ^0.3.8

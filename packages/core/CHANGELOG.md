@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.2.1
+
+### Patch Changes
+
+- 5365c5c: - Minor invoice/requests fixes
+
 ## 1.2.0
 
 ### Minor Changes
