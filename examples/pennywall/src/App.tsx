@@ -3,7 +3,7 @@ import { UmaConnectButton, useOAuth } from "@uma-sdk/uma-auth-client";
 import { usePayToAddress } from "./components/usePayToAddress";
 
 function App() {
-  const requiredCommands = ["pay_to_address"];
+  const requiredCommands = ["pay_to_address","get_balance"];
   const optionalCommands: string[] = [];
   const { nwcConnectionUri } = useOAuth();
 
@@ -34,9 +34,13 @@ const Main = styled.main`
 const ButtonContainer = styled.div`
   position: fixed;
   bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
+  margin: 0 auto;
   padding: 10px;
+  display: flex;
+  justify-content: center;
+  width: fit-content;
 `;
 
 export default App;
