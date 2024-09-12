@@ -61,7 +61,7 @@ export const Header = () => {
   return (
     <header>
       <div>
-        <div class="btc">
+        <div className="btc">
           <p>
             BTC <BtcChange color={btcChangeColor}>{btcChange}</BtcChange>
           </p>

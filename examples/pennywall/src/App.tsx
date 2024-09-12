@@ -1,6 +1,7 @@
 import styled from "@emotion/styled";
 import { UmaConnectButton, useOAuth } from "@uma-sdk/uma-auth-client";
 import React, { useEffect, useRef, useState } from "react";
+import { Toggle } from "./components/Toggle";
 import { usePayToAddress } from "./components/usePayToAddress";
 import { Header } from "./Header";
 
@@ -19,6 +20,7 @@ function App() {
   const overlayRef = useRef<HTMLDivElement>(null);
   const blurOverlayRef = useRef<HTMLDivElement>(null);
   const [isLoadingReveal, setIsLoadingReveal] = useState(false);
+  const [isTurboPayOn, setIsTurboPayOn] = useState(false);
 
   const { payToAddress } = usePayToAddress();
 
@@ -27,12 +29,17 @@ function App() {
     const umaConnected = localStorage.getItem("umaConnected") === "true";
     setIsUmaConnected(umaConnected);
 
+    // CHecks the current overlay y coordinate value and changes the height of the overlay so it extends to the bottom of the document.
     const checkOverlayHeight = () => {
       if (overlayRef.current) {
-        const topOffset = Math.round(
-          window.innerHeight * 0.01 * parseFloat(overlayRef.current.style.top),
+        let percentOfViewportCovered =
+          0.01 * parseFloat(overlayRef.current.style.top);
+        let viewportHeightPx = window.innerHeight;
+        const newOverlayTopYCoord = Math.round(
+          viewportHeightPx * percentOfViewportCovered,
         );
-        const newHeight = document.documentElement.scrollHeight - topOffset;
+        const newHeight =
+          document.documentElement.scrollHeight - newOverlayTopYCoord;
         overlayRef.current.style.height = `${newHeight}px`;
       }
     };
@@ -41,8 +48,56 @@ function App() {
     const intervalId = setInterval(checkOverlayHeight, 1000);
 
     // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
+
+  useEffect(() => {
+    if (isLoadingReveal || !isTurboPayOn) {
+      return;
+    }
+
+    const checkScroll = () => {
+      const numScreensScrolled = Math.ceil(
+        (window.scrollY + window.innerHeight / 2) / window.innerHeight,
+      );
+
+      (async () => {
+        if (numScreensScrolled > shownScreens) {
+          setIsLoadingReveal(true);
+          const numScreensToPay = numScreensScrolled - shownScreens;
+          const paymentAmount = numScreensToPay * 10;
+
+          try {
+            const response = await payToAddress(paymentAmount);
+            if (response) {
+              setShownScreens(numScreensScrolled);
+              updateNumShownViewports(numScreensScrolled);
+            } else {
+              alert("Payment Failed");
+            }
+          } catch (error) {
+            console.error("Error during turbo payment:", error);
+            alert("Turbo Payment Failed");
+          }
+          setIsLoadingReveal(false);
+        }
+      })();
+    };
+
+    const intervalIdScroll = setInterval(checkScroll, 1000);
+    return () => {
+      clearInterval(intervalIdScroll);
+    };
+  }, [isLoadingReveal, isTurboPayOn, shownScreens]);
+
+  const handleTurboPayOn = (on: boolean) => {
+    if (!nwcConnectionUri) {
+      return;
+    }
+    setIsTurboPayOn(on);
+  };
 
   const updateNumShownViewports = (numViewports: number) => {
     if (overlayRef.current) {
@@ -89,23 +144,23 @@ function App() {
 
   return (
     <Main>
-      <div class="content">
+      <div className="content">
         <Header />
-        <div class="container">
-          <div class="article-header">
-            <h4 style={{ "margin-bottom": "0px" }}>Breaking News</h4>
-            <h1 style={{ "margin-top": "0px" }}>
+        <div className="container">
+          <div className="article-header">
+            <h4 style={{ marginBottom: "0px" }}>Breaking News</h4>
+            <h1 style={{ marginTop: "0px" }}>
               Espresso Machine Culprit
               <br />
               Strikes Again at Lightspark HQ
             </h1>
             <img src="./assets/article-1-hero.png" />
-            <div class="article-info">
-              <div class="article-details">
-                <div class="author-info">
+            <div className="article-info">
+              <div className="article-details">
+                <div className="author-info">
                   By First Last Published September 12, 2024
                 </div>
-                <div class="article-share">
+                <div className="article-share">
                   <div>
                     <img src="./assets/icon-gift.svg" />
                   </div>
@@ -121,7 +176,7 @@ function App() {
             </div>
           </div>
 
-          <div class="article-intro">
+          <div className="article-intro">
             <h3>
               <b>LOS ANGELES -</b> In a shocking development that has rocked the
               cryptocurrency world, the Lightspark office is facing an
@@ -135,7 +190,7 @@ function App() {
             </h3>
           </div>
 
-          <div class="article-body">
+          <div className="article-body">
             <h2>The Caper</h2>
             <p>
               According to eyewitness reports, the unidentified culprit, dubbed
@@ -161,7 +216,7 @@ function App() {
 
             <div>
               <img src="./assets/article-1-hero.png" />
-              <span class="caption">Photo Credits to go here</span>
+              <span className="caption">Photo Credits to go here</span>
             </div>
 
             <h2>The Warning</h2>
@@ -237,24 +292,24 @@ function App() {
               Stay tuned for updates on this brewing situation.
               <br />
               <br />
-              <span style={{ "font-size": "10px", "font-style": "italic" }}>
+              <span style={{ fontSize: "10px", fontStyle: "italic" }}>
                 Last Updated September 12, 2024
               </span>
             </p>
           </div>
 
-          <div class="article-footer">
+          <div className="article-footer">
             <div>
               <img src="./assets/article-2-hero.png" />
-              <span style={{ "font-family": "serif", "font-weight": "600" }}>
+              <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Local Developer Achieves Enlightenment After Staring at Bitcoin
                 Blockchain for 48 Hours Straight
                 <br />
               </span>
               <span
                 style={{
-                  "font-size": "12px",
-                  "letter-spacing": "1px",
+                  fontSize: "12px",
+                  letterSpacing: "1px",
                   color: "#aaa",
                 }}
               >
@@ -264,14 +319,14 @@ function App() {
 
             <div>
               <img src="./assets/article-3-hero.png" />
-              <span style={{ "font-family": "serif", "font-weight": "600" }}>
+              <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Tech World's It-Girl Stella Caught Lounging in Malibu!
                 <br />
               </span>
               <span
                 style={{
-                  "font-size": "12px",
-                  "letter-spacing": "1px",
+                  fontSize: "12px",
+                  letterSpacing: "1px",
                   color: "#aaa",
                 }}
               >
@@ -281,14 +336,14 @@ function App() {
 
             <div>
               <img src="./assets/article-3-hero.png" />
-              <span style={{ "font-family": "serif", "font-weight": "600" }}>
+              <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Startup Faces Meltdown: Lightspark's AC Goes Dark
                 <br />
               </span>
               <span
                 style={{
-                  "font-size": "12px",
-                  "letter-spacing": "1px",
+                  fontSize: "12px",
+                  letterSpacing: "1px",
                   color: "#aaa",
                 }}
               >
@@ -298,15 +353,15 @@ function App() {
 
             <div>
               <img src="./assets/article-3-hero.png" />
-              <span style={{ "font-family": "serif", "font-weight": "600" }}>
+              <span style={{ fontFamily: "serif", fontWeight: "600" }}>
                 Office Tips from a Dog's Perspective: How to Make Your Workday
                 More Fun
                 <br />
               </span>
               <span
                 style={{
-                  "font-size": "12px",
-                  "letter-spacing": "1px",
+                  fontSize: "12px",
+                  letterSpacing: "1px",
                   color: "#aaa",
                 }}
               >
@@ -370,6 +425,10 @@ function App() {
           </ButtonContainer>
         </div>
       </div>
+      <TurboPay>
+        Turbo Pay
+        <Toggle id="turbo-pay" on={isTurboPayOn} onChange={handleTurboPayOn} />
+      </TurboPay>
     </Main>
   );
 }
@@ -394,13 +453,24 @@ const ButtonContainer = styled.div`
 
 const RevealButton = styled.button<{ loading: boolean }>`
   padding: 20px 40px;
-  font-size: 20px;
+  fontsize: 20px;
   border-radius: 10px;
   cursor: pointer;
 
   background-color: ${({ loading }) => (loading ? "#ccc" : "")};
-  ${({ loading }) =>
-    loading ? "pointer-events: none; cursor: not-allowed; " : ""}
+`;
+
+const TurboPay = styled.div`
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 20000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: white;
+  fontweight: 700;
+  padding: 10px;
 `;
 
 export default App;
