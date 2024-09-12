@@ -377,46 +377,6 @@ function App() {
 const Main = styled.main`
   position: relative;
   height: 100vh;
-  width: 100vw;
-
-  .content {
-    font-family: "Times New Roman", Times, serif;
-    margin: 0;
-    padding: 0;
-    color: #333;
-  }
-  header {
-    padding: 20px;
-    border-bottom: 2px solid #bbb;
-    text-align: center;
-  }
-  article {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    border: 1px solid #ddd;
-  }
-  h1,
-  h2 {
-    font-size: 24px;
-    color: #444;
-  }
-  p {
-    line-height: 1.6;
-    font-size: 18px;
-    text-align: justify;
-  }
-  img {
-    height: auto;
-  }
-  .caption {
-    font-size: 14px;
-    color: #666;
-    text-align: center;
-  }
-  section {
-    margin-top: 20px;
-  }
 `;
 
 const ButtonContainer = styled.div`

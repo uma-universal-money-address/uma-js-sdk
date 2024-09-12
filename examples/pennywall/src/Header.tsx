@@ -5,6 +5,7 @@ export const Header = () => {
   const [btcPrice, setBtcPrice] = useState("");
   const [btcChange, setBtcChange] = useState("");
   const [btcChangeColor, setBtcChangeColor] = useState("");
+  const [lsDisplayStyle, setLsDisplayStyle] = useState("none");
 
   function fetchBitcoinData() {
     const urlPrice =
@@ -48,12 +49,12 @@ export const Header = () => {
     setInterval(fetchBitcoinData, 60000); // Refresh every 60 seconds
 
     document.addEventListener("scroll", function () {
-      // const img = document.querySelector('nav img');
-      // if (window.scrollY > 112) {
-      //     img.style.display = 'block'; // Show the image
-      // } else {
-      //     img.style.display = 'none'; // Hide the image
-      // }
+      const img = document.querySelector("nav img");
+      if (window.scrollY > 112) {
+        setLsDisplayStyle("block"); // Show the image
+      } else {
+        setLsDisplayStyle("none"); // Hide the image
+      }
     });
   }, []);
 
@@ -69,7 +70,7 @@ export const Header = () => {
         <br />
         <br />
         <nav>
-          <img src="./assets/LS.png" />
+          <img src="./assets/LS.png" style={{ display: lsDisplayStyle }} />
           <div>
             <a>US</a>
             <a>World</a>
