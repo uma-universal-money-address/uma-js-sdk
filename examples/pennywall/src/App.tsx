@@ -4,7 +4,7 @@ import { usePayToAddress } from "./components/usePayToAddress";
 import React, { useEffect, useState, useRef } from 'react';
 
 function App() {
-  const requiredCommands = ["pay_to_address","get_balance"];
+  const requiredCommands = ["pay_invoice","make_invoice","pay_to_address","get_balance"];
   const optionalCommands: string[] = [];
   const { nwcConnectionUri } = useOAuth();
 
@@ -50,8 +50,8 @@ function App() {
   };
   const handleReveal = async () => {
     try {
-      const success = await payToAddress();
-      if (success) {
+      const response = await payToAddress();
+      if (response) {
         setShownScreens(prev => prev + 1);
         updateNumShownViewports(shownScreens + 1);
       } else {

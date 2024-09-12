@@ -9,11 +9,12 @@ export const usePayToAddress = () => {
       return;
     }
     const response = await nwcRequester.payToAddress({
-      receiver: { lud16: "ben@ben.pinkdrink.app" },
-      sending_currency_code: "USD",
-      sending_currency_amount: 1
+      receiver: { lud16: "$ben@ben.pinkdrink.app" },
+      sending_currency_code: "SAT",
+      sending_currency_amount: 10
     });
-    return response.success;
+    console.log("Fetched response:", JSON.stringify(response, null, 2));
+    return response;
   };
 
   return { payToAddress };
