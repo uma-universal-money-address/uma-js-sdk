@@ -6,6 +6,17 @@ import { usePayToAddress } from "./components/usePayToAddress";
 import { Header } from "./Header";
 import { keyframes } from "@emotion/react";
 
+
+const PennySVG = () => (
+  <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="48" fill="#b87333" />
+    <circle cx="50" cy="50" r="45" fill="#cd7f32" />
+    <text x="50" y="65" fontSize="48" fontWeight="bold" textAnchor="middle" fill="black">1¢</text>
+    <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#b87333" strokeWidth="3" />
+    <path d="M50 90 A40 40 0 0 1 10 50" fill="none" stroke="#b87333" strokeWidth="3" />
+  </svg>
+);
+
 function App() {
   const requiredCommands = [
     "pay_invoice",
@@ -79,18 +90,23 @@ function App() {
           const numScreensToPay = numScreensScrolled - shownScreens;
           const paymentAmount = numScreensToPay * 10;
 
-          // try {
-          //   const response = await payToAddress(paymentAmount);
-          //   if (response) {
-          //     setShownScreens(numScreensScrolled);
-          //     updateNumShownViewports(numScreensScrolled);
-          //   } else {
-          //     alert("Payment Failed");
-          //   }
-          // } catch (error) {
-          //   console.error("Error during turbo payment:", error);
-          //   alert("Turbo Payment Failed");
-          // }
+          try {
+
+            setShownScreens(numScreensScrolled);
+            updateNumShownViewports(numScreensScrolled);
+            addNotification(1); // Add a notification for 1 cent
+
+            /*const response = await payToAddress(paymentAmount);
+            if (response) {
+              setShownScreens(numScreensScrolled);
+              updateNumShownViewports(numScreensScrolled);
+            } else {
+              alert("Payment Failed");
+            }*/
+          } catch (error) {
+            console.error("Error during turbo payment:", error);
+            alert("Turbo Payment Failed");
+          }
           setIsLoadingReveal(false);
         }
       })();
@@ -125,11 +141,11 @@ function App() {
       setShownScreens((prev) => prev + 1);
       updateNumShownViewports(shownScreens + 1);
       addNotification(1); // Add a notification for 1 cent
-      const response = await payToAddress();
-      if (response) {
-      } else {
-        console.log("Payment Failed");
-      }
+      //const response = await payToAddress();
+      //if (response) {
+      //} else {
+      //  console.log("Payment Failed");
+      //}
     } catch (error) {
       console.error("Error during payment:", error);
       alert("Payment Failed");
@@ -161,6 +177,22 @@ function App() {
     <Main>
       <div className="content">
         <Header />
+        {nwcConnectionUri && (
+          <TopRightUmaConnect>
+            <UmaConnectButton
+              app-identity-pubkey={
+                "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
+              }
+              nostr-relay={"wss://nos.lol"}
+              redirect-uri={"http://localhost:3001"}
+              required-commands={requiredCommands}
+              optional-commands={optionalCommands}
+              budget-amount={"10"}
+              budget-currency={"USD"}
+              budget-period={"weekly"}
+            />
+          </TopRightUmaConnect>
+        )}
         <div className="container">
           <div className="article-header">
             <h4 style={{ marginBottom: "0px" }}>Breaking News</h4>
@@ -430,32 +462,19 @@ function App() {
             }}
           />
     {notifications.map(notification => (
-      <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
-        <Points>+{notification.amount}¢</Points>
-      </UnlockedMessage>
-    ))}
+          <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
+            <PennySVG />
+          </UnlockedMessage>
+        ))}
           <TotalCounter>
             Total Paid: {totalCentsPaid}¢
           </TotalCounter>
           <ButtonContainer>
-            {nwcConnectionUri != null ? (
+            {nwcConnectionUri != null && !isTurboPayOn ? (
               <RevealButton onClick={handleReveal} loading={isLoadingReveal}>
                 Reveal
               </RevealButton>
-            ) : (
-              <UmaConnectButton
-                app-identity-pubkey={
-                  "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d"
-                }
-                nostr-relay={"wss://nos.lol"}
-                redirect-uri={"http://localhost:3001"}
-                required-commands={requiredCommands}
-                optional-commands={optionalCommands}
-                budget-amount={"10"}
-                budget-currency={"USD"}
-                budget-period={"weekly"}
-              />
-            )}
+            ) : null}
           </ButtonContainer>
         </div>
       </div>
@@ -486,12 +505,29 @@ const ButtonContainer = styled.div`
 `;
 
 const RevealButton = styled.button<{ loading: boolean }>`
-  padding: 20px 40px;
-  fontsize: 20px;
-  border-radius: 10px;
+  padding: 20px 30px;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 500;
+  border-radius: 20px;
   cursor: pointer;
+  background-color: ${({ loading }) => (loading ? "#4a90e2" : "#2172e5")};
+  color: white;
+  border: none;
+  transition: background-color 0.3s ease;
 
-  background-color: ${({ loading }) => (loading ? "#ccc" : "")};
+  &:hover {
+    background-color: #1a5bb8;
+  }
+
+  &:active {
+    background-color: #15478f;
+  }
+
+  &:disabled {
+    background-color: #4a90e2;
+    cursor: not-allowed;
+  }
 `;
 
 const TurboPay = styled.div`
@@ -524,18 +560,14 @@ const UnlockedMessage = styled.div<{ leftOffset: number }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: white;
-  font-family: 'Arial', sans-serif;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   z-index: 20001;
   animation: ${riseAndRotate} 2s ease-in-out forwards;
 `;
 
 const Points = styled.div`
-  font-size: 48px;
+  font-size: 32px;
   font-weight: bold;
-  color: #ffcc00;
-  margin-bottom: 5px;
+  color: #b87333;
 `;
 
 const RewardText = styled.div`
@@ -554,5 +586,13 @@ const TotalCounter = styled.div`
   z-index: 20001;
 `;
 
-// ... rest of the file ...
+
+const TopRightUmaConnect = styled.div`
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 20000;
+`;
+
+
 export default App;
