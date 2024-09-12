@@ -4,6 +4,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Toggle } from "./components/Toggle";
 import { usePayToAddress } from "./components/usePayToAddress";
 import { Header } from "./Header";
+import { keyframes } from "@emotion/react";
 
 function App() {
   const requiredCommands = [
@@ -14,8 +15,17 @@ function App() {
   ];
   const optionalCommands: string[] = [];
   const { nwcConnectionUri } = useOAuth();
+  const [notifications, setNotifications] = useState<{ id: number; amount: number }[]>([]);
+  const [totalCentsPaid, setTotalCentsPaid] = useState(0);
 
-  const [shownScreens, setShownScreens] = useState(0.75);
+  const addNotification = (amount: number) => {
+    const newNotification = { id: Date.now(), amount };
+    setNotifications(prev => [...prev, newNotification]);
+    setTotalCentsPaid(prev => prev + amount);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== newNotification.id));
+    }, 2000);
+  };  const [shownScreens, setShownScreens] = useState(0.75);
   const [isUmaConnected, setIsUmaConnected] = useState(false);
   const overlayRef = useRef<HTMLDivElement>(null);
   const blurOverlayRef = useRef<HTMLDivElement>(null);
@@ -112,12 +122,13 @@ function App() {
   const handleReveal = async () => {
     setIsLoadingReveal(true);
     try {
+      setShownScreens((prev) => prev + 1);
+      updateNumShownViewports(shownScreens + 1);
+      addNotification(1); // Add a notification for 1 cent
       const response = await payToAddress();
       if (response) {
-        setShownScreens((prev) => prev + 1);
-        updateNumShownViewports(shownScreens + 1);
       } else {
-        alert("Payment Failed");
+        console.log("Payment Failed");
       }
     } catch (error) {
       console.error("Error during payment:", error);
@@ -140,6 +151,10 @@ function App() {
         linear-gradient(to bottom, transparent 0%, black 5%)
       `;
     }
+  };
+
+  const getRandomLeftPosition = () => {
+    return Math.floor(Math.random() * 81); // Random number between 0 and 40
   };
 
   return (
@@ -403,6 +418,14 @@ function App() {
               transition: "all 0.75s ease",
             }}
           />
+    {notifications.map(notification => (
+      <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
+        <Points>+{notification.amount}¢</Points>
+      </UnlockedMessage>
+    ))}
+          <TotalCounter>
+            Total Paid: {totalCentsPaid}¢
+          </TotalCounter>
           <ButtonContainer>
             {nwcConnectionUri != null ? (
               <RevealButton onClick={handleReveal} loading={isLoadingReveal}>
@@ -473,4 +496,52 @@ const TurboPay = styled.div`
   padding: 10px;
 `;
 
+const riseAndRotate = keyframes`
+  0% { transform: translateY(100px) rotate(-10deg) scale(0.8); opacity: 0; }
+  20% { transform: translateY(80px) rotate(8deg) scale(1.1); opacity: 0.5; }
+  40% { transform: translateY(60px) rotate(-6deg) scale(0.9); opacity: 0.8; }
+  60% { transform: translateY(40px) rotate(4deg) scale(1.05); opacity: 1; }
+  80% { transform: translateY(20px) rotate(-2deg) scale(0.95); opacity: 1; }
+  90% { transform: translateY(0) rotate(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-30px) rotate(5deg) scale(0.9); opacity: 0; }
+`;
+
+const UnlockedMessage = styled.div<{ leftOffset: number }>`
+  position: fixed;
+  bottom: 200px;
+  left: ${props => 40 + props.leftOffset}px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  font-family: 'Arial', sans-serif;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  z-index: 20001;
+  animation: ${riseAndRotate} 2s ease-in-out forwards;
+`;
+
+const Points = styled.div`
+  font-size: 48px;
+  font-weight: bold;
+  color: #ffcc00;
+  margin-bottom: 5px;
+`;
+
+const RewardText = styled.div`
+  font-size: 24px;
+  text-transform: uppercase;
+`;
+
+const TotalCounter = styled.div`
+  position: fixed;
+  bottom: 50px;
+  left: 50px;
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  z-index: 20001;
+`;
+
+// ... rest of the file ...
 export default App;
