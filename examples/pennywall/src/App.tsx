@@ -6,6 +6,17 @@ import { usePayToAddress } from "./components/usePayToAddress";
 import { Header } from "./Header";
 import { keyframes } from "@emotion/react";
 
+
+const PennySVG = () => (
+  <svg width="40" height="40" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="50" cy="50" r="48" fill="#b87333" />
+    <circle cx="50" cy="50" r="45" fill="#cd7f32" />
+    <text x="50" y="65" fontSize="48" fontWeight="bold" textAnchor="middle" fill="black">1¢</text>
+    <path d="M50 10 A40 40 0 0 1 90 50" fill="none" stroke="#b87333" strokeWidth="3" />
+    <path d="M50 90 A40 40 0 0 1 10 50" fill="none" stroke="#b87333" strokeWidth="3" />
+  </svg>
+);
+
 function App() {
   const requiredCommands = [
     "pay_invoice",
@@ -440,10 +451,10 @@ function App() {
             }}
           />
     {notifications.map(notification => (
-      <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
-        <Points>+{notification.amount}¢</Points>
-      </UnlockedMessage>
-    ))}
+          <UnlockedMessage key={notification.id} leftOffset={getRandomLeftPosition()}>
+            <PennySVG />
+          </UnlockedMessage>
+        ))}
           <TotalCounter>
             Total Paid: {totalCentsPaid}¢
           </TotalCounter>
@@ -538,18 +549,14 @@ const UnlockedMessage = styled.div<{ leftOffset: number }>`
   display: flex;
   flex-direction: column;
   align-items: center;
-  color: white;
-  font-family: 'Arial', sans-serif;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
   z-index: 20001;
   animation: ${riseAndRotate} 2s ease-in-out forwards;
 `;
 
 const Points = styled.div`
-  font-size: 48px;
+  font-size: 32px;
   font-weight: bold;
-  color: #00ff00;
-  margin-bottom: 5px;
+  color: #b87333;
 `;
 
 const RewardText = styled.div`
