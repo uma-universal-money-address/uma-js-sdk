@@ -40,12 +40,12 @@ export interface AuthConfig {
 }
 
 interface OAuthState {
-  codeVerifier?: string;
-  csrfState?: string;
-  uma?: string;
+  codeVerifier?: string | undefined;
+  csrfState?: string | undefined;
+  uma?: string | undefined;
   token?: TokenState | undefined;
   authConfig?: AuthConfig;
-  nwcConnectionUri?: string;
+  nwcConnectionUri?: string | undefined;
   nwcExpiresAt?: number | undefined;
   setAuthConfig: (config: AuthConfig) => void;
   setToken: (token?: TokenState) => void;
@@ -61,6 +61,7 @@ interface OAuthState {
     nwcExpiresAt: number | undefined;
   }>;
   hasValidToken: () => boolean;
+  clearUserAuth: () => void;
 }
 
 export const useOAuth = create<OAuthState>()(
@@ -103,6 +104,16 @@ export const useOAuth = create<OAuthState>()(
           return false;
         }
         return true;
+      },
+      clearUserAuth: () => {
+        set({
+          token: undefined,
+          nwcConnectionUri: undefined,
+          nwcExpiresAt: undefined,
+          codeVerifier: undefined,
+          csrfState: undefined,
+          uma: undefined,
+        });
       },
     }),
     {
