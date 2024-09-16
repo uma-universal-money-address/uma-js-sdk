@@ -4281,7 +4281,27 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@uma-sdk/uma-auth-client@^0.0.1, @uma-sdk/uma-auth-client@workspace:packages/uma-auth-client":
+"@uma-sdk/uma-auth-client@npm:^0.0.1":
+  version: 0.0.1
+  resolution: "@uma-sdk/uma-auth-client@npm:0.0.1"
+  dependencies:
+    "@emotion/css": ^11.11.2
+    "@emotion/react": ^11.11.4
+    "@emotion/styled": ^11.11.5
+    "@lightsparkdev/ui": 1.0.8
+    dayjs: ^1.11.13
+    framer-motion: ^11.3.28
+    nostr-tools: ^1.17.0
+    oauth4webapi: ^2.12.1
+    react: ^18.3.1
+    react-dom: ^18.3.1
+    react-router-dom: 6.11.2
+    zustand: ^4.5.5
+  checksum: b1d2c83b452b733e59a6fc7019339cd05fa08419d3c7c9d765a86eaa41034d722f4d39b99461521af58de5e7f0d400b4f9bed6b96ddf90b06ec349b5fe16491c
+  languageName: node
+  linkType: hard
+
+"@uma-sdk/uma-auth-client@workspace:packages/uma-auth-client":
   version: 0.0.0-use.local
   resolution: "@uma-sdk/uma-auth-client@workspace:packages/uma-auth-client"
   dependencies:
