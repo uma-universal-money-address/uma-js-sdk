@@ -212,12 +212,13 @@ const oAuthTokenExchange = async (state: OAuthState) => {
   }
 
   const discoveryDocument = await fetchDiscoveryDocument(uma);
+
   const as: oauth.AuthorizationServer = {
     issuer: new URL(discoveryDocument.authorization_endpoint).origin,
     authorization_endpoint: discoveryDocument.authorization_endpoint,
     token_endpoint: discoveryDocument.token_endpoint,
     code_challenge_methods_supported:
-      discoveryDocument.code_challenge_methods_supported,
+      discoveryDocument.code_challenge_methods_supported || ["S256"],
   };
 
   const authClient: oauth.Client = {

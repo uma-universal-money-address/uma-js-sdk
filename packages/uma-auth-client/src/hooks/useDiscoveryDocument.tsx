@@ -1,22 +1,36 @@
 import { useEffect, useState } from "react";
 import { getUmaDomain } from "src/utils/getUmaDomain";
 import { useUser } from "./useUser";
+import { UmaUnsupportedError } from "src/types/errors";
 
 export interface DiscoveryDocument {
+  uma_major_versions: number[];
   authorization_endpoint: string;
   token_endpoint: string;
-  code_challenge_methods_supported: string[];
+  code_challenge_methods_supported?: string[];
   grant_types_supported?: string[];
   supported_nwc_commands?: string[];
-  uma_major_versions?: number[];
   uma_request_endpoint?: string;
 }
 
 export const fetchDiscoveryDocument = async (uma: string) => {
-  const discoveryDocument = await fetch(
-    `${getUmaDomain(uma)}/.well-known/uma-configuration`,
-  );
-  return (await discoveryDocument.json()) as DiscoveryDocument;
+  try {
+    const discoveryDocument = await fetch(
+      `${getUmaDomain(uma)}/.well-known/uma-configuration`,
+    );
+    if (!discoveryDocument.ok) {
+      throw new UmaUnsupportedError("Failed to fetch discovery document");
+    }
+    const jsonBody = await discoveryDocument.json();
+    if (!jsonBody.authorization_endpoint || !jsonBody.token_endpoint) {
+      throw new UmaUnsupportedError("Missing requried fields in discovery document");
+    }
+
+    return jsonBody as DiscoveryDocument;
+  } catch (e) {
+    console.error(e);
+    throw new UmaUnsupportedError("Failed to fetch discovery document");
+  }
 };
 
 export const useDiscoveryDocument = () => {

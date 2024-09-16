@@ -48,9 +48,12 @@ const UmaConnectButton = (props: Props) => {
     }
 
     let shouldOpenModalImmediately: boolean = false;
-    if (codeVerifier && !isConnected && step !== Step.WaitingForApproval) {
+    if (codeVerifier && !isConnected && step !== Step.WaitingForApproval && step !== Step.ErrorConnecting) {
       setStep(Step.WaitingForApproval);
-      oAuthTokenExchange();
+      oAuthTokenExchange().catch((e) => {
+        console.error(e);
+        setStep(Step.ErrorConnecting);
+      });
       shouldOpenModalImmediately = true;
     } else if (isConnected && step === Step.WaitingForApproval) {
       setStep(Step.DoneConnecting);
