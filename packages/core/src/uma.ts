@@ -732,7 +732,7 @@ function addInvoiceUUIDToEncodedMetadata(
   let encodedString;
   try {
     const decodedMetadata: string[][] = JSON.parse(metadata);
-    decodedMetadata.push(["text/plain", invoiceUUID]);
+    decodedMetadata.push(["text/uma-invoice", invoiceUUID]);
     encodedString = JSON.stringify(decodedMetadata);
   } catch (e) {
     encodedString = metadata;
