@@ -23,7 +23,7 @@ export const fetchDiscoveryDocument = async (uma: string) => {
     }
     const jsonBody = await discoveryDocument.json();
     if (!jsonBody.authorization_endpoint || !jsonBody.token_endpoint) {
-      throw new UmaUnsupportedError("Missing requried fields in discovery document");
+      throw new UmaUnsupportedError("Missing required fields in discovery document");
     }
 
     return jsonBody as DiscoveryDocument;
