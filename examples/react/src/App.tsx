@@ -32,7 +32,7 @@ function App() {
   const [umaConnectFontFamily, setUmaConnectFontFamily] = useState("Arial");
   const [umaConnectFontSize, setUmaConnectFontSize] = useState("16px");
   const [umaConnectFontWeight, setUmaConnectFontWeight] = useState("600");
-  const { nwcConnectionUri } = useOAuth();
+  const { nwcConnectionUri, clearUserAuth } = useOAuth();
 
   const handleChangeInput =
     (setter: (value: string) => void) =>
@@ -48,6 +48,11 @@ function App() {
 
   return (
     <Main>
+      {nwcConnectionUri && (
+        <ClearAuthStateButton onClick={clearUserAuth}>
+          Clear UMA Auth State
+        </ClearAuthStateButton>
+      )}
       <Options>
         <Input
           name="appIdentityPubkey"
@@ -223,6 +228,17 @@ const StyledInput = styled.input`
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
+`;
+
+const ClearAuthStateButton = styled.button`
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  position: fixed;
+  top: 0;
+  right: 0;
+  margin: 16px;
 `;
 
 export default App;
