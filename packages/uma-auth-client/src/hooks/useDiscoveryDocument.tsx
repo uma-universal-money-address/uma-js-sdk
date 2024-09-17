@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { UmaUnsupportedError } from "src/types/errors";
 import { getUmaDomain } from "src/utils/getUmaDomain";
 import { useUser } from "./useUser";
-import { UmaUnsupportedError } from "src/types/errors";
 
 export interface DiscoveryDocument {
   uma_major_versions: number[];
@@ -23,7 +23,9 @@ export const fetchDiscoveryDocument = async (uma: string) => {
     }
     const jsonBody = await discoveryDocument.json();
     if (!jsonBody.authorization_endpoint || !jsonBody.token_endpoint) {
-      throw new UmaUnsupportedError("Missing required fields in discovery document");
+      throw new UmaUnsupportedError(
+        "Missing required fields in discovery document",
+      );
     }
 
     return jsonBody as DiscoveryDocument;
