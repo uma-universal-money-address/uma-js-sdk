@@ -1,7 +1,7 @@
 {
   "name": "@uma-sdk/uma-auth-client",
   "description": "UMA Auth Client SDK for Web (Alpha)",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "files": [
     "dist"
@@ -14,7 +14,7 @@
   "bugs": {
     "url": "https://github.com/uma-universal-money-address/uma-js-sdk/issues"
   },
-  "main": "./dist/uma-auth-client.umd.cjs",
+  "main": "./dist/uma-auth-client.js",
   "exports": {
     ".": {
       "types": "./dist/uma-auth-client.d.ts",
@@ -28,6 +28,7 @@
       }
     }
   },
+  "types": "./dist/uma-auth-client.d.ts",
   "module": "./dist/uma-auth-client.js",
   "scripts": {
     "dev:lib": "tsc && vite build --emptyOutDir=false --config vite.config.lib.js --watch",
