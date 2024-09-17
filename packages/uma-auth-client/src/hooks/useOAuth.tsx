@@ -16,7 +16,7 @@ type UmaAuthToken = {
   nwc_expires_at?: number | undefined;
 };
 
-interface TokenState {
+export interface TokenState {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;

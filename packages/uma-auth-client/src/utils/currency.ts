@@ -14,5 +14,8 @@ export const formatAmountString = ({
   currency: Currency;
   amountInLowestDenom: number;
 }) => {
+  if (currency.symbol === "") {
+    return `${convertToNormalDenomination(amountInLowestDenom, currency)} ${currency.code}`;
+  }
   return `${currency.symbol}${convertToNormalDenomination(amountInLowestDenom, currency)}`;
 };

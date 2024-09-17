@@ -1,22 +1,15 @@
 import styled from "@emotion/styled";
-import { Button, Icon } from "@lightsparkdev/ui/components";
+import { Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
-import { useEffect, useState } from "react";
 import { ConnectionCard } from "src/components/ConnectionCard";
+import { useBalance } from "src/hooks/nwc-requests/useBalance";
+import { useCurrency } from "src/hooks/nwc-requests/useCurrency";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
-import { useNwcRequester } from "src/hooks/useNwcRequester";
-import { useOAuth } from "src/hooks/useOAuth";
+import { TokenState, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
-import * as Nip47 from "src/Nip47Types";
-import { NwcRequester } from "src/NwcRequester";
-import {
-  Connection,
-  ConnectionStatus,
-  LimitFrequency,
-  PermissionType,
-} from "src/types/connection";
+import { Connection, LimitFrequency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
 const RENEWAL_DATE_FUNCTIONS = {
@@ -24,6 +17,7 @@ const RENEWAL_DATE_FUNCTIONS = {
   [LimitFrequency.WEEKLY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "week"),
   [LimitFrequency.MONTHLY]: (createdAt: dayjs.Dayjs) =>
     createdAt.add(1, "month"),
+  [LimitFrequency.YEARLY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "year"),
 };
 
 const getRenewalString = (connection: Connection) => {
@@ -51,62 +45,56 @@ const getRenewalString = (connection: Connection) => {
   }
 };
 
+const isLimitEnabled = (token: TokenState | undefined) => {
+  return !!token?.budget;
+};
+
+const getLimitFrequency = (token: TokenState | undefined) => {
+  const [leftOfSlash, rightOfSlash] = token?.budget?.split("/") || [];
+
+  if (!rightOfSlash) {
+    return LimitFrequency.NONE;
+  }
+
+  const limitFrequency = rightOfSlash as LimitFrequency;
+  if (Object.values(LimitFrequency).includes(limitFrequency)) {
+    return limitFrequency;
+  }
+
+  throw new Error("Invalid limit frequency");
+};
+
 export const ConnectedWallet = () => {
   const { uma } = useUser();
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
-  const { nwcExpiresAt } = useOAuth();
-  const { nwcRequester } = useNwcRequester();
-  const [balance, setBalance] = useState<
-    Nip47.GetBalanceResponse | undefined
-  >();
+  const { nwcExpiresAt, token } = useOAuth();
+  const { balance, isLoading: isLoadingBalance } = useBalance();
+  const { currency, isLoading: isLoadingCurrency } = useCurrency();
+
+  if (isLoadingBalance || isLoadingCurrency || isLoadingDiscoveryDocument) {
+    // TODO: Add loading state
+    return <div>Loading...</div>;
+  }
+
+  if (!currency) {
+    // TODO: Add error state
+    return <div>Error loading currency data</div>;
+  }
 
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
-  // TODO: Get connection details with NWC connection
   const connection: Connection = {
-    connectionId: "1",
-    clientId: "",
-    name: "",
+    // TODO: Get createdAt from auth token or info
     createdAt: "2024-08-23",
-    permissions: [
-      {
-        type: PermissionType.SEND_PAYMENTS,
-        description: "Send payments",
-      },
-      {
-        type: PermissionType.READ_BALANCE,
-        description: "Read balance",
-      },
-      {
-        type: PermissionType.READ_TRANSACTIONS,
-        description: "Read transactions",
-      },
-    ],
+    // TODO: Get amounts from somewhere
     amountInLowestDenom: 50000,
     amountInLowestDenomUsed: 12345,
-    limitEnabled: true,
-    currency: {
-      code: "USD",
-      name: "US Dollar",
-      symbol: "$",
-      decimals: 2,
-      type: "fiat",
-    },
-    status: ConnectionStatus.ACTIVE,
-    limitFrequency: LimitFrequency.MONTHLY,
+    limitEnabled: isLimitEnabled(token),
+    currency,
+    limitFrequency: getLimitFrequency(token),
     expiration,
   };
-
-  useEffect(() => {
-    async function fetchBalance(nwcRequester: NwcRequester) {
-      const res = await nwcRequester.getBalance();
-      setBalance(res);
-    }
-    if (nwcRequester) {
-      fetchBalance(nwcRequester);
-    }
-  }, [nwcRequester]);
 
   let limitRenewalString = "";
   if (connection.limitEnabled) {
@@ -126,13 +114,7 @@ export const ConnectedWallet = () => {
           connection={connection}
           balance={{
             amountInLowestDenom: balance?.balance || 0,
-            currency: {
-              code: "USD",
-              name: "US Dollar",
-              symbol: "$",
-              decimals: 2,
-              type: "fiat",
-            },
+            currency,
           }}
         />
         <TextContainer>
@@ -145,7 +127,7 @@ export const ConnectedWallet = () => {
                     <LabelModerate
                       content={formatAmountString({
                         amountInLowestDenom: connection.amountInLowestDenomUsed,
-                        currency: connection.currency,
+                        currency,
                       })}
                     />{" "}
                     <Label
@@ -176,30 +158,30 @@ export const ConnectedWallet = () => {
         </TextContainer>
       </ConnectionSection>
       <ButtonContainer>
-        <Button
+        {/* <Button
           icon="LinkIcon"
           text="Manage connection"
           kind="secondary"
           loading={isLoadingDiscoveryDocument}
           externalLink={
             uma && discoveryDocument
-              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
+              ? `${new URL(discoveryDocument.connection_management_endpoint)}`
               : undefined
           }
           fullWidth
-        />
-        <Button
+        /> */}
+        {/* <Button
           icon="ArrowCornerDownRight"
           text="Disconnect"
           kind="danger"
           loading={isLoadingDiscoveryDocument}
           externalLink={
             uma && discoveryDocument
-              ? `${new URL(discoveryDocument.authorization_endpoint).origin}/connection/${connection.connectionId}`
+              ? `${new URL(discoveryDocument.revocation_endpoint)}`
               : undefined
           }
           fullWidth
-        />
+        /> */}
       </ButtonContainer>
     </Container>
   );
