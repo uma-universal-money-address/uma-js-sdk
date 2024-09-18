@@ -21,7 +21,7 @@ function App() {
     "list_transactions",
   ]);
   const [budgetAmount, setBudgetAmount] = useState("500");
-  const [budgetCurrency, setBudgetCurrency] = useState("USD");
+  const [budgetCurrency, setBudgetCurrency] = useState("SAT");
   const [budgetPeriod, setBudgetPeriod] = useState("monthly");
 
   const [umaConnectBackground, setUmaConnectBackground] = useState("#7366C5");
