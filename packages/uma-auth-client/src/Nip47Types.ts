@@ -119,7 +119,6 @@ export type LookupUserRequest = {
 };
 
 export type LookupUserResponse = {
-  receiver: Receiver;
   currencies: Currency[];
 };
 
