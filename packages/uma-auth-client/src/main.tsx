@@ -1,6 +1,7 @@
-import * as React from "react";
+/* eslint-disable react-refresh/only-export-components */
+import type * as React from "react";
 import {
-  TAG_NAME as UmaConnectButtonTagName,
+  type TAG_NAME as UmaConnectButtonTagName,
   UmaConnectButtonWebComponent,
 } from "./components/UmaConnectButton";
 

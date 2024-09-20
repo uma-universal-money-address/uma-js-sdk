@@ -1,7 +1,11 @@
 import styled from "@emotion/styled";
 import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
-import { Connection, Currency, LimitFrequency } from "src/types/connection";
+import {
+  type Connection,
+  type Currency,
+  LimitFrequency,
+} from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
 interface Props {

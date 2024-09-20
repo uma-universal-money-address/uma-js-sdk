@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import * as Nip47 from "src/Nip47Types";
-import { NwcRequester } from "src/NwcRequester";
+import type * as Nip47 from "src/Nip47Types";
+import { type NwcRequester } from "src/NwcRequester";
 import { useNwcRequester } from "../useNwcRequester";
 import { useCurrency } from "./useCurrency";
 
@@ -30,7 +30,7 @@ export const useBalance = () => {
     if (nwcRequester && !isLoadingCurrency) {
       fetchBalance(nwcRequester);
     }
-  }, [nwcRequester, isLoadingCurrency]);
+  }, [nwcRequester, isLoadingCurrency, currency]);
 
   return { balance, isLoading };
 };

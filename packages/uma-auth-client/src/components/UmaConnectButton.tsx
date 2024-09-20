@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { RefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 import { useModalState } from "src/hooks/useModalState";
-import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
+import { type AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
@@ -23,7 +23,6 @@ const UmaConnectButton = (props: Props) => {
   const {
     authConfig,
     codeVerifier,
-    nwcConnectionUri,
     isConnectionValid,
     oAuthTokenExchange,
     setAuthConfig,
@@ -71,7 +70,16 @@ const UmaConnectButton = (props: Props) => {
         setIsModalOpen(true);
       }, 200);
     }
-  }, [codeVerifier, uma, isConnected, step]);
+  }, [
+    codeVerifier,
+    uma,
+    isConnected,
+    step,
+    isModalOpen,
+    oAuthTokenExchange,
+    setStep,
+    setIsModalOpen,
+  ]);
 
   const handleOpenModal = () => {
     if (isConnected) {

@@ -7,9 +7,9 @@ import { ConnectionCard } from "src/components/ConnectionCard";
 import { useBalance } from "src/hooks/nwc-requests/useBalance";
 import { useCurrency } from "src/hooks/nwc-requests/useCurrency";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
-import { TokenState, useOAuth } from "src/hooks/useOAuth";
+import { type TokenState, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
-import { Connection, LimitFrequency } from "src/types/connection";
+import { type Connection, LimitFrequency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
 const RENEWAL_DATE_FUNCTIONS = {
@@ -50,13 +50,13 @@ const isLimitEnabled = (token: TokenState | undefined) => {
 };
 
 const getLimitFrequency = (token: TokenState | undefined) => {
-  const [leftOfSlash, rightOfSlash] = token?.budget?.split("/") || [];
+  const limitFrequencyString = token?.budget?.split("/")[1] || [];
 
-  if (!rightOfSlash) {
+  if (!limitFrequencyString) {
     return LimitFrequency.NONE;
   }
 
-  const limitFrequency = rightOfSlash as LimitFrequency;
+  const limitFrequency = limitFrequencyString as LimitFrequency;
   if (Object.values(LimitFrequency).includes(limitFrequency)) {
     return limitFrequency;
   }
@@ -66,8 +66,7 @@ const getLimitFrequency = (token: TokenState | undefined) => {
 
 export const ConnectedWallet = () => {
   const { uma } = useUser();
-  const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
-    useDiscoveryDocument();
+  const { isLoading: isLoadingDiscoveryDocument } = useDiscoveryDocument();
   const { nwcExpiresAt, token } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { currency, isLoading: isLoadingCurrency } = useCurrency();

@@ -1,4 +1,4 @@
-import { Currency } from "src/types/connection";
+import { type Currency } from "src/types/connection";
 
 export const convertToNormalDenomination = (
   amount: number,

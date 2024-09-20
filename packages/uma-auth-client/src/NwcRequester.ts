@@ -1,12 +1,12 @@
 // Adapted from Alby's NWC sdk: https://github.com/getAlby/js-sdk/blob/master/src/NWCClient.ts
 import {
-  Event,
+  type Event,
   finishEvent,
   getPublicKey,
   nip04,
-  Relay,
+  type Relay,
   relayInit,
-  UnsignedEvent,
+  type UnsignedEvent,
 } from "nostr-tools";
 import * as Nip47 from "./Nip47Types";
 

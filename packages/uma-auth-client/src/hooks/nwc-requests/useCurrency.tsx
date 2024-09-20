@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { NwcRequester } from "src/NwcRequester";
-import { Currency } from "src/types/connection";
+import { type NwcRequester } from "src/NwcRequester";
+import { type Currency } from "src/types/connection";
 import { useNwcRequester } from "../useNwcRequester";
-import { TokenState, useOAuth } from "../useOAuth";
+import { type TokenState, useOAuth } from "../useOAuth";
 
 const SAT_CURRENCY: Currency = {
   code: "SAT",
@@ -68,7 +68,7 @@ export const useCurrency = () => {
     if (nwcRequester) {
       fetchCurrency(nwcRequester);
     }
-  }, [nwcRequester]);
+  }, [nwcRequester, token]);
 
   return { currency, isLoading };
 };

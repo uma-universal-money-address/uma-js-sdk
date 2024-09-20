@@ -2,7 +2,7 @@ import * as oauth from "oauth4webapi";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  DiscoveryDocument,
+  type DiscoveryDocument,
   fetchDiscoveryDocument,
 } from "./useDiscoveryDocument";
 
@@ -197,7 +197,8 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     throw new Error("UMA not set.");
   }
 
-  // If we have a connection URI and the access token that hasn't expired, we don't need to do anything
+  // If we have a connection URI and the access token that hasn't expired, we don't need to do
+  // anything
   if (
     nwcConnectionUri &&
     token &&
