@@ -108,7 +108,8 @@ export type LookupInvoiceRequest = {
   payment_hash: string;
 };
 
-// Note: when we have multiple receiver types like bolt12 etc, these will be optional and it is expected that exactly one of the fields is set.
+// Note: when we have multiple receiver types like bolt12 etc, these will be optional and it is
+// expected that exactly one of the fields is set.
 export type Receiver = {
   lud16: string;
 };

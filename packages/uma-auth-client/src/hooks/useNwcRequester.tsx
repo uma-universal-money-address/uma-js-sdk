@@ -36,7 +36,12 @@ export const useNwcRequester = () => {
     if (isConnectionValid() && nwcConnectionUri) {
       setNwcRequester(nwcConnectionUri, oAuthTokenExchange);
     }
-  }, [isConnectionValid, nwcConnectionUri, oAuthTokenExchange]);
+  }, [
+    isConnectionValid,
+    nwcConnectionUri,
+    oAuthTokenExchange,
+    setNwcRequester,
+  ]);
 
   return { nwcRequester, resetNwcRequester };
 };

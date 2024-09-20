@@ -1,4 +1,3 @@
-import { useTheme } from "@emotion/react";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
@@ -9,7 +8,6 @@ import { Step } from "src/types";
 
 export const MoreOptions = () => {
   const { setStep } = useModalState();
-  const theme = useTheme();
 
   return (
     <>
