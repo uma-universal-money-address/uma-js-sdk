@@ -4,6 +4,7 @@ import { useState } from "react";
 import Balance from "./components/Balance";
 import InvoiceCreator from "./components/InvoiceCreator";
 import LookupUser from "./components/LookupUser";
+import PayInvoice from "./components/PayInvoice";
 
 function App() {
   const [appIdentityPubkey, setAppIdentityPubkey] = useState(
@@ -164,6 +165,7 @@ function App() {
         />
         {nwcConnectionUri && <Balance />}
         {nwcConnectionUri && <InvoiceCreator />}
+        {nwcConnectionUri && <PayInvoice />}
         {nwcConnectionUri && <LookupUser />}
       </Section>
     </Main>
