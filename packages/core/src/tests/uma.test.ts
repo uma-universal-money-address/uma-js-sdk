@@ -186,9 +186,24 @@ describe("uma", () => {
     expect(query).toEqual(expectedQuery);
   });
 
+  it("fails to parse invalid uma usernames in lnurlp url", () => {
+    const urlString =
+      "https://vasp2/.well-known/lnurlp/$bob(?signature=signature&nonce=12345&vaspDomain=vasp1&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678";
+    const urlObj = new URL(urlString);
+    try {
+      expect(parseLnurlpRequest(urlObj)).toThrow(
+        "Invalid username in request path.",
+      );
+    } catch (e) {
+      if (!isError(e)) {
+        throw new Error("Invalid error type");
+      }
+    }
+  });
+
   it("validates uma queries", () => {
     const umaQuery =
-      "https://vasp2.com/.well-known/lnurlp/bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678";
+      "https://vasp2.com/.well-known/lnurlp/$bob?signature=signature&nonce=12345&vaspDomain=vasp1.com&umaVersion=1.0&isSubjectToTravelRule=true&timestamp=12345678";
     expect(isUmaLnurlpQuery(new URL(umaQuery))).toBeTruthy();
   });
 
