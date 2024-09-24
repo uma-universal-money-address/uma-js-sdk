@@ -49,7 +49,11 @@ const PayInvoice = () => {
         />
       </Row>
       <button onClick={payInvoice}>Pay Invoice</button>
-      {preimage && <ResultText>Preimage: {preimage}</ResultText>}
+      {preimage && (
+        <ResultText>
+          Preimage: <pre>{preimage}</pre>
+        </ResultText>
+      )}
     </CenteredDiv>
   );
 };
