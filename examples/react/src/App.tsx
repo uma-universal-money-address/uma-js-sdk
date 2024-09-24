@@ -5,6 +5,7 @@ import Balance from "./components/Balance";
 import InvoiceCreator from "./components/InvoiceCreator";
 import LookupUser from "./components/LookupUser";
 import PayInvoice from "./components/PayInvoice";
+import PayUma from "./components/PayUma";
 
 function App() {
   const [appIdentityPubkey, setAppIdentityPubkey] = useState(
@@ -167,6 +168,7 @@ function App() {
         {nwcConnectionUri && <InvoiceCreator />}
         {nwcConnectionUri && <PayInvoice />}
         {nwcConnectionUri && <LookupUser />}
+        {nwcConnectionUri && <PayUma />}
       </Section>
     </Main>
   );
