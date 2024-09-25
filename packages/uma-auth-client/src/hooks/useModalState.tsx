@@ -10,16 +10,31 @@ interface ModalState {
 }
 
 export const useModalState = create<ModalState>((set) => ({
-  step: Step.Connect,
+  step: Step.Empty,
   setStep: (step) => set({ step }),
   onBack: () =>
     set(({ step }) => {
       const stepInfo = STEP_MAP[step];
+      if (stepInfo.onBack) {
+        stepInfo.onBack();
+      }
       if (stepInfo.prev) {
         return { step: stepInfo.prev };
       }
       return { step };
     }),
   isModalOpen: false,
-  setIsModalOpen: (isModalOpen) => set({ isModalOpen }),
+  setIsModalOpen: (isModalOpen) =>
+    set((state) => {
+      const stepInfo = STEP_MAP[state.step];
+      if (
+        state.isModalOpen === true &&
+        isModalOpen === false &&
+        stepInfo.onClose
+      ) {
+        stepInfo.onClose();
+      }
+
+      return { isModalOpen };
+    }),
 }));

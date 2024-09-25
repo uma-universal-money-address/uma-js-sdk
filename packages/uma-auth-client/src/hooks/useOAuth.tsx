@@ -106,6 +106,7 @@ export const useOAuth = create<OAuthState>()(
         return true;
       },
       clearUserAuth: () => {
+        deleteCodeAndStateFromUrl();
         set({
           token: undefined,
           nwcConnectionUri: undefined,
@@ -291,6 +292,8 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     resultToken = processAsUmaAuthToken(result);
   }
 
+  deleteCodeAndStateFromUrl();
+
   return {
     codeVerifier: "",
     token: {
@@ -352,4 +355,11 @@ const processAsUmaAuthToken = (
   }
 
   return umaToken;
+};
+
+const deleteCodeAndStateFromUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("code");
+  url.searchParams.delete("state");
+  window.history.replaceState({}, document.title, url.toString());
 };

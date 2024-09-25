@@ -26,6 +26,7 @@ const UmaConnectButton = (props: Props) => {
     isConnectionValid,
     oAuthTokenExchange,
     setAuthConfig,
+    clearUserAuth,
   } = useOAuth();
 
   const isConnected = isConnectionValid();
@@ -54,10 +55,18 @@ const UmaConnectButton = (props: Props) => {
       step !== Step.ErrorConnecting
     ) {
       setStep(Step.WaitingForApproval);
-      oAuthTokenExchange().catch((e) => {
-        console.error(e);
-        setStep(Step.ErrorConnecting);
-      });
+
+      // Only perform oauth token exchange if the code and state are present in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
+      if (code && state) {
+        oAuthTokenExchange().catch((e) => {
+          console.error(e);
+          clearUserAuth();
+          setStep(Step.ErrorConnecting);
+        });
+      }
       shouldOpenModalImmediately = true;
     } else if (isConnected && step === Step.WaitingForApproval) {
       setStep(Step.DoneConnecting);
@@ -76,6 +85,7 @@ const UmaConnectButton = (props: Props) => {
     isConnected,
     step,
     isModalOpen,
+    clearUserAuth,
     oAuthTokenExchange,
     setStep,
     setIsModalOpen,

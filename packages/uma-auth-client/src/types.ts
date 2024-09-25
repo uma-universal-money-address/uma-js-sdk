@@ -1,3 +1,4 @@
+import { useOAuth } from "./main";
 import { ConnectUma } from "./steps/ConnectUma";
 import { ConnectedWallet } from "./steps/ConnectedWallet";
 import { DoneConnecting } from "./steps/DoneConnecting";
@@ -10,6 +11,7 @@ import { WaitingForApproval } from "./steps/WaitingForApproval";
 import { WhatIsUma } from "./steps/WhatIsUma";
 
 export enum Step {
+  Empty = "Empty",
   Connect = "Connect",
   MoreOptions = "MoreOptions",
   NostrWalletConnect = "NostrWalletConnect",
@@ -27,9 +29,14 @@ interface StepInfo {
   component: React.ComponentType;
   title?: string;
   prev?: Step;
+  onBack?: () => void;
+  onClose?: () => void;
 }
 
 export const STEP_MAP: Record<Step, StepInfo> = {
+  [Step.Empty]: {
+    component: () => null,
+  },
   [Step.Connect]: {
     component: ConnectUma,
   },
@@ -55,6 +62,12 @@ export const STEP_MAP: Record<Step, StepInfo> = {
     component: WaitingForApproval,
     title: "Waiting for approval",
     prev: Step.Connect,
+    onBack: () => {
+      useOAuth.getState().clearUserAuth();
+    },
+    onClose: () => {
+      useOAuth.getState().clearUserAuth();
+    },
   },
   [Step.Unavailable]: {
     component: Unavailable,
