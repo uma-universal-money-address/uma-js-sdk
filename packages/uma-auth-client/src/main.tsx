@@ -19,4 +19,5 @@ declare global {
 export { useNwcRequester } from "./hooks/useNwcRequester";
 export { useOAuth } from "./hooks/useOAuth";
 export * from "./Nip47Types";
+export { NwcRequester } from "./NwcRequester";
 export { UmaConnectButtonWebComponent as UmaConnectButton };
