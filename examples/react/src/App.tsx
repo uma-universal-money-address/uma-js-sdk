@@ -9,7 +9,7 @@ import PayUma from "./components/PayUma";
 
 function App() {
   const [appIdentityPubkey, setAppIdentityPubkey] = useState(
-    "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d",
+    "npub1hf4dj426lt26x5z7d3rc9c95yu7qggr3nv30xkqctv4vru7wnrsq6vw3gz",
   );
   const [nostrRelay, setNostrRelay] = useState("wss://nos.lol");
   const [redirectUri, setRedirectUri] = useState("http://localhost:3001");
