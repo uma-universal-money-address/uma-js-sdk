@@ -1,0 +1,46 @@
+name: "FOSSA Licenses check"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "yarn.lock"
+      - "fossa.yml"
+      - ".github/workflows/licenses.yaml"
+
+jobs:
+  fossa:
+    runs-on: "ubuntu-22.04"
+    permissions:
+      contents: read
+      pull-requests: read
+    env:
+      FOSSA_API_KEY: ${{ secrets.FOSSA_API_KEY }}
+      BRANCH: ${{ github.ref_name }}
+    steps:
+      - name: "Install fossa"
+        run: |
+          FOSSA_CHECKSUM_SHA256="30e0f8d255221760b6f7d261602b2cc05c97d56c374c665c87af2ac82dad442f */tmp/fossa_3.4.5_linux_amd64.zip"
+          wget -q -P /tmp https://github.com/fossas/fossa-cli/releases/download/v3.4.5/fossa_3.4.5_linux_amd64.zip
+          if $(echo "$FOSSA_CHECKSUM_SHA256" | shasum -c | grep -q FAILED); then
+            echo "Mismatched checksum for Fossa binary. Cannot install Fossa."
+            exit 1
+          fi
+          cd /usr/local/bin
+          unzip /tmp/fossa_*.zip
+      - name: print fossa analyze options
+        run: fossa analyze --help
+      - name: "Checkout"
+        uses: "actions/checkout@v3"
+
+      - name: "Setup Node"
+        uses: "actions/setup-node@v3"
+        env:
+          SKIP_YARN_COREPACK_CHECK: true
+        with:
+          node-version-file: ".nvmrc"
+      - name: yarn install with cache
+        uses: ./.github/actions/yarn-nm-install
+      - name: "Run fossa analyze"
+        run: "fossa analyze -b $BRANCH"
