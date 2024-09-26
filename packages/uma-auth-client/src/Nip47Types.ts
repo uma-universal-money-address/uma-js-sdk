@@ -1,6 +1,7 @@
 export type Method =
   | "get_info"
   | "get_balance"
+  | "get_budget"
   | "make_invoice"
   | "pay_invoice"
   | "pay_keysend"
@@ -30,6 +31,13 @@ export type GetBalanceRequest = {
 export type GetBalanceResponse = {
   balance: number; // msats or currency if specified.
   currency_code?: string;
+};
+
+export type GetBudgetResponse = {
+  used_budget?: number;
+  total_budget?: number;
+  renews_at?: number;
+  currency?: Currency;
 };
 
 export type PayResponse = {

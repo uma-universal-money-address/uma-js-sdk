@@ -32,7 +32,6 @@ export enum ConnectionStatus {
 
 export interface Connection {
   name?: string;
-  createdAt: string;
   amountInLowestDenom: number;
   amountInLowestDenomUsed: number;
   limitEnabled: boolean;

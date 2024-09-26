@@ -123,6 +123,20 @@ export class NwcRequester {
     }
   }
 
+  async getBudget(): Promise<Nip47.GetBudgetResponse> {
+    try {
+      const result = await this.executeNip47Request<Nip47.GetBudgetResponse>(
+        "get_budget",
+        {},
+        (result) => !!result.total_budget,
+      );
+      return result;
+    } catch (error) {
+      console.error("Failed to request get_budget", error);
+      throw error;
+    }
+  }
+
   async getBalance(
     request: Nip47.GetBalanceRequest = {},
   ): Promise<Nip47.GetBalanceResponse> {
