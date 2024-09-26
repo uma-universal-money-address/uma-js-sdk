@@ -1,38 +1,28 @@
 import styled from "@emotion/styled";
-import { Icon } from "@lightsparkdev/ui/components";
+import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
 import { ConnectionCard } from "src/components/ConnectionCard";
 import { useBalance } from "src/hooks/nwc-requests/useBalance";
 import { useCurrency } from "src/hooks/nwc-requests/useCurrency";
+import { useGetBudget } from "src/hooks/nwc-requests/useGetBudget";
+import { useGetInfo } from "src/hooks/nwc-requests/useGetInfo";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
+import { useModalState } from "src/hooks/useModalState";
 import { type TokenState, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import { type Connection, LimitFrequency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
-const RENEWAL_DATE_FUNCTIONS = {
-  [LimitFrequency.DAILY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "day"),
-  [LimitFrequency.WEEKLY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "week"),
-  [LimitFrequency.MONTHLY]: (createdAt: dayjs.Dayjs) =>
-    createdAt.add(1, "month"),
-  [LimitFrequency.YEARLY]: (createdAt: dayjs.Dayjs) => createdAt.add(1, "year"),
-};
-
-const getRenewalString = (connection: Connection) => {
+const getRenewalString = (renewsAt: number, connection: Connection) => {
+  const renewalDate = dayjs(renewsAt * 1000);
   if (
-    !connection.limitFrequency ||
-    connection.limitFrequency === LimitFrequency.NONE
+    connection.expiration &&
+    renewalDate.isAfter(dayjs(connection.expiration))
   ) {
-    return;
-  }
-
-  const createdAt = dayjs(connection.createdAt);
-  const renewalDate =
-    RENEWAL_DATE_FUNCTIONS[connection.limitFrequency](createdAt);
-  if (renewalDate.isAfter(dayjs(connection.expiration))) {
-    return;
+    const daysUntilExpiration = renewalDate.diff(connection.expiration, "days");
+    return `Expires in ${daysUntilExpiration} days`;
   }
 
   const daysUntilRenewal = renewalDate.diff(dayjs(), "days");
@@ -67,28 +57,40 @@ const getLimitFrequency = (token: TokenState | undefined) => {
 export const ConnectedWallet = () => {
   const { uma } = useUser();
   const { isLoading: isLoadingDiscoveryDocument } = useDiscoveryDocument();
-  const { nwcExpiresAt, token } = useOAuth();
+  const { nwcExpiresAt, token, clearUserAuth } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { currency, isLoading: isLoadingCurrency } = useCurrency();
+  const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
+  const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
+    useGetBudget();
+  const { setIsModalOpen } = useModalState();
 
-  if (isLoadingBalance || isLoadingCurrency || isLoadingDiscoveryDocument) {
+  if (
+    isLoadingCurrency ||
+    isLoadingBalance ||
+    isLoadingGetInfo ||
+    isLoadingGetBudgetResponse ||
+    isLoadingDiscoveryDocument
+  ) {
     // TODO: Add loading state
-    return <div>Loading...</div>;
+    return <Container>Loading...</Container>;
   }
 
-  if (!currency) {
+  if (!currency || !getInfoResponse || !getBudgetResponse) {
     // TODO: Add error state
-    return <div>Error loading currency data</div>;
+    return <Container>Error loading currency data</Container>;
   }
+
+  const handleDisconnect = () => {
+    setIsModalOpen(false);
+    clearUserAuth();
+  };
 
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
   const connection: Connection = {
-    // TODO: Get createdAt from auth token or info
-    createdAt: "2024-08-23",
-    // TODO: Get amounts from somewhere
-    amountInLowestDenom: 50000,
-    amountInLowestDenomUsed: 12345,
+    amountInLowestDenom: getBudgetResponse.total_budget || 0,
+    amountInLowestDenomUsed: getBudgetResponse.used_budget || 0,
     limitEnabled: isLimitEnabled(token),
     currency,
     limitFrequency: getLimitFrequency(token),
@@ -96,8 +98,9 @@ export const ConnectedWallet = () => {
   };
 
   let limitRenewalString = "";
-  if (connection.limitEnabled) {
-    limitRenewalString = getRenewalString(connection) || "";
+  if (connection.limitEnabled && getBudgetResponse.renews_at) {
+    limitRenewalString =
+      getRenewalString(getBudgetResponse.renews_at, connection) || "";
   }
 
   const limitFrequencyString =
@@ -125,7 +128,9 @@ export const ConnectedWallet = () => {
                   <>
                     <LabelModerate
                       content={formatAmountString({
-                        amountInLowestDenom: connection.amountInLowestDenomUsed,
+                        amountInLowestDenom:
+                          connection.amountInLowestDenom -
+                          connection.amountInLowestDenomUsed,
                         currency,
                       })}
                     />{" "}
@@ -169,18 +174,13 @@ export const ConnectedWallet = () => {
           }
           fullWidth
         /> */}
-        {/* <Button
+        <Button
           icon="ArrowCornerDownRight"
           text="Disconnect"
           kind="danger"
-          loading={isLoadingDiscoveryDocument}
-          externalLink={
-            uma && discoveryDocument
-              ? `${new URL(discoveryDocument.revocation_endpoint)}`
-              : undefined
-          }
+          onClick={handleDisconnect}
           fullWidth
-        /> */}
+        />
       </ButtonContainer>
     </Container>
   );

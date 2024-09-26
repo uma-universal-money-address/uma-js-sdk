@@ -16,6 +16,7 @@ function App() {
   const [requiredCommands, setRequiredCommands] = useState([
     "pay_invoice",
     "get_balance",
+    "get_budget",
     "get_info",
     "make_invoice",
   ]);
