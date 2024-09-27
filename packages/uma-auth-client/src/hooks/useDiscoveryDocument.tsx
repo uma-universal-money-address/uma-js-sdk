@@ -11,6 +11,7 @@ export interface DiscoveryDocument {
   grant_types_supported?: string[];
   supported_nwc_commands?: string[];
   uma_request_endpoint?: string;
+  connection_management_endpoint?: string;
 }
 
 export const fetchDiscoveryDocument = async (uma: string) => {
