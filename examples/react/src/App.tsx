@@ -4,16 +4,19 @@ import { useState } from "react";
 import Balance from "./components/Balance";
 import InvoiceCreator from "./components/InvoiceCreator";
 import LookupUser from "./components/LookupUser";
+import PayInvoice from "./components/PayInvoice";
+import PayUma from "./components/PayUma";
 
 function App() {
   const [appIdentityPubkey, setAppIdentityPubkey] = useState(
-    "npub1scmpzl2ehnrtnhu289d9rfrwprau9z6ka0pmuhz6czj2ae5rpuhs2l4j9d",
+    "npub1hf4dj426lt26x5z7d3rc9c95yu7qggr3nv30xkqctv4vru7wnrsq6vw3gz",
   );
   const [nostrRelay, setNostrRelay] = useState("wss://nos.lol");
   const [redirectUri, setRedirectUri] = useState("http://localhost:3001");
   const [requiredCommands, setRequiredCommands] = useState([
     "pay_invoice",
     "get_balance",
+    "get_budget",
     "get_info",
     "make_invoice",
   ]);
@@ -21,7 +24,7 @@ function App() {
     "list_transactions",
   ]);
   const [budgetAmount, setBudgetAmount] = useState("500");
-  const [budgetCurrency, setBudgetCurrency] = useState("USD");
+  const [budgetCurrency, setBudgetCurrency] = useState("SAT");
   const [budgetPeriod, setBudgetPeriod] = useState("monthly");
 
   const [umaConnectBackground, setUmaConnectBackground] = useState("#7366C5");
@@ -32,7 +35,7 @@ function App() {
   const [umaConnectFontFamily, setUmaConnectFontFamily] = useState("Arial");
   const [umaConnectFontSize, setUmaConnectFontSize] = useState("16px");
   const [umaConnectFontWeight, setUmaConnectFontWeight] = useState("600");
-  const { nwcConnectionUri } = useOAuth();
+  const { nwcConnectionUri, clearUserAuth } = useOAuth();
 
   const handleChangeInput =
     (setter: (value: string) => void) =>
@@ -48,6 +51,11 @@ function App() {
 
   return (
     <Main>
+      {nwcConnectionUri && (
+        <ClearAuthStateButton onClick={clearUserAuth}>
+          Clear UMA Auth State
+        </ClearAuthStateButton>
+      )}
       <Options>
         <Input
           name="appIdentityPubkey"
@@ -159,7 +167,9 @@ function App() {
         />
         {nwcConnectionUri && <Balance />}
         {nwcConnectionUri && <InvoiceCreator />}
+        {nwcConnectionUri && <PayInvoice />}
         {nwcConnectionUri && <LookupUser />}
+        {nwcConnectionUri && <PayUma />}
       </Section>
     </Main>
   );
@@ -223,6 +233,17 @@ const StyledInput = styled.input`
   padding: 8px;
   border-radius: 4px;
   border: 1px solid #ccc;
+`;
+
+const ClearAuthStateButton = styled.button`
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  cursor: pointer;
+  position: fixed;
+  top: 0;
+  right: 0;
+  margin: 16px;
 `;
 
 export default App;

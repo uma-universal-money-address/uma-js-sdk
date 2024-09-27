@@ -1,4 +1,3 @@
-import { useTheme } from "@emotion/react";
 import styled from "@emotion/styled";
 import { Icon } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
@@ -9,7 +8,8 @@ import {
   useMotionValue,
   useTransform,
 } from "framer-motion";
-import React, { useRef } from "react";
+import type React from "react";
+import { useRef } from "react";
 
 const BORDER_RADIUS = "999px";
 
@@ -20,8 +20,6 @@ export const UmaDisplay = ({
   uma?: string | undefined;
   isLoading?: boolean;
 }) => {
-  const theme = useTheme();
-
   return (
     <Container>
       <LoaderContainer>
@@ -53,7 +51,7 @@ export const MovingBorder = ({
   rx?: string;
   ry?: string;
 }) => {
-  const pathRef = useRef<any>();
+  const pathRef = useRef<SVGRectElement | null>(null);
   const progress = useMotionValue<number>(0);
 
   useAnimationFrame((time) => {

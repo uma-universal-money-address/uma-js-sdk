@@ -12,8 +12,9 @@ import { setLocalStorage } from "src/utils/localStorage";
 export const ConnectUma = () => {
   const { setStep } = useModalState();
   const { uma, setUma } = useUser();
-  const { initialOAuthRequest } = useOAuth();
+  const { initialOAuthRequest, clearUserAuth } = useOAuth();
   const [isLoading, setIsLoading] = useState(false);
+
   const handleChangeUma = (value: string) => {
     setUma(`$${value}`);
   };
@@ -29,6 +30,7 @@ export const ConnectUma = () => {
     if (success) {
       setStep(Step.WaitingForApproval);
     } else {
+      clearUserAuth();
       setStep(Step.ErrorConnecting);
     }
     setIsLoading(false);

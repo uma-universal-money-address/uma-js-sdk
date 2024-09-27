@@ -1,20 +1,18 @@
-import { useTheme } from "@emotion/react";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
-import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { useModalState } from "src/hooks/useModalState";
 import { Step } from "src/types";
 
 export const MoreOptions = () => {
   const { setStep } = useModalState();
-  const theme = useTheme();
 
   return (
     <>
       <ModalBody>
-        <Button
+        {/* TODO: Finish implementing Forgot UMA flow */}
+        {/* <Button
           fullWidth
           kind="primary"
           text="Forgot your UMA?"
@@ -24,7 +22,7 @@ export const MoreOptions = () => {
           <Bar />
           <Title size="Medium" content="or" color="secondary" />
           <Bar />
-        </OrContainer>
+        </OrContainer> */}
         <NostrContainer>
           <NostrInfo>
             <LabelModerate size="Large" content="Nostr Wallet Connect" />
@@ -67,20 +65,20 @@ const ModalBody = styled.div`
   align-self: stretch;
 `;
 
-const OrContainer = styled.div`
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-`;
+// const OrContainer = styled.div`
+//   display: flex;
+//   justify-content: center;
+//   align-items: center;
+//   gap: 8px;
+//   width: 100%;
+// `;
 
-const Bar = styled.div`
-  opacity: 0.6;
-  background: #c0c9d6;
-  height: 1px;
-  width: 100%;
-`;
+// const Bar = styled.div`
+//   opacity: 0.6;
+//   background: #c0c9d6;
+//   height: 1px;
+//   width: 100%;
+// `;
 
 const NostrContainer = styled.div`
   display: flex;

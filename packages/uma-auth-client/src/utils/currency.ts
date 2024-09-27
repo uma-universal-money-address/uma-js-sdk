@@ -1,4 +1,4 @@
-import { Currency } from "src/types/connection";
+import { type Currency } from "src/types/connection";
 
 export const convertToNormalDenomination = (
   amount: number,
@@ -14,5 +14,8 @@ export const formatAmountString = ({
   currency: Currency;
   amountInLowestDenom: number;
 }) => {
+  if (currency.symbol === "") {
+    return `${convertToNormalDenomination(amountInLowestDenom, currency)} ${currency.code}`;
+  }
   return `${currency.symbol}${convertToNormalDenomination(amountInLowestDenom, currency)}`;
 };

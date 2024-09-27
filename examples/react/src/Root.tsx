@@ -19,4 +19,10 @@ export function Root() {
 
 const Container = styled.div`
   background-color: ${({ theme }) => theme.bg};
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 `;

@@ -2,7 +2,7 @@ import * as oauth from "oauth4webapi";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  DiscoveryDocument,
+  type DiscoveryDocument,
   fetchDiscoveryDocument,
 } from "./useDiscoveryDocument";
 
@@ -16,7 +16,7 @@ type UmaAuthToken = {
   nwc_expires_at?: number | undefined;
 };
 
-interface TokenState {
+export interface TokenState {
   accessToken: string;
   refreshToken: string;
   expiresAt: number;
@@ -40,20 +40,28 @@ export interface AuthConfig {
 }
 
 interface OAuthState {
-  codeVerifier?: string;
-  csrfState?: string;
-  uma?: string;
+  codeVerifier?: string | undefined;
+  csrfState?: string | undefined;
+  uma?: string | undefined;
   token?: TokenState | undefined;
   authConfig?: AuthConfig;
-  nwcConnectionUri?: string;
+  nwcConnectionUri?: string | undefined;
   nwcExpiresAt?: number | undefined;
   setAuthConfig: (config: AuthConfig) => void;
   setToken: (token?: TokenState) => void;
+  /** Check if the connection is valid or expired. */
+  isConnectionValid: () => boolean;
   /** The initial OAuth request that starts the OAuth handshake. */
   initialOAuthRequest: (uma: string) => Promise<{ success: boolean }>;
   /** OAuth token exchange occurs after the initialOAuthRequest has been made. */
-  oAuthTokenExchange: () => Promise<Partial<OAuthState>>;
+  oAuthTokenExchange: () => Promise<{
+    nwcConnectionUri: string;
+    token: TokenState;
+    codeVerifier: string;
+    nwcExpiresAt: number | undefined;
+  }>;
   hasValidToken: () => boolean;
+  clearUserAuth: () => void;
 }
 
 export const useOAuth = create<OAuthState>()(
@@ -64,6 +72,10 @@ export const useOAuth = create<OAuthState>()(
         set({
           token,
         }),
+      isConnectionValid: () => {
+        const state = get();
+        return isConnectionValid(state);
+      },
       initialOAuthRequest: async (uma) => {
         const state = get();
         const { codeVerifier, authUrl, csrfState } = await getAuthorizationUrl(
@@ -80,7 +92,7 @@ export const useOAuth = create<OAuthState>()(
         const state = get();
         const result = await oAuthTokenExchange(state);
         set(result);
-        return get();
+        return result;
       },
       hasValidToken: () => {
         const state = get();
@@ -93,11 +105,24 @@ export const useOAuth = create<OAuthState>()(
         }
         return true;
       },
+      clearUserAuth: () => {
+        deleteCodeAndStateFromUrl();
+        set({
+          token: undefined,
+          nwcConnectionUri: undefined,
+          nwcExpiresAt: undefined,
+          codeVerifier: undefined,
+          csrfState: undefined,
+          uma: undefined,
+        });
+      },
     }),
     {
       name: "uma-connect",
       partialize: (state) => ({
         nwcConnectionUri: state.nwcConnectionUri,
+        nwcExpiresAt: state.nwcExpiresAt,
+        token: state.token,
         codeVerifier: state.codeVerifier,
         csrfState: state.csrfState,
         uma: state.uma,
@@ -105,6 +130,13 @@ export const useOAuth = create<OAuthState>()(
     },
   ),
 );
+
+const isConnectionValid = (state: OAuthState) => {
+  if (!state.nwcConnectionUri) {
+    return false;
+  }
+  return !state.nwcExpiresAt || Date.now() < state.nwcExpiresAt;
+};
 
 const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
   const { authConfig } = state;
@@ -166,22 +198,29 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     throw new Error("UMA not set.");
   }
 
-  // If we have a connection URI and a token that hasn't expired, we don't need to do anything
+  // If we have a connection URI and the access token that hasn't expired, we don't need to do
+  // anything
   if (
     nwcConnectionUri &&
     token &&
     (!token.expiresAt || Date.now() < token.expiresAt)
   ) {
-    return state;
+    return {
+      codeVerifier: "",
+      token,
+      nwcConnectionUri,
+      nwcExpiresAt,
+    };
   }
 
   const discoveryDocument = await fetchDiscoveryDocument(uma);
+
   const as: oauth.AuthorizationServer = {
     issuer: new URL(discoveryDocument.authorization_endpoint).origin,
     authorization_endpoint: discoveryDocument.authorization_endpoint,
     token_endpoint: discoveryDocument.token_endpoint,
     code_challenge_methods_supported:
-      discoveryDocument.code_challenge_methods_supported,
+      discoveryDocument.code_challenge_methods_supported || ["S256"],
   };
 
   const authClient: oauth.Client = {
@@ -253,6 +292,8 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     resultToken = processAsUmaAuthToken(result);
   }
 
+  deleteCodeAndStateFromUrl();
+
   return {
     codeVerifier: "",
     token: {
@@ -310,8 +351,15 @@ const processAsUmaAuthToken = (
   };
 
   if (token.nwc_expires_at && typeof token.nwc_expires_at === "number") {
-    umaToken.nwc_expires_at = token.nwc_expires_at;
+    umaToken.nwc_expires_at = token.nwc_expires_at * 1000;
   }
 
   return umaToken;
+};
+
+const deleteCodeAndStateFromUrl = () => {
+  const url = new URL(window.location.href);
+  url.searchParams.delete("code");
+  url.searchParams.delete("state");
+  window.history.replaceState({}, document.title, url.toString());
 };

@@ -17,7 +17,6 @@ export const ConnectUmaModal = (props: Props) => {
     useModalState();
 
   const stepInfo = STEP_MAP[step];
-  const stepComponent = stepInfo.component;
 
   const helpButton = (
     <Button

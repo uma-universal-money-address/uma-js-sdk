@@ -1,9 +1,9 @@
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { RefObject, useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 import { useModalState } from "src/hooks/useModalState";
-import { AuthConfig, useOAuth } from "src/hooks/useOAuth";
+import { type AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
@@ -23,13 +23,13 @@ const UmaConnectButton = (props: Props) => {
   const {
     authConfig,
     codeVerifier,
-    nwcConnectionUri,
+    isConnectionValid,
     oAuthTokenExchange,
     setAuthConfig,
+    clearUserAuth,
   } = useOAuth();
 
-  // TODO: check if token is still valid
-  const isConnected = !!nwcConnectionUri;
+  const isConnected = isConnectionValid();
 
   if (!authConfig) {
     setAuthConfig(props.authConfig);
@@ -48,9 +48,25 @@ const UmaConnectButton = (props: Props) => {
     }
 
     let shouldOpenModalImmediately: boolean = false;
-    if (codeVerifier && !isConnected && step !== Step.WaitingForApproval) {
+    if (
+      codeVerifier &&
+      !isConnected &&
+      step !== Step.WaitingForApproval &&
+      step !== Step.ErrorConnecting
+    ) {
       setStep(Step.WaitingForApproval);
-      oAuthTokenExchange();
+
+      // Only perform oauth token exchange if the code and state are present in the URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+      const state = urlParams.get("state");
+      if (code && state) {
+        oAuthTokenExchange().catch((e) => {
+          console.error(e);
+          clearUserAuth();
+          setStep(Step.ErrorConnecting);
+        });
+      }
       shouldOpenModalImmediately = true;
     } else if (isConnected && step === Step.WaitingForApproval) {
       setStep(Step.DoneConnecting);
@@ -63,7 +79,17 @@ const UmaConnectButton = (props: Props) => {
         setIsModalOpen(true);
       }, 200);
     }
-  }, [codeVerifier, uma, isConnected, step]);
+  }, [
+    codeVerifier,
+    uma,
+    isConnected,
+    step,
+    isModalOpen,
+    clearUserAuth,
+    oAuthTokenExchange,
+    setStep,
+    setIsModalOpen,
+  ]);
 
   const handleOpenModal = () => {
     if (isConnected) {

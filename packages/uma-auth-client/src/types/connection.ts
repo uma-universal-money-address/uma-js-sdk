@@ -3,7 +3,6 @@ export interface Currency {
   name: string;
   symbol: string;
   decimals: number;
-  type: string;
 }
 
 export enum PermissionType {
@@ -21,6 +20,7 @@ export enum LimitFrequency {
   DAILY = "daily",
   WEEKLY = "weekly",
   MONTHLY = "monthly",
+  YEARLY = "yearly",
   NONE = "none",
 }
 
@@ -31,16 +31,11 @@ export enum ConnectionStatus {
 }
 
 export interface Connection {
-  connectionId: string;
-  clientId: string;
-  name: string;
-  createdAt: string;
-  permissions: Permission[];
+  name?: string;
   amountInLowestDenom: number;
   amountInLowestDenomUsed: number;
   limitEnabled: boolean;
   currency: Currency;
-  status: ConnectionStatus;
   limitFrequency?: LimitFrequency;
   expiration?: string;
   lastUsed?: string;

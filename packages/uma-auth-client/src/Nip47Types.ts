@@ -1,6 +1,7 @@
 export type Method =
   | "get_info"
   | "get_balance"
+  | "get_budget"
   | "make_invoice"
   | "pay_invoice"
   | "pay_keysend"
@@ -20,7 +21,7 @@ export type GetInfoResponse = {
   block_hash: string;
   methods: Method[];
   lud16?: string;
-  currencies?: Currency[];
+  currencies?: CurrencyPreference[];
 };
 
 export type GetBalanceRequest = {
@@ -30,6 +31,22 @@ export type GetBalanceRequest = {
 export type GetBalanceResponse = {
   balance: number; // msats or currency if specified.
   currency_code?: string;
+};
+
+export type BudgetCurrency = {
+  code: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  total_budget: number;
+  used_budget: number;
+};
+
+export type GetBudgetResponse = {
+  used_budget?: number;
+  total_budget?: number;
+  renews_at?: number;
+  currency?: BudgetCurrency;
 };
 
 export type PayResponse = {
@@ -79,10 +96,14 @@ export type Currency = {
   code: string;
   name: string;
   symbol: string;
+  decimals: number;
+};
+
+export type CurrencyPreference = {
+  currency: Currency;
   multiplier: number;
   min: number;
   max: number;
-  decimals: number;
 };
 
 export type PayInvoiceRequest = {
@@ -108,7 +129,8 @@ export type LookupInvoiceRequest = {
   payment_hash: string;
 };
 
-// Note: when we have multiple receiver types like bolt12 etc, these will be optional and it is expected that exactly one of the fields is set.
+// Note: when we have multiple receiver types like bolt12 etc, these will be optional and it is
+// expected that exactly one of the fields is set.
 export type Receiver = {
   lud16: string;
 };
@@ -119,7 +141,6 @@ export type LookupUserRequest = {
 };
 
 export type LookupUserResponse = {
-  receiver: Receiver;
   currencies: Currency[];
 };
 

@@ -4,7 +4,7 @@ import { themes } from "@lightsparkdev/ui/styles/themes";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { GlobalStyles } from "src/GlobalStyles";
-import { AuthConfig, BudgetConfig } from "src/hooks/useOAuth";
+import { type AuthConfig, type BudgetConfig } from "src/hooks/useOAuth";
 
 type ComponentWithAuth = React.FC<{
   authConfig: AuthConfig;

@@ -85,6 +85,12 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
   ) {
     throw new Error("invalid request path");
   }
+
+  const username = pathParts[3];
+  if (!/^[a-zA-Z0-9._$+-]+$/.test(username)) {
+    throw new Error("Invalid username in request path");
+  }
+
   const receiverAddress = pathParts[3] + "@" + url.host;
 
   if (umaVersion !== undefined && !isVersionSupported(umaVersion)) {
@@ -732,7 +738,7 @@ function addInvoiceUUIDToEncodedMetadata(
   let encodedString;
   try {
     const decodedMetadata: string[][] = JSON.parse(metadata);
-    decodedMetadata.push(["text/plain", invoiceUUID]);
+    decodedMetadata.push(["text/uma-invoice", invoiceUUID]);
     encodedString = JSON.stringify(decodedMetadata);
   } catch (e) {
     encodedString = metadata;

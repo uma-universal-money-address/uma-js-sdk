@@ -1,11 +1,28 @@
 import styled from "@emotion/styled";
+import { Button } from "@lightsparkdev/ui/components";
 import { Body } from "@lightsparkdev/ui/components/typography/Body";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
+import { useState } from "react";
 import { UmaDisplay } from "src/components/UmaDisplay";
+import { useModalState } from "src/hooks/useModalState";
 import { useUser } from "src/hooks/useUser";
+import { useOAuth } from "src/main";
+import { Step } from "src/types";
 
 export const WaitingForApproval = () => {
   const { uma } = useUser();
+  const { initialOAuthRequest, clearUserAuth } = useOAuth();
+  const { setStep } = useModalState();
+  const [isLoadingRetry, setIsLoadingRetry] = useState(false);
+
+  const handleRetry = async () => {
+    setIsLoadingRetry(true);
+    const { success } = await initialOAuthRequest(uma!);
+    if (!success) {
+      clearUserAuth();
+      setStep(Step.ErrorConnecting);
+    }
+  };
 
   return (
     <Container>
@@ -18,6 +35,13 @@ export const WaitingForApproval = () => {
           color={["content", "secondary"]}
         />
       </TextContainer>
+      <Button
+        text="Retry"
+        kind="secondary"
+        fullWidth
+        onClick={handleRetry}
+        loading={isLoadingRetry}
+      />
     </Container>
   );
 };
