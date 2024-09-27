@@ -51,11 +51,11 @@ export const useCurrency = () => {
 
         const connectionCurrency = getConnectionCurrency(
           token,
-          currencies.map((currency) => ({
-            code: currency.code,
-            name: currency.name,
-            symbol: currency.symbol,
-            decimals: currency.decimals,
+          currencies.map((currencyPreference) => ({
+            code: currencyPreference.currency.code,
+            name: currencyPreference.currency.name,
+            symbol: currencyPreference.currency.symbol,
+            decimals: currencyPreference.currency.decimals,
           })),
         );
         setCurrency(connectionCurrency);

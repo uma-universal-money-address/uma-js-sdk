@@ -5,7 +5,6 @@ import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelMode
 import dayjs from "dayjs";
 import { ConnectionCard } from "src/components/ConnectionCard";
 import { useBalance } from "src/hooks/nwc-requests/useBalance";
-import { useCurrency } from "src/hooks/nwc-requests/useCurrency";
 import { useGetBudget } from "src/hooks/nwc-requests/useGetBudget";
 import { useGetInfo } from "src/hooks/nwc-requests/useGetInfo";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
@@ -59,14 +58,12 @@ export const ConnectedWallet = () => {
   const { isLoading: isLoadingDiscoveryDocument } = useDiscoveryDocument();
   const { nwcExpiresAt, token, clearUserAuth } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
-  const { currency, isLoading: isLoadingCurrency } = useCurrency();
   const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
   const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
     useGetBudget();
   const { setIsModalOpen } = useModalState();
 
   if (
-    isLoadingCurrency ||
     isLoadingBalance ||
     isLoadingGetInfo ||
     isLoadingGetBudgetResponse ||
@@ -76,7 +73,7 @@ export const ConnectedWallet = () => {
     return <Container>Loading...</Container>;
   }
 
-  if (!currency || !getInfoResponse || !getBudgetResponse) {
+  if (!getInfoResponse || !getBudgetResponse) {
     // TODO: Add error state
     return <Container>Error loading currency data</Container>;
   }
@@ -88,9 +85,33 @@ export const ConnectedWallet = () => {
 
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
+  const totalBudgetSats = Math.round(
+    (getBudgetResponse.total_budget || 0) / 1000,
+  );
+  const usedBudgetSats = Math.round(
+    (getBudgetResponse.used_budget || 0) / 1000,
+  );
+  const currency = getBudgetResponse.currency
+    ? {
+        code: getBudgetResponse.currency.code,
+        name: getBudgetResponse.currency.name,
+        symbol: getBudgetResponse.currency.symbol,
+        decimals: getBudgetResponse.currency.decimals,
+      }
+    : {
+        code: "SAT",
+        name: "Satoshi",
+        symbol: "",
+        decimals: 0,
+      };
+
   const connection: Connection = {
-    amountInLowestDenom: getBudgetResponse.total_budget || 0,
-    amountInLowestDenomUsed: getBudgetResponse.used_budget || 0,
+    amountInLowestDenom: getBudgetResponse.currency
+      ? getBudgetResponse.currency.total_budget
+      : totalBudgetSats,
+    amountInLowestDenomUsed: getBudgetResponse.currency
+      ? getBudgetResponse.currency.used_budget
+      : usedBudgetSats,
     limitEnabled: isLimitEnabled(token),
     currency,
     limitFrequency: getLimitFrequency(token),

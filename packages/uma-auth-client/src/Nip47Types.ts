@@ -21,7 +21,7 @@ export type GetInfoResponse = {
   block_hash: string;
   methods: Method[];
   lud16?: string;
-  currencies?: Currency[];
+  currencies?: CurrencyPreference[];
 };
 
 export type GetBalanceRequest = {
@@ -33,11 +33,20 @@ export type GetBalanceResponse = {
   currency_code?: string;
 };
 
+export type BudgetCurrency = {
+  code: string;
+  name: string;
+  symbol: string;
+  decimals: number;
+  total_budget: number;
+  used_budget: number;
+};
+
 export type GetBudgetResponse = {
   used_budget?: number;
   total_budget?: number;
   renews_at?: number;
-  currency?: Currency;
+  currency?: BudgetCurrency;
 };
 
 export type PayResponse = {
@@ -87,10 +96,14 @@ export type Currency = {
   code: string;
   name: string;
   symbol: string;
+  decimals: number;
+};
+
+export type CurrencyPreference = {
+  currency: Currency;
   multiplier: number;
   min: number;
   max: number;
-  decimals: number;
 };
 
 export type PayInvoiceRequest = {

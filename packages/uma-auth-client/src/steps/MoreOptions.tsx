@@ -11,6 +11,7 @@ export const MoreOptions = () => {
   return (
     <>
       <ModalBody>
+        {/* TODO: Finish implementing Forgot UMA flow */}
         {/* <Button
           fullWidth
           kind="primary"
