@@ -1,7 +1,7 @@
 {
   "name": "react-demo",
   "private": true,
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -17,7 +17,7 @@
     "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@uma-sdk/uma-auth-client": "^0.0.2",
+    "@uma-sdk/uma-auth-client": "^0.0.3",
     "babel-loader": "^9.1.2",
     "babel-plugin-named-asset-import": "^0.3.8",
     "babel-preset-react-app": "^10.0.1",
