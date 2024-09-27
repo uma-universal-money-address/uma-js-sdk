@@ -1,5 +1,11 @@
 # @uma-sdk/core
 
+## 1.2.2
+
+### Patch Changes
+
+- 09b1840: Validate UMA Address structure in LNURLP request URLs.
+
 ## 1.2.1
 
 ### Patch Changes
