@@ -55,7 +55,8 @@ const getLimitFrequency = (token: TokenState | undefined) => {
 
 export const ConnectedWallet = () => {
   const { uma } = useUser();
-  const { isLoading: isLoadingDiscoveryDocument } = useDiscoveryDocument();
+  const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
+    useDiscoveryDocument();
   const { nwcExpiresAt, token, clearUserAuth } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
@@ -183,18 +184,20 @@ export const ConnectedWallet = () => {
         </TextContainer>
       </ConnectionSection>
       <ButtonContainer>
-        {/* <Button
+        <Button
           icon="LinkIcon"
           text="Manage connection"
           kind="secondary"
           loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma && discoveryDocument
+            uma &&
+            discoveryDocument &&
+            discoveryDocument.connection_management_endpoint
               ? `${new URL(discoveryDocument.connection_management_endpoint)}`
               : undefined
           }
           fullWidth
-        /> */}
+        />
         <Button
           icon="ArrowCornerDownRight"
           text="Disconnect"
