@@ -29,6 +29,10 @@ const UmaConnectButton = (props: Props) => {
     clearUserAuth,
   } = useOAuth();
 
+  // Needed to prevent token refresh race condition due to react strict mode rendering the
+  // component twice in dev mode.
+  const isExchangingToken = useRef(false);
+
   const isConnected = isConnectionValid();
 
   if (!authConfig) {
@@ -60,12 +64,17 @@ const UmaConnectButton = (props: Props) => {
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get("code");
       const state = urlParams.get("state");
-      if (code && state) {
-        oAuthTokenExchange().catch((e) => {
-          console.error(e);
-          clearUserAuth();
-          setStep(Step.ErrorConnecting);
-        });
+      if (code && state && !isExchangingToken.current) {
+        isExchangingToken.current = true;
+        oAuthTokenExchange()
+          .catch((e) => {
+            console.error(e);
+            clearUserAuth();
+            setStep(Step.ErrorConnecting);
+          })
+          .finally(() => {
+            isExchangingToken.current = false;
+          });
       }
       shouldOpenModalImmediately = true;
     } else if (isConnected && step === Step.WaitingForApproval) {

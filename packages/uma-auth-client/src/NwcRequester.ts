@@ -24,6 +24,7 @@ export class NwcRequester {
   secret: string | undefined;
   lud16: string | undefined;
   tokenRefresh: () => Promise<{ nwcConnectionUri: string }>;
+  clearUserAuth: () => void;
 
   static parseWalletConnectUrl(walletConnectUrl: string): NwcConnection {
     walletConnectUrl = walletConnectUrl
@@ -69,9 +70,11 @@ export class NwcRequester {
   constructor(
     url: string,
     tokenRefresh: () => Promise<{ nwcConnectionUri: string }>,
+    clearUserAuth: () => void,
   ) {
     this.initNwcConnection(NwcRequester.parseWalletConnectUrl(url));
     this.tokenRefresh = tokenRefresh;
+    this.clearUserAuth = clearUserAuth;
   }
 
   get publicKey() {
@@ -393,6 +396,9 @@ export class NwcRequester {
           } else {
             clearTimeout(replyTimeoutCheck);
             sub.unsub();
+            if (response.error?.code === "UNAUTHORIZED") {
+              this.clearUserAuth();
+            }
             reject(
               new Nip47.Nip47WalletError(
                 response.error?.message || "unknown Error",
