@@ -16,7 +16,7 @@ const balanceElement = document.getElementById("balance")!;
 let requester: NwcRequester | null = null;
 useOAuth.subscribe((oAuth) => {
   if (oAuth.isConnectionValid() && oAuth.nwcConnectionUri && !requester) {
-    requester = new NwcRequester(oAuth.nwcConnectionUri, oAuth.oAuthTokenExchange);
+    requester = new NwcRequester(oAuth.nwcConnectionUri, oAuth.oAuthTokenExchange, oAuth.clearUserAuth);
     fetchBalance(requester);
 
     clearAuthButton!.style.display = "block";
