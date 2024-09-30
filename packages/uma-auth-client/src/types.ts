@@ -1,6 +1,8 @@
 import { useOAuth } from "./main";
 import { ConnectUma } from "./steps/ConnectUma";
 import { ConnectedWallet } from "./steps/ConnectedWallet";
+import { DisconnectConfirmation } from "./steps/DisconnectConfirmation";
+import { DisconnectSuccess } from "./steps/DisconnectSuccess";
 import { DoneConnecting } from "./steps/DoneConnecting";
 import { ErrorConnecting } from "./steps/ErrorConnecting";
 import { ForgotYourUma } from "./steps/ForgotYourUma";
@@ -23,6 +25,8 @@ export enum Step {
   ForgotYourUma = "ForgotYourUma",
   DoneConnecting = "DoneConnecting",
   ErrorConnecting = "ErrorConnecting",
+  DisconnectConfirmation = "DisconnectConfirmation",
+  DisconnectSuccess = "DisconnectSuccess",
 }
 
 interface StepInfo {
@@ -93,5 +97,14 @@ export const STEP_MAP: Record<Step, StepInfo> = {
     component: ErrorConnecting,
     title: "Connect your UMA",
     prev: Step.Connect,
+  },
+  [Step.DisconnectConfirmation]: {
+    component: DisconnectConfirmation,
+    title: "Confirm",
+    prev: Step.ConnectedWallet,
+  },
+  [Step.DisconnectSuccess]: {
+    component: DisconnectSuccess,
+    title: "Success",
   },
 };

@@ -11,6 +11,7 @@ import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useModalState } from "src/hooks/useModalState";
 import { type TokenState, useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
+import { Step } from "src/types";
 import { type Connection, LimitFrequency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
@@ -57,12 +58,12 @@ export const ConnectedWallet = () => {
   const { uma } = useUser();
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
-  const { nwcExpiresAt, token, clearUserAuth } = useOAuth();
+  const { nwcExpiresAt, token } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
   const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
     useGetBudget();
-  const { setIsModalOpen } = useModalState();
+  const { setStep } = useModalState();
 
   if (
     isLoadingBalance ||
@@ -80,8 +81,7 @@ export const ConnectedWallet = () => {
   }
 
   const handleDisconnect = () => {
-    setIsModalOpen(false);
-    clearUserAuth();
+    setStep(Step.DisconnectConfirmation);
   };
 
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
