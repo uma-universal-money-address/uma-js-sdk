@@ -18,23 +18,30 @@ export const ConnectUmaModal = (props: Props) => {
 
   const stepInfo = STEP_MAP[step];
 
-  const helpButton = (
-    <Button
-      kind="ghost"
-      icon="QuestionCircle"
-      onClick={() => {
-        setStep(Step.WhatIsUma);
-      }}
-    />
-  );
-
-  const backButton = (
-    <Button kind="ghost" icon="ChevronLeft" onClick={onBack} />
-  );
-
   const handleClose = () => {
     setIsModalOpen(false);
   };
+
+  let topLeftButton = <LeftButton></LeftButton>;
+  if (stepInfo.prev) {
+    topLeftButton = (
+      <LeftButton>
+        <Button kind="ghost" icon="ChevronLeft" onClick={onBack} />
+      </LeftButton>
+    );
+  } else if (step === Step.Connect) {
+    topLeftButton = (
+      <LeftButton>
+        <Button
+          kind="ghost"
+          icon="QuestionCircle"
+          onClick={() => {
+            setStep(Step.WhatIsUma);
+          }}
+        />
+      </LeftButton>
+    );
+  }
 
   return (
     <Modal
@@ -49,7 +56,7 @@ export const ConnectUmaModal = (props: Props) => {
     >
       <ModalContents>
         <Header>
-          {stepInfo.prev ? backButton : helpButton}
+          {topLeftButton}
           {stepInfo.title ? (
             <ModalTitle>{stepInfo.title}</ModalTitle>
           ) : (
@@ -100,4 +107,8 @@ const ModalTitle = styled.span`
   font-size: 18px;
   font-weight: 700;
   line-height: 28px;
+`;
+
+const LeftButton = styled.div`
+  width: 32px;
 `;
