@@ -43,7 +43,7 @@ export const DisconnectConfirmation = () => {
           typography={{
             type: "Title",
           }}
-          kind="primary"
+          kind="tertiary"
           fullWidth
         />
       </ButtonContainer>

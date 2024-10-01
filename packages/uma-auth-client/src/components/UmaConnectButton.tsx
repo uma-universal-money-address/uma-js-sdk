@@ -4,10 +4,9 @@ import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { type RefObject, useEffect, useRef } from "react";
 import { useModalState } from "src/hooks/useModalState";
 import { type AuthConfig, useOAuth } from "src/hooks/useOAuth";
-import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
-import { getLocalStorage } from "src/utils/localStorage";
+import { isValidUma } from "src/utils/isValidUma";
 import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
@@ -18,7 +17,6 @@ interface Props {
 
 const UmaConnectButton = (props: Props) => {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const { uma, setUma } = useUser();
   const { step, setStep, isModalOpen, setIsModalOpen } = useModalState();
   const {
     authConfig,
@@ -27,6 +25,7 @@ const UmaConnectButton = (props: Props) => {
     oAuthTokenExchange,
     setAuthConfig,
     clearUserAuth,
+    address,
   } = useOAuth();
 
   // Needed to prevent token refresh race condition due to react strict mode rendering the
@@ -39,15 +38,8 @@ const UmaConnectButton = (props: Props) => {
     setAuthConfig(props.authConfig);
   }
 
-  if (!uma) {
-    const persistedUma = getLocalStorage("uma");
-    if (persistedUma) {
-      setUma(persistedUma);
-    }
-  }
-
   useEffect(() => {
-    if (!uma) {
+    if (!address) {
       return;
     }
 
@@ -90,7 +82,7 @@ const UmaConnectButton = (props: Props) => {
     }
   }, [
     codeVerifier,
-    uma,
+    address,
     isConnected,
     step,
     isModalOpen,
@@ -102,7 +94,7 @@ const UmaConnectButton = (props: Props) => {
 
   const handleOpenModal = () => {
     if (isConnected) {
-      if (uma) {
+      if (isValidUma(address)) {
         setStep(Step.ConnectedUma);
       } else {
         setStep(Step.ConnectedWallet);
@@ -121,7 +113,7 @@ const UmaConnectButton = (props: Props) => {
       <StyledUmaConnectButton
         buttonRef={buttonRef}
         onClick={handleOpenModal}
-        uma={isConnected ? uma : undefined}
+        address={address}
       />
       <ConnectUmaModal
         appendToElement={buttonRef.current?.parentNode as HTMLElement}
@@ -133,27 +125,37 @@ const UmaConnectButton = (props: Props) => {
 export const StyledUmaConnectButton = ({
   onClick,
   buttonRef,
-  uma,
+  address,
 }: {
   onClick?: () => void;
   buttonRef?: RefObject<HTMLButtonElement>;
-  uma?: string | undefined;
+  address?: string | undefined;
 }) => {
+  let content = (
+    <>
+      <Icon name="Uma" width={24} />
+      <Title size="Medium" content="Connect" />
+    </>
+  );
+  if (isValidUma(address)) {
+    content = (
+      <>
+        <Title size="Medium" content={address} />
+        <Icon name="Uma" width={24} />
+      </>
+    );
+  } else if (address) {
+    content = (
+      <>
+        <Icon name="LogoBolt" width={12} />
+        <Title size="Medium" content="Connect" />
+      </>
+    );
+  }
+
   return (
     <Button onClick={onClick} ref={buttonRef}>
-      <ButtonContents>
-        {uma ? (
-          <>
-            <Title size="Medium" content={uma} />
-            <Icon name="Uma" width={24} />
-          </>
-        ) : (
-          <>
-            <Icon name="Uma" width={24} />
-            <Title size="Medium" content="Connect" />
-          </>
-        )}
-      </ButtonContents>
+      <ButtonContents>{content}</ButtonContents>
     </Button>
   );
 };

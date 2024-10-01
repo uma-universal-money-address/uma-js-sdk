@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { UmaUnsupportedError } from "src/types/errors";
 import { getUmaDomain } from "src/utils/getUmaDomain";
-import { useUser } from "./useUser";
+import { isValidUma } from "src/utils/isValidUma";
+import { useOAuth } from "./useOAuth";
 
 export interface DiscoveryDocument {
   uma_major_versions: number[];
@@ -37,10 +38,10 @@ export const fetchDiscoveryDocument = async (uma: string) => {
 };
 
 export const useDiscoveryDocument = () => {
-  const { uma } = useUser();
   const [discoveryDocument, setDiscoveryDocument] =
     useState<DiscoveryDocument>();
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { address } = useOAuth();
 
   useEffect(() => {
     async function fetchDiscoveryDocumentInternal(uma: string) {
@@ -58,13 +59,13 @@ export const useDiscoveryDocument = () => {
     }
 
     let ignore = false;
-    if (uma) {
-      fetchDiscoveryDocumentInternal(uma);
+    if (address && isValidUma(address)) {
+      fetchDiscoveryDocumentInternal(address);
     }
     return () => {
       ignore = true;
     };
-  }, [uma]);
+  }, [address]);
 
   return { discoveryDocument, isLoading };
 };

@@ -7,23 +7,27 @@ import { useModalState } from "src/hooks/useModalState";
 import { useOAuth } from "src/hooks/useOAuth";
 import { useUser } from "src/hooks/useUser";
 import { Step } from "src/types";
-import { setLocalStorage } from "src/utils/localStorage";
+import { isValidUma } from "src/utils/isValidUma";
 
 export const ConnectUma = () => {
   const { setStep } = useModalState();
   const { uma, setUma } = useUser();
   const { initialOAuthRequest, clearUserAuth } = useOAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [umaInputError, setUmaInputError] = useState<string | undefined>();
 
   const handleChangeUma = (value: string) => {
+    setUmaInputError(undefined);
     setUma(`$${value}`);
   };
 
   const handleConnectYourUMA = async () => {
-    // TODO: validate the uma format
-    const validatedUma = uma!;
+    if (!isValidUma(uma)) {
+      setUmaInputError("Invalid UMA format.");
+      return;
+    }
 
-    setLocalStorage("uma", validatedUma);
+    const validatedUma = uma!;
 
     setIsLoading(true);
     const { success } = await initialOAuthRequest(validatedUma);
@@ -53,6 +57,7 @@ export const ConnectUma = () => {
           value={uma?.replace(/^\$/, "") || ""}
           onChange={handleChangeUma}
           borderRadius="round"
+          error={umaInputError}
         />
         <Buttons>
           <Button
