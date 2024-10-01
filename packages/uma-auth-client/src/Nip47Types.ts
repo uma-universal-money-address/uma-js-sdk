@@ -42,10 +42,18 @@ export type BudgetCurrency = {
   used_budget: number;
 };
 
+export type BudgetRenewalPeriod =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "none";
+
 export type GetBudgetResponse = {
   used_budget?: number;
   total_budget?: number;
   renews_at?: number;
+  renewal_period?: BudgetRenewalPeriod;
   currency?: BudgetCurrency;
 };
 

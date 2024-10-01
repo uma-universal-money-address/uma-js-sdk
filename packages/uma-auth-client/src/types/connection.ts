@@ -1,3 +1,5 @@
+import { type BudgetRenewalPeriod } from "src/Nip47Types";
+
 export interface Currency {
   code: string;
   name: string;
@@ -16,14 +18,6 @@ export interface Permission {
   description: string;
 }
 
-export enum LimitFrequency {
-  DAILY = "daily",
-  WEEKLY = "weekly",
-  MONTHLY = "monthly",
-  YEARLY = "yearly",
-  NONE = "none",
-}
-
 export enum ConnectionStatus {
   ACTIVE = "Active",
   PENDING = "Pending",
@@ -36,7 +30,7 @@ export interface Connection {
   amountInLowestDenomUsed: number;
   limitEnabled: boolean;
   currency: Currency;
-  limitFrequency?: LimitFrequency;
+  renewalPeriod?: BudgetRenewalPeriod | undefined;
   expiration?: string;
   lastUsed?: string;
 }

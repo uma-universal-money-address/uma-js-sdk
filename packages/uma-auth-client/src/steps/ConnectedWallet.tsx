@@ -9,10 +9,9 @@ import { useGetBudget } from "src/hooks/nwc-requests/useGetBudget";
 import { useGetInfo } from "src/hooks/nwc-requests/useGetInfo";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useModalState } from "src/hooks/useModalState";
-import { type TokenState, useOAuth } from "src/hooks/useOAuth";
-import { useUser } from "src/hooks/useUser";
+import { useOAuth } from "src/hooks/useOAuth";
 import { Step } from "src/types";
-import { type Connection, LimitFrequency } from "src/types/connection";
+import { type Connection } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
 const getRenewalString = (renewsAt: number, connection: Connection) => {
@@ -35,30 +34,10 @@ const getRenewalString = (renewsAt: number, connection: Connection) => {
   }
 };
 
-const isLimitEnabled = (token: TokenState | undefined) => {
-  return !!token?.budget;
-};
-
-const getLimitFrequency = (token: TokenState | undefined) => {
-  const limitFrequencyString = token?.budget?.split("/")[1] || [];
-
-  if (!limitFrequencyString) {
-    return LimitFrequency.NONE;
-  }
-
-  const limitFrequency = limitFrequencyString as LimitFrequency;
-  if (Object.values(LimitFrequency).includes(limitFrequency)) {
-    return limitFrequency;
-  }
-
-  throw new Error("Invalid limit frequency");
-};
-
 export const ConnectedWallet = () => {
-  const { uma } = useUser();
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
-  const { nwcExpiresAt, token } = useOAuth();
+  const { nwcExpiresAt } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
   const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
@@ -113,9 +92,9 @@ export const ConnectedWallet = () => {
     amountInLowestDenomUsed: getBudgetResponse.currency
       ? getBudgetResponse.currency.used_budget
       : usedBudgetSats,
-    limitEnabled: isLimitEnabled(token),
+    limitEnabled: !!getBudgetResponse.total_budget,
     currency,
-    limitFrequency: getLimitFrequency(token),
+    renewalPeriod: getBudgetResponse.renewal_period,
     expiration,
   };
 
@@ -125,16 +104,16 @@ export const ConnectedWallet = () => {
       getRenewalString(getBudgetResponse.renews_at, connection) || "";
   }
 
-  const limitFrequencyString =
-    connection.limitFrequency !== LimitFrequency.NONE
-      ? `${connection.limitFrequency} spending limit remaining`
+  const renewalPeriodString =
+    connection.renewalPeriod !== "none"
+      ? `${connection.renewalPeriod} spending limit remaining`
       : "";
 
   return (
     <Container>
       <ConnectionSection>
         <ConnectionCard
-          uma={uma}
+          address={getInfoResponse.lud16}
           connection={connection}
           balance={{
             amountInLowestDenom: balance?.balance || 0,
@@ -157,7 +136,7 @@ export const ConnectedWallet = () => {
                       })}
                     />{" "}
                     <Label
-                      content={`${limitFrequencyString}${limitFrequencyString && limitRenewalString ? " · " : ""}${limitRenewalString}`}
+                      content={`${renewalPeriodString}${renewalPeriodString && limitRenewalString ? " · " : ""}${limitRenewalString}`}
                     />
                   </>
                 ) : (
@@ -190,7 +169,6 @@ export const ConnectedWallet = () => {
           kind="secondary"
           loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma &&
             discoveryDocument &&
             discoveryDocument.connection_management_endpoint
               ? `${new URL(discoveryDocument.connection_management_endpoint)}`

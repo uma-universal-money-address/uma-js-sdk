@@ -31,7 +31,7 @@ export const DisconnectSuccess = () => {
           typography={{
             type: "Title",
           }}
-          kind="primary"
+          kind="tertiary"
           fullWidth
         />
       </ButtonContainer>

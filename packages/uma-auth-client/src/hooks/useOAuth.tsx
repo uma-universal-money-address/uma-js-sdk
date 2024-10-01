@@ -1,4 +1,5 @@
 import * as oauth from "oauth4webapi";
+import { isValidUma } from "src/utils/isValidUma";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
@@ -42,7 +43,7 @@ export interface AuthConfig {
 interface OAuthState {
   codeVerifier?: string | undefined;
   csrfState?: string | undefined;
-  uma?: string | undefined;
+  address?: string | undefined;
   token?: TokenState | undefined;
   authConfig?: AuthConfig;
   nwcConnectionUri?: string | undefined;
@@ -62,6 +63,8 @@ interface OAuthState {
   }>;
   hasValidToken: () => boolean;
   clearUserAuth: () => void;
+  setNwcConnectionUri: (nwcConnectionUri: string | undefined) => void;
+  setAddress: (address: string) => void;
 }
 
 export const useOAuth = create<OAuthState>()(
@@ -76,6 +79,8 @@ export const useOAuth = create<OAuthState>()(
         const state = get();
         return isConnectionValid(state);
       },
+      setNwcConnectionUri: (nwcConnectionUri) => set({ nwcConnectionUri }),
+      setAddress: (address) => set({ address }),
       initialOAuthRequest: async (uma) => {
         const state = get();
         const { codeVerifier, authUrl, csrfState } = await getAuthorizationUrl(
@@ -83,7 +88,7 @@ export const useOAuth = create<OAuthState>()(
           uma,
         );
         if (authUrl) {
-          set({ codeVerifier, csrfState, uma });
+          set({ codeVerifier, csrfState, address: uma });
           window.location.href = authUrl.toString();
         }
         return { success: !!authUrl };
@@ -113,7 +118,7 @@ export const useOAuth = create<OAuthState>()(
           nwcExpiresAt: undefined,
           codeVerifier: undefined,
           csrfState: undefined,
-          uma: undefined,
+          address: undefined,
         });
       },
     }),
@@ -125,7 +130,7 @@ export const useOAuth = create<OAuthState>()(
         token: state.token,
         codeVerifier: state.codeVerifier,
         csrfState: state.csrfState,
-        uma: state.uma,
+        address: state.address,
       }),
     },
   ),
@@ -189,12 +194,12 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     nwcConnectionUri,
     nwcExpiresAt,
     authConfig,
-    uma,
+    address,
   } = state;
   if (!authConfig) {
     throw new Error("Auth config not set.");
   }
-  if (!uma) {
+  if (!address || !isValidUma(address)) {
     throw new Error("UMA not set.");
   }
 
@@ -213,7 +218,7 @@ const oAuthTokenExchange = async (state: OAuthState) => {
     };
   }
 
-  const discoveryDocument = await fetchDiscoveryDocument(uma);
+  const discoveryDocument = await fetchDiscoveryDocument(address);
 
   const as: oauth.AuthorizationServer = {
     issuer: new URL(discoveryDocument.authorization_endpoint).origin,

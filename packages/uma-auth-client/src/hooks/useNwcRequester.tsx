@@ -7,15 +7,15 @@ interface NwcRequesterStore {
   nwcRequester?: NwcRequester | undefined;
   setNwcRequester: (
     nwcConnectionUri: string,
-    tokenRefresh: () => Promise<{ nwcConnectionUri: string }>,
     clearUserAuth: () => void,
+    tokenRefresh?: () => Promise<{ nwcConnectionUri: string }>,
   ) => void;
   resetNwcRequester: () => void;
 }
 
 const useNwcRequesterStore = create<NwcRequesterStore>((set) => ({
   nwcRequester: undefined,
-  setNwcRequester: (nwcConnectionUri, tokenRefresh, clearUserAuth) =>
+  setNwcRequester: (nwcConnectionUri, clearUserAuth, tokenRefresh) =>
     set((state) => {
       if (state.nwcRequester) {
         return state;
@@ -23,8 +23,8 @@ const useNwcRequesterStore = create<NwcRequesterStore>((set) => ({
       return {
         nwcRequester: new NwcRequester(
           nwcConnectionUri,
-          tokenRefresh,
           clearUserAuth,
+          tokenRefresh,
         ),
       };
     }),
@@ -39,15 +39,21 @@ export const useNwcRequester = () => {
     nwcConnectionUri,
     oAuthTokenExchange,
     clearUserAuth,
+    token,
   } = useOAuth();
 
   useEffect(() => {
     if (isConnectionValid() && nwcConnectionUri) {
-      setNwcRequester(nwcConnectionUri, oAuthTokenExchange, clearUserAuth);
+      if (token) {
+        setNwcRequester(nwcConnectionUri, clearUserAuth, oAuthTokenExchange);
+      } else {
+        setNwcRequester(nwcConnectionUri, clearUserAuth);
+      }
     }
   }, [
     isConnectionValid,
     nwcConnectionUri,
+    token,
     oAuthTokenExchange,
     setNwcRequester,
     clearUserAuth,

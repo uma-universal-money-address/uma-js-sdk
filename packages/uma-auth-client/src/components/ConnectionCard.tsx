@@ -1,16 +1,13 @@
 import styled from "@emotion/styled";
 import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
-import {
-  type Connection,
-  type Currency,
-  LimitFrequency,
-} from "src/types/connection";
+import { type Connection, type Currency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
+import { isValidUma } from "src/utils/isValidUma";
 
 interface Props {
   connection: Connection;
-  uma?: string | undefined;
+  address?: string | undefined;
   balance?:
     | {
         amountInLowestDenom: number;
@@ -19,9 +16,9 @@ interface Props {
     | undefined;
 }
 
-export const ConnectionCard = ({ connection, uma, balance }: Props) => {
-  const handleCopyUma = () => {
-    navigator.clipboard.writeText(uma || "");
+export const ConnectionCard = ({ connection, address, balance }: Props) => {
+  const handleCopy = () => {
+    navigator.clipboard.writeText(address || "");
   };
 
   const mainHeading = balance
@@ -36,21 +33,31 @@ export const ConnectionCard = ({ connection, uma, balance }: Props) => {
       });
   const description = balance
     ? "Total balance"
-    : `${connection.limitFrequency === LimitFrequency.NONE ? "" : connection.limitFrequency} spending limit remaining`;
+    : `${connection.renewalPeriod === "none" ? "" : connection.renewalPeriod} spending limit remaining`;
+
+  let addressComponent = <></>;
+  if (isValidUma(address)) {
+    addressComponent = (
+      <>
+        {address}
+        <Icon name="Uma" width={24} color="white" />
+      </>
+    );
+  } else if (address) {
+    addressComponent = (
+      <>
+        <Icon name="LogoBolt" width={12} color="white" />
+        {address}
+      </>
+    );
+  }
 
   return (
     <Container>
-      {uma ? (
-        <UmaCopy>
-          <Uma>
-            {uma}
-            <Icon name="Uma" width={24} color="white" />
-          </Uma>
-          <Button kind="ghost" icon="Copy" onClick={handleCopyUma} />
-        </UmaCopy>
-      ) : (
-        <div></div>
-      )}
+      <TextCopy>
+        <Address>{addressComponent}</Address>
+        {address && <Button kind="ghost" icon="Copy" onClick={handleCopy} />}
+      </TextCopy>
       <Main>
         <MainHeading>{mainHeading}</MainHeading>
         <Label size="Large" content={description} color="white" />
@@ -76,14 +83,14 @@ const Container = styled.div`
     0px 24px 24px -12px rgba(0, 0, 0, 0.06);
 `;
 
-const UmaCopy = styled.div`
+const TextCopy = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
 `;
 
-const Uma = styled.span`
+const Address = styled.span`
   color: #fff;
   font-family: Manrope;
   font-size: 14px;
