@@ -1,5 +1,14 @@
 # @uma-sdk/uma-auth-client
 
+## 0.0.4
+
+### Patch Changes
+
+- ad5bae5: - Fix token refresh issues
+  - Add connection management button
+  - Handle manual NWC string connections
+  - Some bug fixes to prep for launch
+
 ## 0.0.3
 
 ### Patch Changes
