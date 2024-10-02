@@ -1,3 +1,4 @@
+"use client";
 import createCache from "@emotion/cache";
 import { CacheProvider, ThemeProvider } from "@emotion/react";
 import { themes } from "@lightsparkdev/ui/styles/themes";

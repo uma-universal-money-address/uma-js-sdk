@@ -1,3 +1,4 @@
+"use client";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Body } from "@lightsparkdev/ui/components/typography/Body";

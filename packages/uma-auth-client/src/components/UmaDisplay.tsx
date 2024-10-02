@@ -1,3 +1,4 @@
+"use client";
 import styled from "@emotion/styled";
 import { Icon } from "@lightsparkdev/ui/components";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
