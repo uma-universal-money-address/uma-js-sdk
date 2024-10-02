@@ -2,6 +2,6 @@ version: 3
 
 project:
   id: uma-universal-money-address/uma-js-sdk
-  name: uma-js-sdk
+  name: UMA JS SDK and JS UMA Auth Client SDK
   url: https://github.com/uma-universal-money-address/uma-js-sdk
 

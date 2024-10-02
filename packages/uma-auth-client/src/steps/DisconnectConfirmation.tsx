@@ -3,40 +3,48 @@ import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Body } from "@lightsparkdev/ui/components/typography/Body";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
-import { UmaDisplay } from "src/components/UmaDisplay";
 import { useModalState } from "src/hooks/useModalState";
-import { useUser } from "src/hooks/useUser";
+import { useOAuth } from "src/main";
+import { Step } from "src/types";
 
-export const ErrorConnecting = () => {
-  const { onBack } = useModalState();
-  const { uma } = useUser();
-  const umaDomain = uma?.split("@")[1] || "";
-  const capitalizedUmaDomain =
-    umaDomain.charAt(0).toUpperCase() + umaDomain.slice(1);
+export const DisconnectConfirmation = () => {
+  const { setStep, onBack } = useModalState();
+  const { clearUserAuth } = useOAuth();
+
+  const handleDisconnect = () => {
+    clearUserAuth();
+    setStep(Step.DisconnectSuccess);
+  };
 
   return (
     <>
       <Container>
-        <UmaButtonSection>
-          <UmaDisplay uma={uma} />
-        </UmaButtonSection>
         <TextContainer>
-          <Title size="Large" content={`${capitalizedUmaDomain} unavailable`} />
+          <Title size="Large" content="Disconnect now" />
           <Body
             size="Large"
-            content={`Sorry, ${capitalizedUmaDomain} doesn't support UMA Connect... yet.`}
+            content="You will no longer be able to use your UMA with this app."
             color={["content", "secondary"]}
           />
         </TextContainer>
       </Container>
       <ButtonContainer>
         <Button
-          text="Try another UMA"
-          onClick={onBack}
+          text="Disconnect"
+          onClick={handleDisconnect}
           typography={{
             type: "Title",
           }}
           kind="secondary"
+          fullWidth
+        />
+        <Button
+          text="Cancel"
+          onClick={onBack}
+          typography={{
+            type: "Title",
+          }}
+          kind="tertiary"
           fullWidth
         />
       </ButtonContainer>
@@ -48,7 +56,7 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 12px 32px 0px 32px;
+  padding: 20px 32px 0px 32px;
   gap: 24px;
 `;
 
@@ -57,13 +65,8 @@ const TextContainer = styled.div`
   flex-direction: column;
   align-items: center;
   max-width: 300px;
+  gap: 8px;
   text-align: center;
-`;
-
-const UmaButtonSection = styled.div`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
 `;
 
 const ButtonContainer = styled.div`

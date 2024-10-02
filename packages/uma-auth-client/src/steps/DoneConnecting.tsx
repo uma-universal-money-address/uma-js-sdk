@@ -1,21 +1,22 @@
+"use client";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Body } from "@lightsparkdev/ui/components/typography/Body";
 import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { StyledUmaConnectButton } from "src/components/UmaConnectButton";
 import { useModalState } from "src/hooks/useModalState";
-import { useUser } from "src/hooks/useUser";
+import { useOAuth } from "src/main";
 
 export const DoneConnecting = () => {
   const { setIsModalOpen } = useModalState();
-  const { uma } = useUser();
+  const { address } = useOAuth();
 
   return (
     <>
       <Container>
         <UmaButtonSection>
           <UmaButtonPadding>
-            <StyledUmaConnectButton uma={uma} />
+            <StyledUmaConnectButton address={address} />
           </UmaButtonPadding>
         </UmaButtonSection>
         <TextContainer>

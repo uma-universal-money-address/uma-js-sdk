@@ -1,3 +1,4 @@
+"use client";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
 import { Body } from "@lightsparkdev/ui/components/typography/Body";
@@ -5,33 +6,35 @@ import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { useState } from "react";
 import { UmaDisplay } from "src/components/UmaDisplay";
 import { useModalState } from "src/hooks/useModalState";
-import { useUser } from "src/hooks/useUser";
 import { useOAuth } from "src/main";
 import { Step } from "src/types";
 
 export const WaitingForApproval = () => {
-  const { uma } = useUser();
-  const { initialOAuthRequest, clearUserAuth } = useOAuth();
+  const { initialOAuthRequest, clearUserAuth, address } = useOAuth();
   const { setStep } = useModalState();
   const [isLoadingRetry, setIsLoadingRetry] = useState(false);
 
   const handleRetry = async () => {
     setIsLoadingRetry(true);
-    const { success } = await initialOAuthRequest(uma!);
+    const { success } = await initialOAuthRequest(address!);
     if (!success) {
       clearUserAuth();
       setStep(Step.ErrorConnecting);
     }
   };
 
+  const umaDomain = address?.split("@")[1] || "";
+  const capitalizedUmaDomain =
+    umaDomain.charAt(0).toUpperCase() + umaDomain.slice(1);
+
   return (
     <Container>
-      <UmaDisplay uma={uma} isLoading={true} />
+      <UmaDisplay uma={address} isLoading={true} />
       <TextContainer>
         <Title size="Large" content="Waiting for approval" />
         <Body
           size="Large"
-          content="Sign in to Rocket and follow the instructions to connect your UMA."
+          content={`Sign in to ${capitalizedUmaDomain} and follow the instructions to connect your UMA.`}
           color={["content", "secondary"]}
         />
       </TextContainer>

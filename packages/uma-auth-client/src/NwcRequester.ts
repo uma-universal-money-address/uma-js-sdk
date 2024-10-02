@@ -23,7 +23,8 @@ export class NwcRequester {
   walletPubkey!: string;
   secret: string | undefined;
   lud16: string | undefined;
-  tokenRefresh: () => Promise<{ nwcConnectionUri: string }>;
+  clearUserAuth: () => void;
+  tokenRefresh?: () => Promise<{ nwcConnectionUri: string }>;
 
   static parseWalletConnectUrl(walletConnectUrl: string): NwcConnection {
     walletConnectUrl = walletConnectUrl
@@ -68,10 +69,14 @@ export class NwcRequester {
 
   constructor(
     url: string,
-    tokenRefresh: () => Promise<{ nwcConnectionUri: string }>,
+    clearUserAuth: () => void,
+    tokenRefresh?: () => Promise<{ nwcConnectionUri: string }>,
   ) {
     this.initNwcConnection(NwcRequester.parseWalletConnectUrl(url));
-    this.tokenRefresh = tokenRefresh;
+    this.clearUserAuth = clearUserAuth;
+    if (tokenRefresh) {
+      this.tokenRefresh = tokenRefresh;
+    }
   }
 
   get publicKey() {
@@ -393,6 +398,9 @@ export class NwcRequester {
           } else {
             clearTimeout(replyTimeoutCheck);
             sub.unsub();
+            if (response.error?.code === "UNAUTHORIZED") {
+              this.clearUserAuth();
+            }
             reject(
               new Nip47.Nip47WalletError(
                 response.error?.message || "unknown Error",
@@ -434,14 +442,17 @@ export class NwcRequester {
       throw new Error("Missing secret key");
     }
 
-    const { nwcConnectionUri } = await this.tokenRefresh();
-    if (!nwcConnectionUri) {
-      throw new Error("Missing nwcConnectionUri upon refreshing token");
-    }
+    if (this.tokenRefresh) {
+      const { nwcConnectionUri } = await this.tokenRefresh();
+      if (!nwcConnectionUri) {
+        throw new Error("Missing nwcConnectionUri upon refreshing token");
+      }
 
-    const nwcConnection = NwcRequester.parseWalletConnectUrl(nwcConnectionUri);
-    if (nwcConnection.secret !== this.secret) {
-      this.initNwcConnection(nwcConnection);
+      const nwcConnection =
+        NwcRequester.parseWalletConnectUrl(nwcConnectionUri);
+      if (nwcConnection.secret !== this.secret) {
+        this.initNwcConnection(nwcConnection);
+      }
     }
 
     await this.relay.connect();

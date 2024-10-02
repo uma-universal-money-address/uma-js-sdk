@@ -1,3 +1,4 @@
+"use client";
 import { css, Global } from "@emotion/react";
 import { GlobalStyles as LSGlobalStyles } from "@lightsparkdev/ui/styles/global";
 

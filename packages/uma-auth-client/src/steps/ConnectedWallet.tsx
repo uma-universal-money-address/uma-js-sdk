@@ -1,3 +1,4 @@
+"use client";
 import styled from "@emotion/styled";
 import { Button, Icon } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
@@ -9,9 +10,9 @@ import { useGetBudget } from "src/hooks/nwc-requests/useGetBudget";
 import { useGetInfo } from "src/hooks/nwc-requests/useGetInfo";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useModalState } from "src/hooks/useModalState";
-import { type TokenState, useOAuth } from "src/hooks/useOAuth";
-import { useUser } from "src/hooks/useUser";
-import { type Connection, LimitFrequency } from "src/types/connection";
+import { useOAuth } from "src/hooks/useOAuth";
+import { Step } from "src/types";
+import { type Connection } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 
 const getRenewalString = (renewsAt: number, connection: Connection) => {
@@ -34,34 +35,15 @@ const getRenewalString = (renewsAt: number, connection: Connection) => {
   }
 };
 
-const isLimitEnabled = (token: TokenState | undefined) => {
-  return !!token?.budget;
-};
-
-const getLimitFrequency = (token: TokenState | undefined) => {
-  const limitFrequencyString = token?.budget?.split("/")[1] || [];
-
-  if (!limitFrequencyString) {
-    return LimitFrequency.NONE;
-  }
-
-  const limitFrequency = limitFrequencyString as LimitFrequency;
-  if (Object.values(LimitFrequency).includes(limitFrequency)) {
-    return limitFrequency;
-  }
-
-  throw new Error("Invalid limit frequency");
-};
-
 export const ConnectedWallet = () => {
-  const { uma } = useUser();
-  const { isLoading: isLoadingDiscoveryDocument } = useDiscoveryDocument();
-  const { nwcExpiresAt, token, clearUserAuth } = useOAuth();
+  const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
+    useDiscoveryDocument();
+  const { nwcExpiresAt } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
   const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
   const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
     useGetBudget();
-  const { setIsModalOpen } = useModalState();
+  const { setStep } = useModalState();
 
   if (
     isLoadingBalance ||
@@ -79,8 +61,7 @@ export const ConnectedWallet = () => {
   }
 
   const handleDisconnect = () => {
-    setIsModalOpen(false);
-    clearUserAuth();
+    setStep(Step.DisconnectConfirmation);
   };
 
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
@@ -112,9 +93,9 @@ export const ConnectedWallet = () => {
     amountInLowestDenomUsed: getBudgetResponse.currency
       ? getBudgetResponse.currency.used_budget
       : usedBudgetSats,
-    limitEnabled: isLimitEnabled(token),
+    limitEnabled: !!getBudgetResponse.total_budget,
     currency,
-    limitFrequency: getLimitFrequency(token),
+    renewalPeriod: getBudgetResponse.renewal_period,
     expiration,
   };
 
@@ -124,16 +105,16 @@ export const ConnectedWallet = () => {
       getRenewalString(getBudgetResponse.renews_at, connection) || "";
   }
 
-  const limitFrequencyString =
-    connection.limitFrequency !== LimitFrequency.NONE
-      ? `${connection.limitFrequency} spending limit remaining`
+  const renewalPeriodString =
+    connection.renewalPeriod !== "none"
+      ? `${connection.renewalPeriod} spending limit remaining`
       : "";
 
   return (
     <Container>
       <ConnectionSection>
         <ConnectionCard
-          uma={uma}
+          address={getInfoResponse.lud16}
           connection={connection}
           balance={{
             amountInLowestDenom: balance?.balance || 0,
@@ -156,7 +137,7 @@ export const ConnectedWallet = () => {
                       })}
                     />{" "}
                     <Label
-                      content={`${limitFrequencyString}${limitFrequencyString && limitRenewalString ? " · " : ""}${limitRenewalString}`}
+                      content={`${renewalPeriodString}${renewalPeriodString && limitRenewalString ? " · " : ""}${limitRenewalString}`}
                     />
                   </>
                 ) : (
@@ -183,18 +164,19 @@ export const ConnectedWallet = () => {
         </TextContainer>
       </ConnectionSection>
       <ButtonContainer>
-        {/* <Button
+        <Button
           icon="LinkIcon"
           text="Manage connection"
           kind="secondary"
           loading={isLoadingDiscoveryDocument}
           externalLink={
-            uma && discoveryDocument
+            discoveryDocument &&
+            discoveryDocument.connection_management_endpoint
               ? `${new URL(discoveryDocument.connection_management_endpoint)}`
               : undefined
           }
           fullWidth
-        /> */}
+        />
         <Button
           icon="ArrowCornerDownRight"
           text="Disconnect"
