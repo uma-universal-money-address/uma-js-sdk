@@ -1,11 +1,11 @@
 // Adapted from Alby's NWC sdk: https://github.com/getAlby/js-sdk/blob/master/src/NWCClient.ts
 import {
   type Event,
-  finishEvent,
+  finalizeEvent,
   getPublicKey,
   nip04,
-  type Relay,
-  relayInit,
+  nip44,
+  Relay,
   type UnsignedEvent,
 } from "nostr-tools";
 import * as Nip47 from "./Nip47Types";
@@ -13,7 +13,7 @@ import * as Nip47 from "./Nip47Types";
 export interface NwcConnection {
   relayUrl: string;
   walletPubkey: string;
-  secret?: string;
+  secret: Uint8Array;
   lud16?: string;
 }
 
@@ -21,8 +21,9 @@ export class NwcRequester {
   relay!: Relay;
   relayUrl!: string;
   walletPubkey!: string;
-  secret: string | undefined;
+  secret!: Uint8Array;
   lud16: string | undefined;
+  useNip44: boolean;
   clearUserAuth: () => void;
   tokenRefresh?: () => Promise<{ nwcConnectionUri: string }>;
 
@@ -37,15 +38,17 @@ export class NwcRequester {
     if (!relayUrl) {
       throw new Error("No relay URL found in connection string");
     }
+    const secret = url.searchParams.get("secret");
+    if (!secret) {
+      throw new Error("No secret key found in connection string");
+    }
 
     const connection: NwcConnection = {
       walletPubkey: url.host,
       relayUrl,
+      secret: hexToBytes(secret),
     };
-    const secret = url.searchParams.get("secret");
-    if (secret) {
-      connection.secret = secret;
-    }
+
     const lud16 = url.searchParams.get("lud16");
     if (lud16) {
       connection.lud16 = lud16;
@@ -55,7 +58,7 @@ export class NwcRequester {
 
   private initNwcConnection(nwcConnection: NwcConnection) {
     this.relayUrl = nwcConnection.relayUrl;
-    this.relay = relayInit(this.relayUrl);
+    this.relay = new Relay(this.relayUrl);
     this.secret = nwcConnection.secret;
     this.lud16 = nwcConnection.lud16;
     this.walletPubkey = nwcConnection.walletPubkey;
@@ -74,6 +77,9 @@ export class NwcRequester {
   ) {
     this.initNwcConnection(NwcRequester.parseWalletConnectUrl(url));
     this.clearUserAuth = clearUserAuth;
+    // Use nip-44 by default for connections established with the auth flow,
+    // but not for manual connections since we don't know if the wallet supports it.
+    this.useNip44 = !!tokenRefresh;
     if (tokenRefresh) {
       this.tokenRefresh = tokenRefresh;
     }
@@ -91,7 +97,7 @@ export class NwcRequester {
       throw new Error("Missing secret key");
     }
 
-    return Promise.resolve(finishEvent(event, this.secret));
+    return Promise.resolve(finalizeEvent(event, this.secret));
   }
 
   close() {
@@ -102,16 +108,25 @@ export class NwcRequester {
     if (!this.secret) {
       throw new Error("Missing secret");
     }
-    const encrypted = await nip04.encrypt(this.secret, pubkey, content);
-    return encrypted;
+
+    if (this.useNip44) {
+      const key = await nip44.getConversationKey(this.secret, pubkey);
+      return nip44.encrypt(content, key);
+    }
+
+    return await nip04.encrypt(this.secret, pubkey, content);
   }
 
   async decrypt(pubkey: string, content: string) {
     if (!this.secret) {
       throw new Error("Missing secret");
     }
-    const decrypted = await nip04.decrypt(this.secret, pubkey, content);
-    return decrypted;
+    if (this.useNip44) {
+      const key = await nip44.getConversationKey(this.secret, pubkey);
+      return nip44.decrypt(content, key);
+    }
+
+    return await nip04.decrypt(this.secret, pubkey, content);
   }
 
   async getInfo(): Promise<Nip47.GetInfoResponse> {
@@ -340,16 +355,69 @@ export class NwcRequester {
         const event = await this.signEvent(unsignedEvent);
         // subscribe to NIP_47_SUCCESS_RESPONSE_KIND and NIP_47_ERROR_RESPONSE_KIND
         // that reference the request event (NIP_47_REQUEST_KIND)
-        const sub = this.relay.sub([
+        const sub = this.relay.subscribe(
+          [
+            {
+              kinds: [23195],
+              authors: [this.walletPubkey],
+              "#e": [event.id],
+            },
+          ],
           {
-            kinds: [23195],
-            authors: [this.walletPubkey],
-            "#e": [event.id],
+            onevent: async (event) => {
+              clearTimeout(replyTimeoutCheck);
+              sub.close();
+              const decryptedContent = await this.decrypt(
+                this.walletPubkey,
+                event.content,
+              );
+              let response;
+              try {
+                response = JSON.parse(decryptedContent);
+              } catch (e) {
+                clearTimeout(replyTimeoutCheck);
+                sub.close();
+                reject(
+                  new Nip47.Nip47ResponseDecodingError(
+                    "failed to deserialize response",
+                    "INTERNAL",
+                  ),
+                );
+                return;
+              }
+              if (response.result) {
+                if (resultValidator(response.result)) {
+                  resolve(response.result);
+                } else {
+                  clearTimeout(replyTimeoutCheck);
+                  sub.close();
+                  reject(
+                    new Nip47.Nip47ResponseValidationError(
+                      "response from NWC failed validation: " +
+                        JSON.stringify(response.result),
+                      "INTERNAL",
+                    ),
+                  );
+                }
+              } else {
+                clearTimeout(replyTimeoutCheck);
+                sub.close();
+                if (response.error?.code === "UNAUTHORIZED") {
+                  this.clearUserAuth();
+                }
+                reject(
+                  new Nip47.Nip47WalletError(
+                    response.error?.message || "unknown Error",
+                    response.error?.code || "INTERNAL",
+                  ),
+                );
+              }
+            },
           },
-        ]);
+        );
 
         function replyTimeout() {
-          sub.unsub();
+          sub.close();
           reject(
             new Nip47.Nip47ReplyTimeoutError(
               `reply timeout: event ${event.id}`,
@@ -360,58 +428,8 @@ export class NwcRequester {
 
         const replyTimeoutCheck = setTimeout(replyTimeout, 60000);
 
-        sub.on("event", async (event) => {
-          clearTimeout(replyTimeoutCheck);
-          sub.unsub();
-          const decryptedContent = await this.decrypt(
-            this.walletPubkey,
-            event.content,
-          );
-          let response;
-          try {
-            response = JSON.parse(decryptedContent);
-          } catch (e) {
-            clearTimeout(replyTimeoutCheck);
-            sub.unsub();
-            reject(
-              new Nip47.Nip47ResponseDecodingError(
-                "failed to deserialize response",
-                "INTERNAL",
-              ),
-            );
-            return;
-          }
-          if (response.result) {
-            if (resultValidator(response.result)) {
-              resolve(response.result);
-            } else {
-              clearTimeout(replyTimeoutCheck);
-              sub.unsub();
-              reject(
-                new Nip47.Nip47ResponseValidationError(
-                  "response from NWC failed validation: " +
-                    JSON.stringify(response.result),
-                  "INTERNAL",
-                ),
-              );
-            }
-          } else {
-            clearTimeout(replyTimeoutCheck);
-            sub.unsub();
-            if (response.error?.code === "UNAUTHORIZED") {
-              this.clearUserAuth();
-            }
-            reject(
-              new Nip47.Nip47WalletError(
-                response.error?.message || "unknown Error",
-                response.error?.code || "INTERNAL",
-              ),
-            );
-          }
-        });
-
         function publishTimeout() {
-          sub.unsub();
+          sub.close();
           reject(
             new Nip47.Nip47PublishTimeoutError(
               `publish timeout: ${event.id}`,
@@ -458,3 +476,12 @@ export class NwcRequester {
     await this.relay.connect();
   }
 }
+
+const hexToBytes = (hex: string): Uint8Array => {
+  if (hex.length % 2 !== 0) {
+    throw new Error("Invalid hex string");
+  }
+  return new Uint8Array(
+    hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
+  );
+};
