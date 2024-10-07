@@ -148,7 +148,7 @@ export class NwcRequester {
       const result = await this.executeNip47Request<Nip47.GetBudgetResponse>(
         "get_budget",
         {},
-        (result) => !!result.total_budget,
+        (result) => true,
       );
       return result;
     } catch (error) {
