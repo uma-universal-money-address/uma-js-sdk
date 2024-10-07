@@ -13,7 +13,7 @@ type UmaAuthToken = {
   expires_at: number;
   nwc_connection_uri: string;
   commands: string[];
-  budget: string;
+  budget?: string | undefined;
   nwc_expires_at?: number | undefined;
 };
 
@@ -22,7 +22,7 @@ export interface TokenState {
   refreshToken: string;
   expiresAt: number;
   commands?: string[];
-  budget?: string;
+  budget?: string | undefined;
 }
 
 export interface BudgetConfig {
@@ -341,7 +341,7 @@ const processAsUmaAuthToken = (
     commandStrings.push(command);
   }
 
-  if (typeof token.budget !== "string") {
+  if (token.budget != null && typeof token.budget !== "string") {
     throw new Error("Invalid budget");
   }
 
@@ -352,7 +352,7 @@ const processAsUmaAuthToken = (
     expires_at: expiresAt,
     nwc_connection_uri: token.nwc_connection_uri,
     commands: commandStrings,
-    budget: token.budget,
+    budget: token.budget || undefined,
   };
 
   if (token.nwc_expires_at && typeof token.nwc_expires_at === "number") {
