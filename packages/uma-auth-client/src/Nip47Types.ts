@@ -47,7 +47,7 @@ export type BudgetRenewalPeriod =
   | "weekly"
   | "monthly"
   | "yearly"
-  | "none";
+  | "never";
 
 export type GetBudgetResponse = {
   used_budget?: number;

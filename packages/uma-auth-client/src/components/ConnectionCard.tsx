@@ -34,7 +34,7 @@ export const ConnectionCard = ({ connection, address, balance }: Props) => {
       });
   const description = balance
     ? "Total balance"
-    : `${connection.renewalPeriod === "none" ? "" : connection.renewalPeriod} spending limit remaining`;
+    : `${connection.renewalPeriod === "never" ? "" : connection.renewalPeriod} spending limit remaining`;
 
   let addressComponent = <></>;
   if (isValidUma(address)) {

@@ -106,7 +106,7 @@ export const ConnectedWallet = () => {
   }
 
   const renewalPeriodString =
-    connection.renewalPeriod !== "none"
+    connection.renewalPeriod !== "never"
       ? `${connection.renewalPeriod} spending limit remaining`
       : "";
 
