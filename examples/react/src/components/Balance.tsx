@@ -3,7 +3,7 @@ import { useNwcRequester } from "@uma-sdk/uma-auth-client";
 import { useEffect, useState } from "react";
 
 const Balance = () => {
-  const [balance, setBalance] = useState(0);
+  const [balanceSats, setBalanceSats] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isFetching, setIsFetching] = useState(true);
   const { nwcRequester } = useNwcRequester();
@@ -16,7 +16,7 @@ const Balance = () => {
     setError(null);
     try {
       const response = await nwcRequester.getBalance();
-      setBalance(response.balance);
+      setBalanceSats(response.balance / 1000);
     } catch (e) {
       setError(`Error fetching balance: ${e}`);
     }
@@ -31,7 +31,7 @@ const Balance = () => {
       <BalanceText>
         {isFetching
           ? "Fetching balance..."
-          : (error ?? `Balance: ${balance} sats`)}
+          : (error ?? `Balance: ${balanceSats} sats`)}
       </BalanceText>
     </div>
   );
