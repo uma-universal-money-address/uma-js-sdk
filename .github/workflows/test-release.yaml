@@ -27,7 +27,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 2
       - name: "Setup Node"
-        uses: "actions/setup-node@v3"
+        uses: "actions/setup-node@v4.0.4"
         env:
           SKIP_YARN_COREPACK_CHECK: true
         with:
@@ -70,7 +70,7 @@ jobs:
           ref: ${{ needs.update-lock-file.outputs.VERIFIED_LOCK_COMMIT }}
 
       - name: "Setup Node"
-        uses: "actions/setup-node@v3"
+        uses: "actions/setup-node@v4.0.4"
         env:
           SKIP_YARN_COREPACK_CHECK: true
         with:
@@ -98,7 +98,7 @@ jobs:
           ref: ${{ needs.update-lock-file.outputs.VERIFIED_LOCK_COMMIT }}
 
       - name: "Setup Node"
-        uses: "actions/setup-node@v3"
+        uses: "actions/setup-node@v4.0.4"
         env:
           SKIP_YARN_COREPACK_CHECK: true
         with:
@@ -145,7 +145,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: "Setup Node"
-        uses: "actions/setup-node@v3"
+        uses: "actions/setup-node@v4.0.4"
         env:
           SKIP_YARN_COREPACK_CHECK: true
         with:

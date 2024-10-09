@@ -188,5 +188,5 @@ const ButtonContents = styled.div`
 defineWebComponent(TAG_NAME, UmaConnectButton);
 
 export const UmaConnectButtonWebComponent = (props: Record<string, any>) => (
-  <uma-connect-button {...props} />
+  <uma-connect-button {...props} style={{ all: "initial" }} />
 );

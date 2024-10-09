@@ -47,7 +47,7 @@
     "@lightsparkdev/ui": "1.0.8",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.3.28",
-    "nostr-tools": "^1.17.0",
+    "nostr-tools": "^2.7.2",
     "oauth4webapi": "^2.12.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
