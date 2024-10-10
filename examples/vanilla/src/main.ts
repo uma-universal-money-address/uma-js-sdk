@@ -41,7 +41,20 @@ const fetchBalance = async (requester: NwcRequester) => {
   balanceElement.innerText = `Balance: Loading...`;
   try {
     const response = await requester.getBalance();
-    balanceElement.innerText = `Balance: ${response.balance}`;
+    let balanceString = "";
+    if (!response.currency) {
+      balanceString = `${Math.round(response.balance / 1000)} SAT`;
+    } else {
+      const amountInNormalDenom = (
+        response.balance / Math.pow(10, response.currency.decimals)
+      ).toFixed(response.currency.decimals);
+      if (response.currency.symbol === "") {
+        balanceString = `${amountInNormalDenom} ${response.currency.code}`;
+      } else {
+        balanceString = `${response.currency.symbol}${amountInNormalDenom}`;
+      }
+    }
+    balanceElement.innerText = `Balance: ${balanceString}`;
   } catch (error) {
     console.error("Error fetching balance:", error);
     balanceElement.innerText = `Balance: ${error}`;

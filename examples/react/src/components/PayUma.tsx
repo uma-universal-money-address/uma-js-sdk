@@ -1,6 +1,6 @@
 import styled from "@emotion/styled";
 import {
-  Currency,
+  CurrencyPreference,
   PayToAddressResponse,
   useNwcRequester,
 } from "@uma-sdk/uma-auth-client";
@@ -12,22 +12,22 @@ const PayUma = () => {
   const [paymentResult, setPaymentResult] = useState<
     PayToAddressResponse | undefined
   >(undefined);
-  const [currencies, setCurrencies] = useState<Currency[] | undefined>(
-    undefined,
-  );
+  const [currencyPreferences, setCurrencyPreferences] = useState<
+    CurrencyPreference[] | undefined
+  >(undefined);
   const [selectedCurrency, setSelectedCurrency] = useState<string | undefined>(
     undefined,
   );
   const { nwcRequester } = useNwcRequester();
 
   useEffect(() => {
-    async function fetchCurrencies() {
+    async function fetchCurrencyPreferences() {
       const response = await nwcRequester.getInfo();
-      setCurrencies(response.currencies);
-      setSelectedCurrency(response.currencies[0].code);
+      setCurrencyPreferences(response.currencies);
+      setSelectedCurrency(response.currencies[0].currency.code);
     }
     if (nwcRequester) {
-      fetchCurrencies();
+      fetchCurrencyPreferences();
     }
   }, [nwcRequester]);
 
@@ -66,14 +66,17 @@ const PayUma = () => {
       </Row>
       <Row>
         <label>Currency:</label>
-        {currencies && (
+        {currencyPreferences && (
           <select
             value={selectedCurrency}
             onChange={(e) => setSelectedCurrency(e.target.value)}
           >
-            {currencies.map((currency) => (
-              <option key={currency.code} value={currency.code}>
-                {currency.code}
+            {currencyPreferences.map((currencyPreference) => (
+              <option
+                key={currencyPreference.currency.code}
+                value={currencyPreference.currency.code}
+              >
+                {currencyPreference.currency.code}
               </option>
             ))}
           </select>
