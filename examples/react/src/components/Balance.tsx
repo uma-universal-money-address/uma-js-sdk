@@ -29,7 +29,7 @@ const Balance = () => {
     balanceString = error;
   }
   if (!balance || isFetching) {
-    balanceString = "Loading...";
+    balanceString = "Loading... ";
   } else if (!balance.currency) {
     balanceString = `${Math.round(balance.balance / 1000)} SAT`;
   } else {
