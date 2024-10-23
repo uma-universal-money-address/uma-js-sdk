@@ -51,12 +51,20 @@ export const NostrWalletConnect = () => {
           value={nwcConnectionString}
           onChange={handleInput}
           placeholder="Enter your Nostr Wallet Connect URL"
+          borderRadius="round"
+          typography={{
+            type: "Body",
+            size: "Large",
+          }}
+          paddingX={6}
+          paddingY={14}
+          activeOutline
         />
         <Button
           text="Connect wallet"
           onClick={handleConnect}
           typography={{
-            type: "Label Strong",
+            type: "Title",
           }}
           paddingY="short"
           fullWidth

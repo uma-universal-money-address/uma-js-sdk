@@ -1,7 +1,6 @@
 "use client";
 import styled from "@emotion/styled";
 import { Icon } from "@lightsparkdev/ui/components";
-import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import {
   motion,
   useAnimationFrame,
@@ -32,8 +31,8 @@ export const UmaDisplay = ({
         <UmaTagInnerBorder />
         <UmaTagContainer>
           <UmaTag>
-            <Title content={uma} color={["content", "secondary"]} />
-            <Icon name="Uma" width={26} color={["content", "secondary"]} />
+            <UmaText>{uma}</UmaText>
+            <Icon name="Uma" width={19} color={["content", "secondary"]} />
           </UmaTag>
         </UmaTagContainer>
       </LoaderContainer>
@@ -147,12 +146,20 @@ const UmaTagContainer = styled.div`
 const UmaTag = styled.div`
   background: ${({ theme }) => theme.controls.bg};
   border-radius: ${BORDER_RADIUS};
-  padding: 16px;
+  padding: 8px 16px;
   z-index: 999;
   display: flex;
   align-items: center;
   gap: 4px;
   position: relative;
+`;
+
+const UmaText = styled.span`
+  color: ${({ theme }) => theme.content.secondary};
+  font-family: Manrope;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px; /* 150% */
 `;
 
 const Gradient = styled.div`

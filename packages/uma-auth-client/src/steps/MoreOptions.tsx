@@ -1,7 +1,6 @@
 "use client";
 import styled from "@emotion/styled";
 import { Button } from "@lightsparkdev/ui/components";
-import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import { useModalState } from "src/hooks/useModalState";
 import { Step } from "src/types";
@@ -27,17 +26,13 @@ export const MoreOptions = () => {
         <NostrContainer>
           <NostrInfo>
             <LabelModerate size="Large" content="Nostr Wallet Connect" />
-            <Label
-              size="Large"
-              content={[
-                "Connect a Bitcoin Lightning wallet compatible with Nostr Wallet Connect (NWC). ",
-                {
-                  text: "Learn more",
-                  externalLink: "https://nwc.dev/",
-                },
-              ]}
-              color="grayBlue43"
-            />
+            <Description>
+              Connect a Bitcoin Lightning wallet compatible with Nostr Wallet
+              Connect (NWC).{" "}
+              <Link target="_blank" href="https://nwc.dev/">
+                Learn more
+              </Link>
+            </Description>
           </NostrInfo>
           <Button
             text="Connect wallet via NWC"
@@ -47,6 +42,7 @@ export const MoreOptions = () => {
             typography={{
               type: "Label Strong",
             }}
+            size="Large"
             paddingY="short"
             fullWidth
             kind="tertiary"
@@ -87,7 +83,7 @@ const NostrContainer = styled.div`
   flex-direction: column;
   gap: 16px;
   border-radius: 16px;
-  background: ${({ theme }) => theme.controls.bg};
+  background: #f2f2f2;
 `;
 
 const NostrInfo = styled.div`
@@ -97,4 +93,21 @@ const NostrInfo = styled.div`
   align-items: center;
   gap: 2px;
   text-align: center;
+`;
+
+const Description = styled.div`
+  color: #686a72;
+  font-family: Manrope;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px; /* 142.857% */
+`;
+
+const Link = styled.a`
+  font-family: Manrope;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px; /* 142.857% */
+  color: #0068c9;
+  text-decoration: none;
 `;

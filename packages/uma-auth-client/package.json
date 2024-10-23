@@ -44,7 +44,7 @@
     "@emotion/css": "^11.11.2",
     "@emotion/react": "^11.11.4",
     "@emotion/styled": "^11.11.5",
-    "@lightsparkdev/ui": "1.0.8",
+    "@lightsparkdev/ui": "1.0.14",
     "dayjs": "^1.11.13",
     "framer-motion": "^11.3.28",
     "nostr-tools": "^2.7.2",
