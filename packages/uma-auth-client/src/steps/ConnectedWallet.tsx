@@ -5,9 +5,9 @@ import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { LabelModerate } from "@lightsparkdev/ui/components/typography/LabelModerate";
 import dayjs from "dayjs";
 import { ConnectionCard } from "src/components/ConnectionCard";
+import { Shimmer } from "src/components/Shimmer";
 import { useBalance } from "src/hooks/nwc-requests/useBalance";
 import { useGetBudget } from "src/hooks/nwc-requests/useGetBudget";
-import { useGetInfo } from "src/hooks/nwc-requests/useGetInfo";
 import { useDiscoveryDocument } from "src/hooks/useDiscoveryDocument";
 import { useModalState } from "src/hooks/useModalState";
 import { useOAuth } from "src/hooks/useOAuth";
@@ -38,24 +38,18 @@ const getRenewalString = (renewsAt: number, connection: Connection) => {
 export const ConnectedWallet = () => {
   const { discoveryDocument, isLoading: isLoadingDiscoveryDocument } =
     useDiscoveryDocument();
-  const { nwcExpiresAt } = useOAuth();
+  const { nwcExpiresAt, address } = useOAuth();
   const { balance, isLoading: isLoadingBalance } = useBalance();
-  const { getInfoResponse, isLoading: isLoadingGetInfo } = useGetInfo();
   const { getBudgetResponse, isLoading: isLoadingGetBudgetResponse } =
     useGetBudget();
   const { setStep } = useModalState();
 
-  if (
+  const isLoadingData =
     isLoadingBalance ||
-    isLoadingGetInfo ||
     isLoadingGetBudgetResponse ||
-    isLoadingDiscoveryDocument
-  ) {
-    // TODO: Add loading state
-    return <Container>Loading...</Container>;
-  }
+    isLoadingDiscoveryDocument;
 
-  if (!getInfoResponse || !getBudgetResponse) {
+  if (!isLoadingData && !getBudgetResponse) {
     // TODO: Add error state
     return <Container>Error loading currency data</Container>;
   }
@@ -67,12 +61,12 @@ export const ConnectedWallet = () => {
   const expiration = dayjs(nwcExpiresAt).format("YYYY-MM-DD");
 
   const totalBudgetSats = Math.round(
-    (getBudgetResponse.total_budget || 0) / 1000,
+    (getBudgetResponse?.total_budget || 0) / 1000,
   );
   const usedBudgetSats = Math.round(
-    (getBudgetResponse.used_budget || 0) / 1000,
+    (getBudgetResponse?.used_budget || 0) / 1000,
   );
-  const currency = getBudgetResponse.currency
+  const currency = getBudgetResponse?.currency
     ? {
         code: getBudgetResponse.currency.code,
         name: getBudgetResponse.currency.name,
@@ -87,20 +81,20 @@ export const ConnectedWallet = () => {
       };
 
   const connection: Connection = {
-    amountInLowestDenom: getBudgetResponse.currency
+    amountInLowestDenom: getBudgetResponse?.currency
       ? getBudgetResponse.currency.total_budget
       : totalBudgetSats,
-    amountInLowestDenomUsed: getBudgetResponse.currency
+    amountInLowestDenomUsed: getBudgetResponse?.currency
       ? getBudgetResponse.currency.used_budget
       : usedBudgetSats,
-    limitEnabled: !!getBudgetResponse.total_budget,
+    limitEnabled: !!getBudgetResponse?.total_budget,
     currency,
-    renewalPeriod: getBudgetResponse.renewal_period,
+    renewalPeriod: getBudgetResponse?.renewal_period,
     expiration,
   };
 
   let limitRenewalString = "";
-  if (connection.limitEnabled && getBudgetResponse.renews_at) {
+  if (connection.limitEnabled && getBudgetResponse?.renews_at) {
     limitRenewalString =
       getRenewalString(getBudgetResponse.renews_at, connection) || "";
   }
@@ -114,21 +108,28 @@ export const ConnectedWallet = () => {
     <Container>
       <ConnectionSection>
         <ConnectionCard
-          address={getInfoResponse.lud16}
+          address={address}
           connection={connection}
           balance={{
             amountInLowestDenom: balance?.balance || 0,
             currency,
           }}
+          isLoading={isLoadingData}
         />
         <TextContainer>
-          {balance ? (
+          {isLoadingData ? (
             <Row>
-              <Icon name="Gear" width={16} />
+              <Shimmer width={20} height={20} />
+              <Shimmer width={238} height={18} />
+            </Row>
+          ) : balance ? (
+            <Row>
+              <Icon name="Limit" width={16} />
               <Description>
                 {connection.limitEnabled ? (
                   <>
                     <LabelModerate
+                      size="Large"
                       content={formatAmountString({
                         amountInLowestDenom:
                           connection.amountInLowestDenom -
@@ -137,6 +138,7 @@ export const ConnectedWallet = () => {
                       })}
                     />{" "}
                     <Label
+                      size="Large"
                       content={`${renewalPeriodString}${renewalPeriodString && limitRenewalString ? " · " : ""}${limitRenewalString}`}
                     />
                   </>
@@ -146,26 +148,34 @@ export const ConnectedWallet = () => {
               </Description>
             </Row>
           ) : null}
-          <Row>
-            <Icon name="Clock" width={16} />
-            <Description>
-              {expiration ? (
-                <>
-                  <Label content="Connection expires" />{" "}
-                  <LabelModerate
-                    content={dayjs(expiration).format("MMM DD, YYYY")}
-                  />
-                </>
-              ) : (
-                <LabelModerate content="No expiration" />
-              )}
-            </Description>
-          </Row>
+          {isLoadingData ? (
+            <Row>
+              <Shimmer width={20} height={20} />
+              <Shimmer width={214} height={18} />
+            </Row>
+          ) : (
+            <Row>
+              <Icon name="CalendarClock" width={16} />
+              <Description>
+                {expiration ? (
+                  <>
+                    <Label size="Large" content="Connection expires" />{" "}
+                    <LabelModerate
+                      size="Large"
+                      content={dayjs(expiration).format("MMM DD, YYYY")}
+                    />
+                  </>
+                ) : (
+                  <LabelModerate content="No expiration" />
+                )}
+              </Description>
+            </Row>
+          )}
         </TextContainer>
       </ConnectionSection>
       <ButtonContainer>
         <Button
-          icon="LinkIcon"
+          icon={{ name: "LinkIcon" }}
           text="Manage connection"
           kind="secondary"
           loading={isLoadingDiscoveryDocument}
@@ -178,9 +188,9 @@ export const ConnectedWallet = () => {
           fullWidth
         />
         <Button
-          icon="ArrowCornerDownRight"
+          icon={{ name: "Logout" }}
           text="Disconnect"
-          kind="danger"
+          kind="warning"
           onClick={handleDisconnect}
           fullWidth
         />

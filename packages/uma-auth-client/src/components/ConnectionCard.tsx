@@ -1,10 +1,12 @@
 "use client";
 import styled from "@emotion/styled";
-import { Button, Icon } from "@lightsparkdev/ui/components";
+import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
 import { Label } from "@lightsparkdev/ui/components/typography/Label";
 import { type Connection, type Currency } from "src/types/connection";
 import { formatAmountString } from "src/utils/currency";
 import { isValidUma } from "src/utils/isValidUma";
+import { abbreviateAddress } from "src/utils/strings";
+import { Shimmer } from "./Shimmer";
 
 interface Props {
   connection: Connection;
@@ -15,54 +17,87 @@ interface Props {
         currency: Currency;
       }
     | undefined;
+  isLoading?: boolean;
 }
 
-export const ConnectionCard = ({ connection, address, balance }: Props) => {
+export const ConnectionCard = ({
+  connection,
+  address,
+  balance,
+  isLoading,
+}: Props) => {
   const handleCopy = () => {
     navigator.clipboard.writeText(address || "");
   };
 
-  const mainHeading = balance
-    ? formatAmountString({
-        amountInLowestDenom: balance.amountInLowestDenom,
-        currency: balance.currency,
-      })
-    : formatAmountString({
-        amountInLowestDenom:
-          connection.amountInLowestDenom - connection.amountInLowestDenomUsed,
-        currency: connection.currency,
-      });
-  const description = balance
-    ? "Total balance"
-    : `${connection.renewalPeriod === "never" ? "" : connection.renewalPeriod} spending limit remaining`;
+  let mainContent = <></>;
+  if (isLoading) {
+    mainContent = (
+      <>
+        <Shimmer height={28} width={136} />
+        <Shimmer height={20} width={92} />
+      </>
+    );
+  } else {
+    const mainHeading = balance
+      ? formatAmountString({
+          amountInLowestDenom: balance.amountInLowestDenom,
+          currency: balance.currency,
+        })
+      : formatAmountString({
+          amountInLowestDenom:
+            connection.amountInLowestDenom - connection.amountInLowestDenomUsed,
+          currency: connection.currency,
+        });
+    const description = balance
+      ? "Total balance"
+      : `${connection.renewalPeriod === "never" ? "" : connection.renewalPeriod} spending limit remaining`;
+
+    mainContent = (
+      <>
+        <MainHeading>{mainHeading}</MainHeading>
+        <Label size="Large" content={description} color="white" />
+      </>
+    );
+  }
 
   let addressComponent = <></>;
   if (isValidUma(address)) {
     addressComponent = (
-      <>
-        {address}
-        <Icon name="Uma" width={24} color="white" />
-      </>
+      <AddressContainer>
+        <Address>{address}</Address>
+        <Icon name="Uma" width={22} color="white" />
+      </AddressContainer>
     );
   } else if (address) {
     addressComponent = (
-      <>
-        <Icon name="LogoBolt" width={12} color="white" />
-        {address}
-      </>
+      <AddressContainer>
+        <Icon name="Zap" width={12} color="white" />
+        <Address>{abbreviateAddress(address)}</Address>
+      </AddressContainer>
     );
   }
 
   return (
     <Container>
       <TextCopy>
-        <Address>{addressComponent}</Address>
-        {address && <Button kind="ghost" icon="Copy" onClick={handleCopy} />}
+        {addressComponent}
+        {address && (
+          <IconButton onClick={handleCopy}>
+            <Icon
+              name="Copy"
+              width={14}
+              color="gray50"
+              iconProps={{
+                strokeWidth: "2",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+              }}
+            />
+          </IconButton>
+        )}
       </TextCopy>
-      <Main>
-        <MainHeading>{mainHeading}</MainHeading>
-        <Label size="Large" content={description} color="white" />
-      </Main>
+      <Main>{mainContent}</Main>
     </Container>
   );
 };
@@ -89,6 +124,7 @@ const TextCopy = styled.div`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+  border: none;
 `;
 
 const Address = styled.span`
@@ -97,16 +133,27 @@ const Address = styled.span`
   font-size: 14px;
   font-weight: 600;
   line-height: 20px;
+
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+`;
+
+const AddressContainer = styled.div`
   display: flex;
   flex-direction: row;
   gap: 4px;
   align-items: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  padding-right: 4px;
 `;
 
 const Main = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 2px;
 `;
 
 const MainHeading = styled.span`
@@ -116,4 +163,20 @@ const MainHeading = styled.span`
   font-weight: 600;
   line-height: 32px;
   letter-spacing: -0.48px;
+`;
+
+const IconButton = styled(UnstyledButton)`
+  width: 28px;
+  height: 28px;
+  padding: 0px;
+  justify-self: flex-end;
+  border-radius: 50%;
+
+  &:hover {
+    background: #00000005;
+  }
+
+  &:active {
+    background: #00000008;
+  }
 `;

@@ -8,42 +8,39 @@ import { UmaDisplay } from "src/components/UmaDisplay";
 export const WhatIsUma = () => {
   return (
     <>
-      <UmaDisplay uma="you@domain.com" />
+      <UmaDisplay uma="$you@domain.com" />
       <Container>
         <Section>
-          <Icon name="Envelope" width={16} color={["content", "secondary"]} />
+          <Icon name="Globus" width={16} color={["content", "secondary"]} />
           <TextContainer>
             <Title size="Medium" content="It's like email, but for money" />
-            <Body
-              size="Medium"
-              content="A Universal Money Address (UMA) lets you send and receive instant and low-fee payments to anyone, anywhere."
-              color={["content", "secondary"]}
-            />
+            <Description>
+              A Universal Money Address (UMA) lets you send and receive instant
+              and low-fee payments to anyone, anywhere.
+            </Description>
           </TextContainer>
         </Section>
         <Section>
-          <Icon name="AI" width={16} color={["content", "secondary"]} />
+          <Icon
+            name="SparklesSoft"
+            width={16}
+            color={["content", "secondary"]}
+          />
           <TextContainer>
             <Title size="Medium" content="Connect in seconds" />
-            <Body
-              size="Medium"
-              content="Pay or receive with your UMA in your favorite apps — Just enter your UMA and approve the connection with your UMA provider."
-              color={["content", "secondary"]}
-            />
+            <Description>
+              Pay or receive with your UMA in your favorite apps — Just enter
+              your UMA and approve the connection with your UMA provider.
+            </Description>
             <PoweredByContainer>
               <Body
                 size="Small"
                 content="Powered by"
                 color={["content", "secondary"]}
               />
-              <Body
-                size="Small"
-                content={{
-                  text: "Nostr Wallet Connect",
-                  externalLink: "https://nwc.dev/",
-                }}
-                color="link"
-              />
+              <Link target="_blank" href="https://nwc.dev/">
+                Nostr Wallet Connect
+              </Link>
             </PoweredByContainer>
           </TextContainer>
         </Section>
@@ -55,6 +52,7 @@ export const WhatIsUma = () => {
           typography={{
             type: "Label Strong",
           }}
+          size="Large"
           kind="primary"
           fullWidth
         />
@@ -64,7 +62,8 @@ export const WhatIsUma = () => {
           typography={{
             type: "Label Strong",
           }}
-          kind="secondary"
+          size="Large"
+          kind="linkLight"
           fullWidth
         />
       </ButtonContainer>
@@ -85,6 +84,23 @@ const TextContainer = styled.div`
   max-width: 300px;
 `;
 
+const Description = styled.span`
+  font-family: Manrope;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 22px; /* 157.143% */
+  color: #686a72;
+`;
+
+const Link = styled.a`
+  font-family: Manrope;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px; /* 150% */
+  color: #0068c9;
+  text-decoration: none;
+`;
+
 const Section = styled.div`
   display: flex;
   flex-direction: row;
@@ -95,7 +111,8 @@ const Section = styled.div`
 const PoweredByContainer = styled.div`
   display: flex;
   flex-direction: row;
-  gap: 2px;
+  gap: 3px;
+  align-items: center;
 `;
 
 const ButtonContainer = styled.div`
