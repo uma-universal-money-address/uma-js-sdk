@@ -59,6 +59,13 @@ export const ConnectUma = () => {
           onChange={handleChangeUma}
           borderRadius="round"
           error={umaInputError}
+          typography={{
+            type: "Body",
+            size: "Large",
+          }}
+          activeOutline
+          activeOutlineColor="blue39"
+          paddingY={15}
         />
         <Buttons>
           <Button
@@ -70,10 +77,12 @@ export const ConnectUma = () => {
           />
           <MoreOptionsButton>
             <Button
-              kind="ghost"
+              kind="transparent"
               text="More options"
+              fullWidth
               typography={{
                 color: "secondary",
+                type: "Title",
               }}
               onClick={handleMoreOptions}
             />
@@ -94,9 +103,11 @@ export const ConnectUma = () => {
         </FooterInfo>
         <Button
           text="Get UMA"
+          kind="linkLight"
           onClick={() => {
             window.location.href = "https://www.uma.me/#getuma";
           }}
+          size="Large"
           typography={{
             color: "link",
             type: "Label Strong",
@@ -128,6 +139,7 @@ const MoreOptionsButton = styled.div`
   display: flex;
   flex-direction: column;
   place-content: center;
+  width: 100%;
   height: 56px;
 `;
 

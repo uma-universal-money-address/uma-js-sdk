@@ -1,13 +1,13 @@
 "use client";
 import styled from "@emotion/styled";
 import { Icon, UnstyledButton } from "@lightsparkdev/ui/components";
-import { Title } from "@lightsparkdev/ui/components/typography/Title";
 import { type RefObject, useEffect, useRef } from "react";
 import { useModalState } from "src/hooks/useModalState";
 import { type AuthConfig, useOAuth } from "src/hooks/useOAuth";
 import { Step } from "src/types";
 import defineWebComponent from "src/utils/defineWebComponent";
 import { isValidUma } from "src/utils/isValidUma";
+import { abbreviateAddress } from "src/utils/strings";
 import { ConnectUmaModal } from "./ConnectUmaModal";
 
 export const TAG_NAME = "uma-connect-button";
@@ -135,33 +135,37 @@ export const StyledUmaConnectButton = ({
   let content = (
     <>
       <Icon name="Uma" width={24} />
-      <Title size="Medium" content="Connect" />
+      <UmaButtonText>Connect</UmaButtonText>
     </>
   );
   if (isValidUma(address)) {
     content = (
       <>
-        <Title size="Medium" content={address} />
+        <UmaButtonText>{address}</UmaButtonText>
         <Icon name="Uma" width={24} />
       </>
     );
   } else if (address) {
     content = (
       <>
-        <Icon name="LogoBolt" width={12} />
-        <Title size="Medium" content="Connect" />
+        <Icon name="Zap" width={12} />
+        <UmaButtonText>{abbreviateAddress(address)}</UmaButtonText>
       </>
     );
   }
 
   return (
-    <Button onClick={onClick} ref={buttonRef}>
+    <Button
+      onClick={onClick || (() => {})}
+      ref={buttonRef}
+      clickable={!!onClick}
+    >
       <ButtonContents>{content}</ButtonContents>
     </Button>
   );
 };
 
-const Button = styled(UnstyledButton)`
+const Button = styled(UnstyledButton)<{ clickable?: boolean }>`
   background-color: var(--uma-connect-background, #0068c9);
   border-radius: var(--uma-connect-radius, 999px);
   padding-left: var(--uma-connect-padding-x, 32px);
@@ -169,9 +173,11 @@ const Button = styled(UnstyledButton)`
   padding-top: var(--uma-connect-padding-y, 16px);
   padding-bottom: var(--uma-connect-padding-y, 16px);
   color: var(--uma-connect-text-color, #ffffff);
-  font-family: var(--uma-connect-font-family, "Manrope");
+  font-family: var(--uma-connect-font-family, "Arial");
   font-size: var(--uma-connect-font-size, 16px);
   font-weight: var(--uma-connect-font-weight, 700);
+
+  ${({ clickable }) => !clickable && "cursor: default;"}
 `;
 
 const ButtonContents = styled.div`
@@ -185,8 +191,21 @@ const ButtonContents = styled.div`
   }
 `;
 
+const UmaButtonText = styled.span`
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 600;
+  line-height: 24px; /* 150% */
+
+  display: block !important;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  overflow: hidden;
+`;
+
 defineWebComponent(TAG_NAME, UmaConnectButton);
 
 export const UmaConnectButtonWebComponent = (props: Record<string, any>) => (
-  <uma-connect-button {...props} />
+  <uma-connect-button {...props} style={{ all: "initial" }} />
 );

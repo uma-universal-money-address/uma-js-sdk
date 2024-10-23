@@ -1,11 +1,6 @@
 "use client";
 import styled from "@emotion/styled";
-import {
-  Button,
-  Icon,
-  Modal,
-  UnstyledButton,
-} from "@lightsparkdev/ui/components";
+import { Icon, Modal, UnstyledButton } from "@lightsparkdev/ui/components";
 import { useModalState } from "src/hooks/useModalState";
 import { STEP_MAP, Step } from "src/types";
 
@@ -23,24 +18,41 @@ export const ConnectUmaModal = (props: Props) => {
     setIsModalOpen(false);
   };
 
-  let topLeftButton = <LeftButton></LeftButton>;
+  let topLeftButton = <LeftButtonPlaceholder></LeftButtonPlaceholder>;
   if (stepInfo.prev) {
     topLeftButton = (
-      <LeftButton>
-        <Button kind="ghost" icon="ChevronLeft" onClick={onBack} />
-      </LeftButton>
+      <IconButton onClick={onBack}>
+        <Icon
+          name="ChevronLeft"
+          width={18}
+          color="grayBlue43"
+          iconProps={{
+            strokeWidth: "2",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
+          }}
+        />
+      </IconButton>
     );
   } else if (step === Step.Connect) {
     topLeftButton = (
-      <LeftButton>
-        <Button
-          kind="ghost"
-          icon="QuestionCircle"
-          onClick={() => {
-            setStep(Step.WhatIsUma);
+      <IconButton
+        onClick={() => {
+          setStep(Step.WhatIsUma);
+        }}
+        type="button"
+      >
+        <Icon
+          name="QuestionCircle"
+          width={16}
+          color="grayBlue43"
+          iconProps={{
+            strokeWidth: "1.8",
+            strokeLinecap: "round",
+            strokeLinejoin: "round",
           }}
         />
-      </LeftButton>
+      </IconButton>
     );
   }
 
@@ -61,11 +73,20 @@ export const ConnectUmaModal = (props: Props) => {
           {stepInfo.title ? (
             <ModalTitle>{stepInfo.title}</ModalTitle>
           ) : (
-            <Icon name="Uma" width={32} />
+            <Icon name="Uma" width={34} />
           )}
-          <CloseButton onClick={handleClose} type="button">
-            <Icon name="Close" width={8} />
-          </CloseButton>
+          <IconButton onClick={handleClose} type="button">
+            <Icon
+              name="Close"
+              width={10}
+              color="grayBlue43"
+              iconProps={{
+                strokeWidth: "1.2",
+                strokeLinecap: "round",
+                strokeLinejoin: "round",
+              }}
+            />
+          </IconButton>
         </Header>
         <stepInfo.component />
       </ModalContents>
@@ -95,10 +116,20 @@ const ModalContents = styled.div`
     0px 24px 24px -12px rgba(0, 0, 0, 0.06);
 `;
 
-const CloseButton = styled(UnstyledButton)`
-  width: 24px;
-  height: 24px;
+const IconButton = styled(UnstyledButton)`
+  width: 32px;
+  height: 32px;
+  padding: 0px;
   justify-self: flex-end;
+  border-radius: 50%;
+
+  &:hover {
+    background: #00000005;
+  }
+
+  &:active {
+    background: #00000008;
+  }
 `;
 
 const ModalTitle = styled.span`
@@ -110,6 +141,6 @@ const ModalTitle = styled.span`
   line-height: 28px;
 `;
 
-const LeftButton = styled.div`
+const LeftButtonPlaceholder = styled.div`
   width: 32px;
 `;

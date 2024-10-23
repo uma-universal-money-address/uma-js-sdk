@@ -30,7 +30,7 @@ export type GetBalanceRequest = {
 
 export type GetBalanceResponse = {
   balance: number; // msats or currency if specified.
-  currency_code?: string;
+  currency?: Currency;
 };
 
 export type BudgetCurrency = {
@@ -47,7 +47,7 @@ export type BudgetRenewalPeriod =
   | "weekly"
   | "monthly"
   | "yearly"
-  | "none";
+  | "never";
 
 export type GetBudgetResponse = {
   used_budget?: number;
