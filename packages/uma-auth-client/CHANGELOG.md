@@ -1,5 +1,11 @@
 # @uma-sdk/uma-auth-client
 
+## 0.0.6
+
+### Patch Changes
+
+- b98c260: - fix button custom styles not being applied
+
 ## 0.0.5
 
 ### Patch Changes
