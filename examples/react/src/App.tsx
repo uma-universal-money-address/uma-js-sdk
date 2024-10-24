@@ -27,8 +27,8 @@ function App() {
   const [budgetCurrency, setBudgetCurrency] = useState("SAT");
   const [budgetPeriod, setBudgetPeriod] = useState("monthly");
 
-  const [umaConnectBackground, setUmaConnectBackground] = useState("#7366C5");
-  const [umaConnectRadius, setUmaConnectRadius] = useState("8px");
+  const [umaConnectBackground, setUmaConnectBackground] = useState("#0068C9");
+  const [umaConnectRadius, setUmaConnectRadius] = useState("999px");
   const [umaConnectPaddingX, setUmaConnectPaddingX] = useState("32px");
   const [umaConnectPaddingY, setUmaConnectPaddingY] = useState("16px");
   const [umaConnectTextColor, setUmaConnectTextColor] = useState("#F9F9F9");
