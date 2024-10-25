@@ -1,5 +1,12 @@
 # vanilla-example
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies [b98c260]
+  - @uma-sdk/uma-auth-client@0.0.6
+
 ## 0.0.3
 
 ### Patch Changes
