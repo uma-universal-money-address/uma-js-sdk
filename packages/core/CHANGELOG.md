@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 1.2.3
+
+### Patch Changes
+
+- 21b574c: - Make agnostic to environment with browser support for certain functions
+  - Fix isValidUmaAddress logic
+
 ## 1.2.2
 
 ### Patch Changes
