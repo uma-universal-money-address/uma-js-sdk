@@ -1,5 +1,7 @@
-import { X509Certificate } from "crypto";
+import * as crypto from "crypto";
 import { getPublicKey } from "../certUtils.js";
+
+type X509Certificate = crypto.X509Certificate;
 
 /** PubKeyResponse is sent from a VASP to another VASP to provide its public keys. It is the response to GET requests at `/.well-known/lnurlpubkey`. */
 export class PubKeyResponse {
@@ -60,12 +62,17 @@ export class PubKeyResponse {
 
   static fromJson(jsonStr: string): PubKeyResponse {
     const jsonObject = JSON.parse(jsonStr);
+
+    if (!crypto.X509Certificate) {
+      throw new Error("X509Certificate is only available in Node.js");
+    }
+
     return new PubKeyResponse(
       jsonObject.signingCertChain?.map(
-        (cert: string) => new X509Certificate(Buffer.from(cert, "hex")),
+        (cert: string) => new crypto.X509Certificate(Buffer.from(cert, "hex")),
       ),
       jsonObject.encryptionCertChain?.map(
-        (cert: string) => new X509Certificate(Buffer.from(cert, "hex")),
+        (cert: string) => new crypto.X509Certificate(Buffer.from(cert, "hex")),
       ),
       jsonObject.signingPubKey,
       jsonObject.encryptionPubKey,
