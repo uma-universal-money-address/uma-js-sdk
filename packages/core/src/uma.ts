@@ -1,7 +1,8 @@
-import crypto, { createHash } from "crypto";
+import crypto from "crypto";
 import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { getPublicKey, getX509CertChain } from "./certUtils.js";
+import { createSha256Hash } from "./createHash.js";
 import { InvalidInputError } from "./errors.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
@@ -46,13 +47,6 @@ import {
   UmaProtocolVersion,
   UnsupportedVersionError,
 } from "./version.js";
-
-export const createSha256Hash = async (
-  data: Uint8Array,
-): Promise<Uint8Array> => {
-  const buffer = createHash("sha256").update(data).digest();
-  return new Uint8Array(buffer);
-};
 
 export function parseLnurlpRequest(url: URL): LnurlpRequest {
   const query = url.searchParams;
@@ -355,6 +349,11 @@ export function isValidUmaAddress(umaAddress: string) {
 
   const userName = addressParts[0].slice(1);
   if (!userName.match(/^[a-z0-9-_\.\+]+$/i)) {
+    return false;
+  }
+
+  const domain = addressParts[1];
+  if (!domain.match(/^[a-z0-9-\.]+$/i)) {
     return false;
   }
 

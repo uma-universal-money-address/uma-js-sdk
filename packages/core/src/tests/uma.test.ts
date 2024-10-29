@@ -295,6 +295,7 @@ describe("uma", () => {
     expect(isValidUmaAddress("bob@vasp-domain.com")).toBe(false);
     expect(isValidUmaAddress("bob@vasp-domain")).toBe(false);
     expect(isValidUmaAddress("$%@vasp-domain.com")).toBe(false);
+    expect(isValidUmaAddress("$bob@")).toBe(false);
     expect(
       isValidUmaAddress(
         "$therearemorethan64charactersinthisusername12345678912345678912345@vasp-domain.com",
