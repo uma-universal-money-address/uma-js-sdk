@@ -173,9 +173,6 @@ const Button = styled(UnstyledButton)<{ clickable?: boolean }>`
   padding-top: var(--uma-connect-padding-y, 16px);
   padding-bottom: var(--uma-connect-padding-y, 16px);
   color: var(--uma-connect-text-color, #ffffff);
-  font-family: var(--uma-connect-font-family, "Arial");
-  font-size: var(--uma-connect-font-size, 16px);
-  font-weight: var(--uma-connect-font-weight, 700);
 
   ${({ clickable }) => !clickable && "cursor: default;"}
 `;
@@ -194,7 +191,9 @@ const ButtonContents = styled.div`
 const UmaButtonText = styled.span`
   font-size: 16px;
   font-style: normal;
-  font-weight: 600;
+  font-family: var(--uma-connect-font-family, "Arial");
+  font-size: var(--uma-connect-font-size, 16px);
+  font-weight: var(--uma-connect-font-weight, 600);
   line-height: 24px; /* 150% */
 
   display: block !important;
