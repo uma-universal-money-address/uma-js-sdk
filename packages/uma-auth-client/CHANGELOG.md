@@ -1,5 +1,11 @@
 # @uma-sdk/uma-auth-client
 
+## 0.0.7
+
+### Patch Changes
+
+- fd40030: - fix font-weight customizability
+
 ## 0.0.6
 
 ### Patch Changes
