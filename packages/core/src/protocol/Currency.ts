@@ -95,7 +95,11 @@ export class Currency {
   toJsonString(): string {
     return JSON.stringify(this.toJsonSchemaObject());
   }
-
+  
+  toJSON(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+  
   withUmaVersion(majorVersion: number): Currency {
     return new Currency(
       this.code,
