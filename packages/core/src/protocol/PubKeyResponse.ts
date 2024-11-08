@@ -60,6 +60,10 @@ export class PubKeyResponse {
     });
   }
 
+  toJSON(): string {
+    return this.toJsonString();
+  }
+
   static fromJson(jsonStr: string): PubKeyResponse {
     const jsonObject = JSON.parse(jsonStr);
 

@@ -182,6 +182,10 @@ export class PayRequest {
     return JSON.stringify(this.toJsonSchemaObject());
   }
 
+  toJSON(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+
   signablePayload(): string {
     const complianceData = this.payerData?.compliance;
     if (!complianceData) {
