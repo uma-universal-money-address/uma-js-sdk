@@ -55,6 +55,10 @@ export class PayReqResponse {
     return JSON.stringify(this.toJsonSchemaObject());
   }
 
+  toJSON(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+
   toJsonSchemaObject():
     | z.infer<typeof V0PayReqResponseSchema>
     | z.infer<typeof V1PayReqResponseSchema> {
