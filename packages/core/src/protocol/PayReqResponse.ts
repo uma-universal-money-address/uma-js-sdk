@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { signPayload } from "../signingUtils.js";
 import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import {
@@ -6,7 +7,6 @@ import {
   PayeeDataSchema,
   type PayeeData,
 } from "./PayeeData.js";
-
 export class PayReqResponse {
   constructor(
     /** The BOLT11 invoice that the sender will pay. */
@@ -86,6 +86,64 @@ export class PayReqResponse {
       successAction: this.successAction,
       converted: this.converted,
     };
+  }
+
+  /**
+   * Appends a backing signature to the PayReqResponse.
+   *
+   * @param signingPrivateKey The private key used to sign the payload
+   * @param domain The domain of the VASP that is signing the payload
+   * @param payerIdentifier The identifier of the payer
+   * @param payeeIdentifier The identifier of the payee
+   * @returns A new PayReqResponse with the additional backing signature
+   */
+  async appendBackingSignature(
+    signingPrivateKey: Uint8Array,
+    domain: string,
+    payerIdentifier: string,
+    payeeIdentifier: string,
+  ): Promise<PayReqResponse> {
+    if (!this.isUma()) {
+      return this;
+    }
+
+    if (!this.payeeData?.compliance) {
+      throw new Error("compliance is required for signing");
+    }
+
+    const signablePayload = this.signablePayload(
+      payerIdentifier,
+      payeeIdentifier,
+    );
+    const signature = await signPayload(signablePayload, signingPrivateKey);
+
+    const newBackingSignatures = [
+      ...(this.payeeData.compliance.backingSignatures || []),
+      {
+        domain,
+        signature,
+      },
+    ];
+
+    const updatedCompliance = {
+      ...this.payeeData.compliance,
+      backingSignatures: newBackingSignatures,
+    };
+
+    const updatedPayeeData = {
+      ...this.payeeData,
+      compliance: updatedCompliance,
+    };
+
+    return new PayReqResponse(
+      this.pr,
+      updatedPayeeData,
+      this.converted,
+      this.disposable,
+      this.successAction,
+      this.umaMajorVersion,
+      this.routes,
+    );
   }
 
   static fromJson(json: string): PayReqResponse {

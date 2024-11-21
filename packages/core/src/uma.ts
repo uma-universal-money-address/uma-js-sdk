@@ -5,6 +5,7 @@ import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { createSha256Hash } from "./createHash.js";
 import { InvalidInputError } from "./errors.js";
 import { type NonceValidator } from "./NonceValidator.js";
+import { type BackingSignature } from "./protocol/BackingSignature.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
@@ -37,6 +38,11 @@ import {
 } from "./protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "./protocol/PubKeyResponse.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
+import {
+  signBytePayload,
+  signPayload,
+  uint8ArrayToHexString,
+} from "./signingUtils.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
@@ -56,6 +62,7 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
   const isSubjectToTravelRule = query.get("isSubjectToTravelRule") ?? undefined;
   const umaVersion = query.get("umaVersion") ?? undefined;
   const timestamp = query.get("timestamp") ?? undefined;
+  const backingSignatures = query.get("backingSignatures") ?? undefined;
   const numUmaParamsIncluded = [
     vaspDomain,
     signature,
@@ -97,6 +104,21 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
     );
   }
 
+  let parsedBackingSignatures: BackingSignature[] | undefined;
+  if (backingSignatures) {
+    parsedBackingSignatures = backingSignatures.split(",").map((pair) => {
+      const decodedPair = decodeURIComponent(pair);
+      const lastColonIndex = decodedPair.lastIndexOf(":");
+      if (lastColonIndex === -1) {
+        throw new Error("Invalid backing signature format");
+      }
+      return {
+        domain: pair.substring(0, lastColonIndex),
+        signature: pair.substring(lastColonIndex + 1),
+      };
+    });
+  }
+
   return {
     vaspDomain,
     umaVersion,
@@ -108,6 +130,7 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
       isSubjectToTravelRule !== undefined
         ? Boolean(isSubjectToTravelRule?.toLowerCase() == "true")
         : undefined,
+    backingSignatures: parsedBackingSignatures,
   };
 }
 
@@ -241,31 +264,6 @@ export async function getSignedLnurlpRequestUrl({
   return encodeToUrl(unsignedRequest);
 }
 
-function uint8ArrayToHexString(uint8Array: Uint8Array) {
-  return Array.from(uint8Array)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
-  const encoder = new TextEncoder();
-  const encodedPayload = encoder.encode(payload);
-  const hashedPayload = await createSha256Hash(encodedPayload);
-
-  const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
-  return uint8ArrayToHexString(secp256k1.signatureExport(signature));
-}
-
-async function signBytePayload(
-  payload: Uint8Array,
-  privateKeyBytes: Uint8Array,
-) {
-  const hashedPayload = await createSha256Hash(payload);
-
-  const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
-  return secp256k1.signatureExport(signature);
-}
-
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspPubKeyResponse: PubKeyResponse,
@@ -294,6 +292,46 @@ export async function verifyUmaLnurlpQuerySignature(
     otherVaspSigningPubKey,
   );
 }
+
+/**
+ * Verifies the backing signatures on an UMA Lnurlp query. You may optionally call this function after
+ * verifyUmaLnurlpQuerySignature to verify signatures from backing VASPs.
+ *
+ * @param query The signed query to verify
+ * @param fetchPublicKeysForVasp Function to fetch public keys for a VASP domain
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyUmaLnurlpQueryBackingSignatures(
+  query: LnurlpRequest,
+  cache: PublicKeyCache,
+) {
+  if (!query.backingSignatures) {
+    return true;
+  }
+
+  const signablePayload = getSignableLnurlpRequestPayload(query);
+  const encoder = new TextEncoder();
+  const encodedPayload = encoder.encode(signablePayload);
+  const hashedPayload = await createSha256Hash(encodedPayload);
+
+  for (const backingSignature of query.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyUmaInvoiceSignature(
   invoice: Invoice,
   publicKey: Uint8Array,
@@ -1025,6 +1063,44 @@ export async function verifyUmaLnurlpResponseSignature(
   );
 }
 
+/**
+ * Verifies the backing signatures on an UMA Lnurlp response. You may optionally call this function after
+ * verifyUmaLnurlpResponseSignature to verify signatures from backing VASPs.
+ *
+ * @param response The signed response to verify
+ * @param cache The PublicKeyCache to use for fetching VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyUmaLnurlpResponseBackingSignatures(
+  response: LnurlpResponse,
+  cache: PublicKeyCache,
+) {
+  if (!response.compliance?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedResponse = encoder.encode(response.signablePayload());
+  const hashedPayload = await createSha256Hash(encodedResponse);
+
+  for (const backingSignature of response.compliance.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyPayReqSignature(
   query: PayRequest,
   otherVaspPubKeyResponse: PubKeyResponse,
@@ -1052,6 +1128,45 @@ export async function verifyPayReqSignature(
     complianceData.signature,
     otherVaspPubKey,
   );
+}
+
+/**
+ * Verifies the backing signatures on a PayRequest. You may optionally call this function after
+ * verifyPayReqSignature to verify signatures from backing VASPs.
+ *
+ * @param query The signed PayRequest to verify
+ * @param cache The PublicKeyCache to use for fetching VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyPayReqBackingSignatures(
+  query: PayRequest,
+  cache: PublicKeyCache,
+) {
+  const complianceData = query.payerData?.compliance;
+  if (!complianceData?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedQuery = encoder.encode(query.signablePayload());
+  const hashedPayload = await createSha256Hash(encodedQuery);
+
+  for (const backingSignature of complianceData.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export async function verifyPayReqResponseSignature(
@@ -1092,6 +1207,51 @@ export async function verifyPayReqResponseSignature(
     complianceData.signature,
     otherVaspPubKey,
   );
+}
+
+/**
+ * Verifies the backing signatures on a PayReqResponse. You may optionally call this function after
+ * verifyPayReqResponseSignature to verify signatures from backing VASPs.
+ *
+ * @param response The signed PayReqResponse to verify
+ * @param payerIdentifier The identifier of the sender (e.g. $alice@vasp1.com)
+ * @param payeeIdentifier The identifier of the receiver
+ * @param cache Cache for storing VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyPayReqResponseBackingSignatures(
+  response: PayReqResponse,
+  payerIdentifier: string,
+  payeeIdentifier: string,
+  cache: PublicKeyCache,
+) {
+  const complianceData = response.payeeData?.compliance;
+  if (!complianceData?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedPayload = encoder.encode(
+    response.signablePayload(payerIdentifier, payeeIdentifier),
+  );
+  const hashedPayload = await createSha256Hash(encodedPayload);
+
+  for (const backingSignature of complianceData.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 export async function verifyPostTransactionCallbackSignature(

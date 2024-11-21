@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalIgnoringNull } from "../zodUtils.js";
+import { BackingSignatureSchema } from "./BackingSignature.js";
 import { KycStatus } from "./KycStatus.js";
 
 const CompliancePayerDataSchema = z.object({
@@ -22,6 +23,8 @@ const CompliancePayerDataSchema = z.object({
   signatureTimestamp: z.number(),
   /** UtxoCallback is the URL that the receiver will call to send UTXOs of the channel that the receiver used to receive the payment once it completes. */
   utxoCallback: optionalIgnoringNull(z.string()),
+  /** BackingSignatures is a list of backing signatures from VASPs that can attest to the authenticity of the message. */
+  backingSignatures: optionalIgnoringNull(z.array(BackingSignatureSchema)),
 });
 
 export type CompliancePayerData = z.infer<typeof CompliancePayerDataSchema>;

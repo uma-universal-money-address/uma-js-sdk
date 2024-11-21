@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { signPayload } from "../signingUtils.js";
 import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import {
@@ -198,6 +199,57 @@ export class PayRequest {
     return `${payerIdentifier}|${
       complianceData.signatureNonce
     }|${complianceData.signatureTimestamp.toString()}`;
+  }
+
+  /**
+   * Appends a backing signature to the PayRequest.
+   *
+   * @param signingPrivateKey The private key used to sign the payload
+   * @param domain The domain of the VASP that is signing the payload
+   * @returns A new PayRequest with the additional backing signature
+   */
+  async appendBackingSignature(
+    signingPrivateKey: Uint8Array,
+    domain: string,
+  ): Promise<PayRequest> {
+    if (!this.isUma()) {
+      return this;
+    }
+
+    if (!this.payerData?.compliance) {
+      throw new Error("compliance is required for signing");
+    }
+
+    const signablePayload = this.signablePayload();
+    const signature = await signPayload(signablePayload, signingPrivateKey);
+
+    const newBackingSignatures = [
+      ...(this.payerData.compliance.backingSignatures || []),
+      {
+        domain,
+        signature,
+      },
+    ];
+
+    const updatedCompliance = {
+      ...this.payerData.compliance,
+      backingSignatures: newBackingSignatures,
+    };
+
+    const updatedPayerData = {
+      ...this.payerData,
+      compliance: updatedCompliance,
+    };
+
+    return new PayRequest(
+      this.amount,
+      this.receivingCurrencyCode,
+      this.sendingAmountCurrencyCode,
+      this.umaMajorVersion,
+      updatedPayerData,
+      this.requestedPayeeData,
+      this.comment,
+    );
   }
 
   static fromSchema(schema: z.infer<typeof PayRequestSchema>): PayRequest {
