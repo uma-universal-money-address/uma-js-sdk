@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { optionalIgnoringNull } from "../zodUtils.js";
+import { BackingSignatureSchema } from "./BackingSignature.js";
 
 export const CompliancePayeeDataSchema = z.object({
   /** nodePubKey is the public key of the receiver's node if known. */
@@ -26,6 +27,8 @@ export const CompliancePayeeDataSchema = z.object({
    * Note: This field is optional for UMA v0.X backwards-compatibility. It is required for UMA v1.X.
    */
   signatureTimestamp: optionalIgnoringNull(z.number()),
+  /** BackingSignatures is a list of backing signatures from VASPs that can attest to the authenticity of the message. */
+  backingSignatures: optionalIgnoringNull(z.array(BackingSignatureSchema)),
 });
 
 export type CompliancePayeeData = z.infer<typeof CompliancePayeeDataSchema>;

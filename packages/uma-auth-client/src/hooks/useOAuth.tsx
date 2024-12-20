@@ -1,4 +1,5 @@
 import * as oauth from "oauth4webapi";
+import { getUmaUsername } from "src/utils/getUmaUsername";
 import { isValidUma } from "src/utils/isValidUma";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
@@ -179,6 +180,7 @@ const getAuthorizationUrl = async (state: OAuthState, uma: string) => {
   authUrl.searchParams.set("required_commands", requiredCommands);
   authUrl.searchParams.set("optional_commands", optionalCommands);
   authUrl.searchParams.set("budget", budget);
+  authUrl.searchParams.set("uma_username", getUmaUsername(uma));
 
   return {
     codeVerifier,
