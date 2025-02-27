@@ -1,10 +1,13 @@
+import { UmaError } from "./errors.js";
+import { ErrorCode } from "./generated/errorCodes.js";
+
 export const MAJOR_VERSION = 1;
 export const MINOR_VERSION = 0;
 const backCompatibleVersions = ["0.3"];
 
 export const UmaProtocolVersion = `${MAJOR_VERSION}.${MINOR_VERSION}`;
 
-export class UnsupportedVersionError extends Error {
+export class UnsupportedVersionError extends UmaError {
   unsupportedVersion: string;
   supportedMajorVersions: number[];
 
@@ -12,9 +15,18 @@ export class UnsupportedVersionError extends Error {
     unsupportedVersion: string,
     supportedMajorVersions: number[] = Array.from(getSupportedMajorVersions()),
   ) {
-    super(`unsupported version: ${unsupportedVersion}`);
+    super(
+      `unsupported version: ${unsupportedVersion}`,
+      ErrorCode.UNSUPPORTED_UMA_VERSION,
+    );
     this.unsupportedVersion = unsupportedVersion;
     this.supportedMajorVersions = supportedMajorVersions;
+  }
+
+  getAdditionalParams(): Record<string, unknown> {
+    return {
+      supportedMajorVersions: this.supportedMajorVersions,
+    };
   }
 }
 
@@ -30,7 +42,10 @@ export function getHighestSupportedVersionForMajorVersion(
       return backCompatibleVersion;
     }
   }
-  throw new Error("unsupported major version");
+  throw new UmaError(
+    "unsupported major version",
+    ErrorCode.NO_COMPATIBLE_UMA_VERSION,
+  );
 }
 
 export function selectHighestSupportedVersion(
@@ -56,7 +71,10 @@ export function selectHighestSupportedVersion(
     }
   }
   if (highestVersion === undefined) {
-    throw new Error("no supported versions");
+    throw new UmaError(
+      "no supported versions",
+      ErrorCode.NO_COMPATIBLE_UMA_VERSION,
+    );
   }
   return highestVersion;
 }
@@ -88,7 +106,7 @@ export function isVersionSupported(version: string): boolean {
 export function getMajorVersion(version: string): number {
   const parsedVersion = parseVersion(version);
   if (parsedVersion === undefined) {
-    throw new Error("invalid version");
+    throw new UmaError("invalid version", ErrorCode.INVALID_INPUT);
   }
   return parsedVersion.major;
 }
@@ -96,7 +114,7 @@ export function getMajorVersion(version: string): number {
 export function getMinorVersion(version: string): number {
   const parsedVersion = parseVersion(version);
   if (parsedVersion === undefined) {
-    throw new Error("invalid version");
+    throw new UmaError("invalid version", ErrorCode.INVALID_INPUT);
   }
   return parsedVersion.minor;
 }
@@ -107,7 +125,7 @@ export function parseVersion(version: string): {
 } {
   const [major, minor] = version.split(".");
   if (major === undefined || minor === undefined) {
-    throw new Error("Invalid UMA version");
+    throw new UmaError("Invalid UMA version", ErrorCode.INVALID_INPUT);
   }
   return { major: parseInt(major), minor: parseInt(minor) };
 }

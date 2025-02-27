@@ -1,5 +1,7 @@
 import { bech32, bech32m } from "bech32";
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 import {
   deserializeBoolean,
   deserializeNumber,
@@ -148,7 +150,10 @@ const TLVInvoiceCurrencySerializer = {
     try {
       validated = InvoiceCurrencySchema.parse(result);
     } catch (e) {
-      throw new Error("invalid invoice currency response", { cause: e });
+      throw new UmaError(
+        `invalid invoice currency response ${e}`,
+        ErrorCode.INVALID_INVOICE,
+      );
     }
     return validated;
   },
@@ -250,7 +255,10 @@ export const InvoiceSerializer = {
     try {
       validated = InvoiceSchema.parse(result);
     } catch (e) {
-      throw new Error("invalid invoice response", { cause: e });
+      throw new UmaError(
+        `invalid invoice response ${e}`,
+        ErrorCode.INVALID_INVOICE,
+      );
     }
     return validated;
   },

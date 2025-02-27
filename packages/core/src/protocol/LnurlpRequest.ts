@@ -1,4 +1,6 @@
 import { dateToUnixSeconds } from "../datetimeUtils.js";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 import { signPayload } from "../signingUtils.js";
 import { isDomainLocalhost } from "../urlUtils.js";
 import { type BackingSignature } from "./BackingSignature.js";
@@ -48,7 +50,7 @@ export function isLnurlpRequestForUma(
 export function encodeToUrl(q: LnurlpRequest): URL {
   const receiverAddressParts = q.receiverAddress.split("@");
   if (receiverAddressParts.length !== 2) {
-    throw new Error("invalid receiver address");
+    throw new UmaError("invalid receiver address", ErrorCode.INTERNAL_ERROR);
   }
   const scheme = isDomainLocalhost(receiverAddressParts[1]) ? "http" : "https";
   const lnurlpUrl = new URL(
@@ -80,7 +82,10 @@ export function encodeToUrl(q: LnurlpRequest): URL {
 
 export function getSignableLnurlpRequestPayload(q: LnurlpRequest): string {
   if (!q.nonce || !q.timestamp) {
-    throw new Error("nonce and timestamp are required for signing");
+    throw new UmaError(
+      "nonce and timestamp are required for signing",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   return [
     q.receiverAddress,

@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 import { signPayload } from "../signingUtils.js";
 import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
@@ -108,7 +110,10 @@ export class PayReqResponse {
     }
 
     if (!this.payeeData?.compliance) {
-      throw new Error("compliance is required for signing");
+      throw new UmaError(
+        "compliance is required for signing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
 
     const signablePayload = this.signablePayload(
@@ -155,7 +160,10 @@ export class PayReqResponse {
     try {
       validated = PayReqResponseSchema.parse(data);
     } catch (e) {
-      throw new Error("invalid pay request response", { cause: e });
+      throw new UmaError(
+        `invalid pay request response ${e}`,
+        ErrorCode.PARSE_PAYREQ_RESPONSE_ERROR,
+      );
     }
     return this.fromSchema(validated);
   }
@@ -178,11 +186,15 @@ export class PayReqResponse {
   signablePayload(payerIdentifier: string, payeeIdentifier: string): string {
     const complianceData = this.payeeData?.compliance;
     if (!complianceData) {
-      throw new Error("compliance is required, but not present in payeeData");
+      throw new UmaError(
+        "compliance is required, but not present in payeeData",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     if (!complianceData.signatureNonce || !complianceData.signatureTimestamp) {
-      throw new Error(
+      throw new UmaError(
         "signatureNonce and signatureTimestamp are required. Is this a v0 response?",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
     return `${payerIdentifier}|${payeeIdentifier}|${
