@@ -1,4 +1,6 @@
 export * from "./createHash.js";
+export * from "./errors.js";
+export * from "./generated/errorCodes.js";
 export * from "./NonceValidator.js";
 export * from "./protocol/CounterPartyData.js";
 export * from "./protocol/Currency.js";
