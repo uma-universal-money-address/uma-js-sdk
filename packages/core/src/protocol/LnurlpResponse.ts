@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 import { signPayload } from "../signingUtils.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import { BackingSignatureSchema } from "./BackingSignature.js";
@@ -63,7 +65,10 @@ export class LnurlpResponse {
 
   signablePayload(): string {
     if (!this.compliance) {
-      throw new Error("compliance is required, but not present in response");
+      throw new UmaError(
+        "compliance is required, but not present in response",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     return [
       this.compliance.receiverIdentifier,
@@ -110,7 +115,10 @@ export class LnurlpResponse {
     }
 
     if (!this.compliance) {
-      throw new Error("compliance is required for signing");
+      throw new UmaError(
+        "compliance is required for signing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
 
     const signablePayload = this.signablePayload();
@@ -152,7 +160,10 @@ export class LnurlpResponse {
     try {
       validated = LnurlpResponseSchema.parse(data);
     } catch (e) {
-      throw new Error("invalid lnurlp response", { cause: e });
+      throw new UmaError(
+        `invalid lnurlp response: ${e}`,
+        ErrorCode.PARSE_LNURLP_RESPONSE_ERROR,
+      );
     }
     const currencies = data.currencies?.map((c: unknown) => Currency.parse(c));
     const compliance = validated.compliance

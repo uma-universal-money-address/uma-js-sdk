@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 
 /** UtxoWithAmount is a pair of utxo and amount transferred over that corresponding channel. It can be used to register payment for KYT. */
 export const UtxoWithAmountSchema = z.object({
@@ -36,7 +38,10 @@ export function parsePostTransactionCallback(
   try {
     validated = PostTransactionCallbackSchema.parse(parsed);
   } catch (e) {
-    throw new Error("invalid post transaction callback", { cause: e });
+    throw new UmaError(
+      `invalid post transaction callback ${e}`,
+      ErrorCode.PARSE_UTXO_CALLBACK_ERROR,
+    );
   }
   return validated;
 }
