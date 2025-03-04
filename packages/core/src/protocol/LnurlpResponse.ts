@@ -1,12 +1,15 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
+import { signPayload } from "../signingUtils.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
+import { BackingSignatureSchema } from "./BackingSignature.js";
 import {
   CounterPartyDataOptionsSchema,
   type CounterPartyDataOptions,
 } from "./CounterPartyData.js";
 import { Currency, CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
-
 /** The response to the LnurlpRequest. It is sent by the VASP that is receiving the payment to provide information to the sender about the receiver. */
 export class LnurlpResponse {
   public tag: string = "payRequest";
@@ -62,7 +65,10 @@ export class LnurlpResponse {
 
   signablePayload(): string {
     if (!this.compliance) {
-      throw new Error("compliance is required, but not present in response");
+      throw new UmaError(
+        "compliance is required, but not present in response",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     return [
       this.compliance.receiverIdentifier,
@@ -92,6 +98,58 @@ export class LnurlpResponse {
     return JSON.stringify(this.toJsonSchemaObject());
   }
 
+  /**
+   * Appends a backing signature to the LnurlpResponse.
+   *
+   * @param signingPrivateKey The private key used to sign the payload
+   * @param domain The domain of the VASP that is signing the payload. The associated public key will be fetched from
+   *    /.well-known/lnurlpubkey on this domain to verify the signature.
+   * @returns A new LnurlpResponse with the additional backing signature
+   */
+  async appendBackingSignature(
+    signingPrivateKey: Uint8Array,
+    domain: string,
+  ): Promise<LnurlpResponse> {
+    if (!this.isUma()) {
+      return this;
+    }
+
+    if (!this.compliance) {
+      throw new UmaError(
+        "compliance is required for signing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
+    }
+
+    const signablePayload = this.signablePayload();
+    const signature = await signPayload(signablePayload, signingPrivateKey);
+
+    const newBackingSignatures = [
+      ...(this.compliance.backingSignatures || []),
+      {
+        domain,
+        signature,
+      },
+    ];
+
+    return new LnurlpResponse(
+      this.callback,
+      this.minSendable,
+      this.maxSendable,
+      this.metadata,
+      {
+        ...this.compliance,
+        backingSignatures: newBackingSignatures,
+      },
+      this.umaVersion,
+      this.currencies,
+      this.payerData,
+      this.commentAllowed,
+      this.nostrPubkey,
+      this.allowsNostr,
+    );
+  }
+
   static fromJson(jsonStr: string): LnurlpResponse {
     return LnurlpResponse.parse(JSON.parse(jsonStr));
   }
@@ -102,15 +160,25 @@ export class LnurlpResponse {
     try {
       validated = LnurlpResponseSchema.parse(data);
     } catch (e) {
-      throw new Error("invalid lnurlp response", { cause: e });
+      throw new UmaError(
+        `invalid lnurlp response: ${e}`,
+        ErrorCode.PARSE_LNURLP_RESPONSE_ERROR,
+      );
     }
     const currencies = data.currencies?.map((c: unknown) => Currency.parse(c));
+    const compliance = validated.compliance
+      ? {
+          ...validated.compliance,
+          backingSignatures:
+            validated.compliance.backingSignatures || undefined,
+        }
+      : undefined;
     return new LnurlpResponse(
       validated.callback,
       validated.minSendable,
       validated.maxSendable,
       validated.metadata,
-      validated.compliance,
+      compliance,
       validated.umaVersion,
       currencies,
       validated.payerData,
@@ -135,6 +203,8 @@ const LnurlpComplianceResponseSchema = z.object({
   isSubjectToTravelRule: z.boolean(),
   /** ReceiverIdentifier is the identifier of the receiver at VASP2. */
   receiverIdentifier: z.string(),
+  /** BackingSignatures is a list of backing signatures from VASPs that can attest to the authenticity of the message. */
+  backingSignatures: optionalIgnoringNull(z.array(BackingSignatureSchema)),
 });
 
 export type LnurlComplianceResponse = z.infer<

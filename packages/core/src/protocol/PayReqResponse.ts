@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
+import { signPayload } from "../signingUtils.js";
 import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import {
@@ -6,7 +9,6 @@ import {
   PayeeDataSchema,
   type PayeeData,
 } from "./PayeeData.js";
-
 export class PayReqResponse {
   constructor(
     /** The BOLT11 invoice that the sender will pay. */
@@ -55,6 +57,10 @@ export class PayReqResponse {
     return JSON.stringify(this.toJsonSchemaObject());
   }
 
+  toJSON(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+
   toJsonSchemaObject():
     | z.infer<typeof V0PayReqResponseSchema>
     | z.infer<typeof V1PayReqResponseSchema> {
@@ -84,6 +90,67 @@ export class PayReqResponse {
     };
   }
 
+  /**
+   * Appends a backing signature to the PayReqResponse.
+   *
+   * @param signingPrivateKey The private key used to sign the payload
+   * @param domain The domain of the VASP that is signing the payload
+   * @param payerIdentifier The identifier of the payer
+   * @param payeeIdentifier The identifier of the payee
+   * @returns A new PayReqResponse with the additional backing signature
+   */
+  async appendBackingSignature(
+    signingPrivateKey: Uint8Array,
+    domain: string,
+    payerIdentifier: string,
+    payeeIdentifier: string,
+  ): Promise<PayReqResponse> {
+    if (!this.isUma()) {
+      return this;
+    }
+
+    if (!this.payeeData?.compliance) {
+      throw new UmaError(
+        "compliance is required for signing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
+    }
+
+    const signablePayload = this.signablePayload(
+      payerIdentifier,
+      payeeIdentifier,
+    );
+    const signature = await signPayload(signablePayload, signingPrivateKey);
+
+    const newBackingSignatures = [
+      ...(this.payeeData.compliance.backingSignatures || []),
+      {
+        domain,
+        signature,
+      },
+    ];
+
+    const updatedCompliance = {
+      ...this.payeeData.compliance,
+      backingSignatures: newBackingSignatures,
+    };
+
+    const updatedPayeeData = {
+      ...this.payeeData,
+      compliance: updatedCompliance,
+    };
+
+    return new PayReqResponse(
+      this.pr,
+      updatedPayeeData,
+      this.converted,
+      this.disposable,
+      this.successAction,
+      this.umaMajorVersion,
+      this.routes,
+    );
+  }
+
   static fromJson(json: string): PayReqResponse {
     return this.parse(JSON.parse(json));
   }
@@ -93,7 +160,10 @@ export class PayReqResponse {
     try {
       validated = PayReqResponseSchema.parse(data);
     } catch (e) {
-      throw new Error("invalid pay request response", { cause: e });
+      throw new UmaError(
+        `invalid pay request response ${e}`,
+        ErrorCode.PARSE_PAYREQ_RESPONSE_ERROR,
+      );
     }
     return this.fromSchema(validated);
   }
@@ -116,11 +186,15 @@ export class PayReqResponse {
   signablePayload(payerIdentifier: string, payeeIdentifier: string): string {
     const complianceData = this.payeeData?.compliance;
     if (!complianceData) {
-      throw new Error("compliance is required, but not present in payeeData");
+      throw new UmaError(
+        "compliance is required, but not present in payeeData",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     if (!complianceData.signatureNonce || !complianceData.signatureTimestamp) {
-      throw new Error(
+      throw new UmaError(
         "signatureNonce and signatureTimestamp are required. Is this a v0 response?",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
     return `${payerIdentifier}|${payeeIdentifier}|${

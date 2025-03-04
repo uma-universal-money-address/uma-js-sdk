@@ -1,5 +1,9 @@
 import { dateToUnixSeconds } from "../datetimeUtils.js";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
+import { signPayload } from "../signingUtils.js";
 import { isDomainLocalhost } from "../urlUtils.js";
+import { type BackingSignature } from "./BackingSignature.js";
 
 /** LnurlpRequest is the first request in the UMA protocol. It is sent by the VASP that is sending the payment to find out information about the receiver. */
 export type LnurlpRequest = {
@@ -20,6 +24,8 @@ export type LnurlpRequest = {
    * For the version negotiation flow, see https://static.swimlanes.io/87f5d188e080cb8e0494e46f80f2ae74.png
    */
   umaVersion?: string | undefined;
+  /** A list of backing signatures from VASPs that can attest to the authenticity of the message. */
+  backingSignatures?: BackingSignature[] | undefined;
 };
 
 export function isLnurlpRequestForUma(
@@ -44,7 +50,7 @@ export function isLnurlpRequestForUma(
 export function encodeToUrl(q: LnurlpRequest): URL {
   const receiverAddressParts = q.receiverAddress.split("@");
   if (receiverAddressParts.length !== 2) {
-    throw new Error("invalid receiver address");
+    throw new UmaError("invalid receiver address", ErrorCode.INTERNAL_ERROR);
   }
   const scheme = isDomainLocalhost(receiverAddressParts[1]) ? "http" : "https";
   const lnurlpUrl = new URL(
@@ -61,6 +67,14 @@ export function encodeToUrl(q: LnurlpRequest): URL {
     );
     queryParams.set("timestamp", String(dateToUnixSeconds(q.timestamp!)));
     queryParams.set("umaVersion", q.umaVersion!);
+    if (q.backingSignatures) {
+      queryParams.set(
+        "backingSignatures",
+        q.backingSignatures
+          .map((sig) => `${sig.domain}:${sig.signature}`)
+          .join(","),
+      );
+    }
     lnurlpUrl.search = queryParams.toString();
   }
   return lnurlpUrl;
@@ -68,11 +82,48 @@ export function encodeToUrl(q: LnurlpRequest): URL {
 
 export function getSignableLnurlpRequestPayload(q: LnurlpRequest): string {
   if (!q.nonce || !q.timestamp) {
-    throw new Error("nonce and timestamp are required for signing");
+    throw new UmaError(
+      "nonce and timestamp are required for signing",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   return [
     q.receiverAddress,
     q.nonce,
     String(dateToUnixSeconds(q.timestamp)),
   ].join("|");
+}
+
+/**
+ * Adds a backing signature to the request using the provided private key and domain.
+ * The signature is created by signing the request's signable payload.
+ *
+ * @param signingPrivateKey The private key to sign with as a Buffer
+ * @param domain The domain associated with the signature
+ * @returns A new LnurlpRequest with the additional backing signature
+ */
+export async function appendBackingSignature(
+  request: LnurlpRequest,
+  signingPrivateKey: Uint8Array,
+  domain: string,
+): Promise<LnurlpRequest> {
+  if (!isLnurlpRequestForUma(request)) {
+    return request;
+  }
+
+  const signablePayload = getSignableLnurlpRequestPayload(request);
+  const signature = await signPayload(signablePayload, signingPrivateKey);
+
+  const newBackingSignatures = [
+    ...(request.backingSignatures || []),
+    {
+      domain,
+      signature: signature,
+    },
+  ];
+
+  return {
+    ...request,
+    backingSignatures: newBackingSignatures,
+  };
 }

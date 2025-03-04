@@ -3,8 +3,10 @@ import { encrypt, PublicKey } from "eciesjs";
 import secp256k1 from "secp256k1";
 import { getPublicKey, getX509CertChain } from "./certUtils.js";
 import { createSha256Hash } from "./createHash.js";
-import { InvalidInputError } from "./errors.js";
+import { InvalidInputError, UmaError } from "./errors.js";
+import { ErrorCode } from "./generated/errorCodes.js";
 import { type NonceValidator } from "./NonceValidator.js";
+import { type BackingSignature } from "./protocol/BackingSignature.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
@@ -37,6 +39,11 @@ import {
 } from "./protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "./protocol/PubKeyResponse.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
+import {
+  signBytePayload,
+  signPayload,
+  uint8ArrayToHexString,
+} from "./signingUtils.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
@@ -56,6 +63,7 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
   const isSubjectToTravelRule = query.get("isSubjectToTravelRule") ?? undefined;
   const umaVersion = query.get("umaVersion") ?? undefined;
   const timestamp = query.get("timestamp") ?? undefined;
+  const backingSignatures = query.get("backingSignatures") ?? undefined;
   const numUmaParamsIncluded = [
     vaspDomain,
     signature,
@@ -77,12 +85,18 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
     pathParts[1] != ".well-known" ||
     pathParts[2] != "lnurlp"
   ) {
-    throw new Error("invalid request path");
+    throw new UmaError(
+      "invalid request path",
+      ErrorCode.PARSE_LNURLP_REQUEST_ERROR,
+    );
   }
 
   const username = pathParts[3];
   if (!/^[a-zA-Z0-9._$+-]+$/.test(username)) {
-    throw new Error("Invalid username in request path");
+    throw new UmaError(
+      "Invalid username in request path",
+      ErrorCode.PARSE_LNURLP_REQUEST_ERROR,
+    );
   }
 
   const receiverAddress = pathParts[3] + "@" + url.host;
@@ -92,9 +106,28 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
   }
 
   if (numUmaParamsIncluded < 5 && numUmaParamsIncluded > 0) {
-    throw new Error(
+    throw new UmaError(
       "Invalid UMA request. All UMA parameters must be included if any are included.",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
     );
+  }
+
+  let parsedBackingSignatures: BackingSignature[] | undefined;
+  if (backingSignatures) {
+    parsedBackingSignatures = backingSignatures.split(",").map((pair) => {
+      const decodedPair = decodeURIComponent(pair);
+      const lastColonIndex = decodedPair.lastIndexOf(":");
+      if (lastColonIndex === -1) {
+        throw new UmaError(
+          "Invalid backing signature format",
+          ErrorCode.INVALID_SIGNATURE,
+        );
+      }
+      return {
+        domain: pair.substring(0, lastColonIndex),
+        signature: pair.substring(lastColonIndex + 1),
+      };
+    });
   }
 
   return {
@@ -108,6 +141,7 @@ export function parseLnurlpRequest(url: URL): LnurlpRequest {
       isSubjectToTravelRule !== undefined
         ? Boolean(isSubjectToTravelRule?.toLowerCase() == "true")
         : undefined,
+    backingSignatures: parsedBackingSignatures,
   };
 }
 
@@ -241,38 +275,16 @@ export async function getSignedLnurlpRequestUrl({
   return encodeToUrl(unsignedRequest);
 }
 
-function uint8ArrayToHexString(uint8Array: Uint8Array) {
-  return Array.from(uint8Array)
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("");
-}
-
-async function signPayload(payload: string, privateKeyBytes: Uint8Array) {
-  const encoder = new TextEncoder();
-  const encodedPayload = encoder.encode(payload);
-  const hashedPayload = await createSha256Hash(encodedPayload);
-
-  const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
-  return uint8ArrayToHexString(secp256k1.signatureExport(signature));
-}
-
-async function signBytePayload(
-  payload: Uint8Array,
-  privateKeyBytes: Uint8Array,
-) {
-  const hashedPayload = await createSha256Hash(payload);
-
-  const { signature } = secp256k1.ecdsaSign(hashedPayload, privateKeyBytes);
-  return secp256k1.signatureExport(signature);
-}
-
 export async function verifyUmaLnurlpQuerySignature(
   query: LnurlpRequest,
   otherVaspPubKeyResponse: PubKeyResponse,
   nonceValidator: NonceValidator,
 ) {
   if (!isLnurlpRequestForUma(query)) {
-    throw new InvalidInputError("not a valid uma request. Missing fields");
+    throw new InvalidInputError(
+      "not a valid uma request. Missing fields",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     query.nonce!,
@@ -281,6 +293,7 @@ export async function verifyUmaLnurlpQuerySignature(
   if (!isNonceValid) {
     throw new InvalidInputError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      ErrorCode.INVALID_NONCE,
     );
   }
   const payload = getSignableLnurlpRequestPayload(query);
@@ -294,6 +307,46 @@ export async function verifyUmaLnurlpQuerySignature(
     otherVaspSigningPubKey,
   );
 }
+
+/**
+ * Verifies the backing signatures on an UMA Lnurlp query. You may optionally call this function after
+ * verifyUmaLnurlpQuerySignature to verify signatures from backing VASPs.
+ *
+ * @param query The signed query to verify
+ * @param fetchPublicKeysForVasp Function to fetch public keys for a VASP domain
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyUmaLnurlpQueryBackingSignatures(
+  query: LnurlpRequest,
+  cache: PublicKeyCache,
+) {
+  if (!query.backingSignatures) {
+    return true;
+  }
+
+  const signablePayload = getSignableLnurlpRequestPayload(query);
+  const encoder = new TextEncoder();
+  const encodedPayload = encoder.encode(signablePayload);
+  const hashedPayload = await createSha256Hash(encodedPayload);
+
+  for (const backingSignature of query.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyUmaInvoiceSignature(
   invoice: Invoice,
   publicKey: Uint8Array,
@@ -366,7 +419,7 @@ export function isValidUmaAddress(umaAddress: string) {
 
 export function getVaspDomainFromUmaAddress(umaAddress: string) {
   if (!isValidUmaAddress(umaAddress)) {
-    throw new Error("invalid uma address");
+    throw new UmaError("invalid uma address", ErrorCode.INVALID_INPUT);
   }
   const addressParts = umaAddress.split("@");
   return addressParts[1];
@@ -654,6 +707,7 @@ export async function getPayReqResponse({
   ) {
     throw new InvalidInputError(
       "The sending currency code in the pay request does not match the receiving currency code.",
+      ErrorCode.INVALID_CURRENCY,
     );
   }
 
@@ -678,16 +732,19 @@ export async function getPayReqResponse({
     payeeIdentifier,
   );
   if (!encodedInvoice) {
-    throw new Error("failed to create invoice");
+    throw new UmaError("failed to create invoice", ErrorCode.INTERNAL_ERROR);
   }
   let complianceData: CompliancePayeeData | undefined;
   if (request.isUma()) {
     const payerIdentifier = request.payerData?.identifier;
     if (!payerIdentifier) {
-      throw new Error("Payer identifier missing");
+      throw new UmaError(
+        "Payer identifier missing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     if (!payeeIdentifier) {
-      throw new Error("Payee identifier missing");
+      throw new UmaError("Payee identifier missing", ErrorCode.INVALID_INPUT);
     }
     complianceData = await getSignedCompliancePayeeData(
       receivingVaspPrivateKey!,
@@ -771,8 +828,9 @@ function validateUmaFields({
     .filter(([, value]) => value === undefined)
     .map(([key]) => key);
   if (undefinedFields.length > 0) {
-    throw new Error(
+    throw new UmaError(
       `missing required uma fields:  ${Array(undefinedFields).join(", ")}`,
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
     );
   }
 }
@@ -791,21 +849,25 @@ function validateLud21Fields({
     if (conversionRate === undefined) {
       throw new InvalidInputError(
         "conversionRate is required when receivingCurrencyCode is set",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
     if (receivingCurrencyCode === undefined) {
       throw new InvalidInputError(
         "receivingCurrencyCode is required when receivingCurrencyCode is set",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
     if (receivingCurrencyDecimals === undefined) {
       throw new InvalidInputError(
         "receivingCurrencyDecimals is required when receivingCurrencyCode is set",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
     if (receiverFeesMillisats === undefined) {
       throw new InvalidInputError(
         "receiverFeesMillisats is required when receivingCurrencyCode is set",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
       );
     }
   }
@@ -892,6 +954,7 @@ export async function getLnurlpResponse({
   if (undefinedFields.length > 0) {
     throw new InvalidInputError(
       `missing required uma fields:  ${Array(undefinedFields).join(", ")}`,
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
     );
   }
   const umaVersion = selectLowerVersion(
@@ -1003,15 +1066,19 @@ export async function verifyUmaLnurlpResponseSignature(
   nonceValidator: NonceValidator,
 ) {
   if (!response.compliance) {
-    throw new Error("compliance data is required for UMA response.");
+    throw new UmaError(
+      "compliance data is required for UMA response.",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     response.compliance.signatureNonce,
     response.compliance.signatureTimestamp,
   );
   if (!isNonceValid) {
-    throw new Error(
+    throw new UmaError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      ErrorCode.INVALID_NONCE,
     );
   }
   const encoder = new TextEncoder();
@@ -1025,6 +1092,44 @@ export async function verifyUmaLnurlpResponseSignature(
   );
 }
 
+/**
+ * Verifies the backing signatures on an UMA Lnurlp response. You may optionally call this function after
+ * verifyUmaLnurlpResponseSignature to verify signatures from backing VASPs.
+ *
+ * @param response The signed response to verify
+ * @param cache The PublicKeyCache to use for fetching VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyUmaLnurlpResponseBackingSignatures(
+  response: LnurlpResponse,
+  cache: PublicKeyCache,
+) {
+  if (!response.compliance?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedResponse = encoder.encode(response.signablePayload());
+  const hashedPayload = await createSha256Hash(encodedResponse);
+
+  for (const backingSignature of response.compliance.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyPayReqSignature(
   query: PayRequest,
   otherVaspPubKeyResponse: PubKeyResponse,
@@ -1033,15 +1138,19 @@ export async function verifyPayReqSignature(
   const encoder = new TextEncoder();
   const complianceData = query.payerData?.compliance;
   if (!complianceData) {
-    throw new Error("compliance data is required");
+    throw new UmaError(
+      "compliance data is required",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     complianceData.signatureNonce,
     complianceData.signatureTimestamp,
   );
   if (!isNonceValid) {
-    throw new Error(
+    throw new UmaError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      ErrorCode.INVALID_NONCE,
     );
   }
   const encodedQuery = encoder.encode(query.signablePayload());
@@ -1054,6 +1163,45 @@ export async function verifyPayReqSignature(
   );
 }
 
+/**
+ * Verifies the backing signatures on a PayRequest. You may optionally call this function after
+ * verifyPayReqSignature to verify signatures from backing VASPs.
+ *
+ * @param query The signed PayRequest to verify
+ * @param cache The PublicKeyCache to use for fetching VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyPayReqBackingSignatures(
+  query: PayRequest,
+  cache: PublicKeyCache,
+) {
+  const complianceData = query.payerData?.compliance;
+  if (!complianceData?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedQuery = encoder.encode(query.signablePayload());
+  const hashedPayload = await createSha256Hash(encodedQuery);
+
+  for (const backingSignature of complianceData.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyPayReqResponseSignature(
   response: PayReqResponse,
   payerIdentifier: string,
@@ -1064,22 +1212,29 @@ export async function verifyPayReqResponseSignature(
   const encoder = new TextEncoder();
   const complianceData = response.payeeData?.compliance;
   if (!complianceData) {
-    throw new Error("compliance data is required");
+    throw new UmaError(
+      "compliance data is required",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   if (
     !complianceData.signatureNonce ||
     !complianceData.signatureTimestamp ||
     !complianceData.signature
   ) {
-    throw new Error("compliance data is missing signature, nonce or timestamp");
+    throw new UmaError(
+      "compliance data is missing signature, nonce or timestamp",
+      ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+    );
   }
   const isNonceValid = await nonceValidator.checkAndSaveNonce(
     complianceData.signatureNonce,
     complianceData.signatureTimestamp,
   );
   if (!isNonceValid) {
-    throw new Error(
+    throw new UmaError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      ErrorCode.INVALID_NONCE,
     );
   }
   const encodedQuery = encoder.encode(
@@ -1094,6 +1249,51 @@ export async function verifyPayReqResponseSignature(
   );
 }
 
+/**
+ * Verifies the backing signatures on a PayReqResponse. You may optionally call this function after
+ * verifyPayReqResponseSignature to verify signatures from backing VASPs.
+ *
+ * @param response The signed PayReqResponse to verify
+ * @param payerIdentifier The identifier of the sender (e.g. $alice@vasp1.com)
+ * @param payeeIdentifier The identifier of the receiver
+ * @param cache Cache for storing VASP public keys
+ * @returns true if all backing signatures are valid, false otherwise
+ */
+export async function verifyPayReqResponseBackingSignatures(
+  response: PayReqResponse,
+  payerIdentifier: string,
+  payeeIdentifier: string,
+  cache: PublicKeyCache,
+) {
+  const complianceData = response.payeeData?.compliance;
+  if (!complianceData?.backingSignatures) {
+    return true;
+  }
+
+  const encoder = new TextEncoder();
+  const encodedPayload = encoder.encode(
+    response.signablePayload(payerIdentifier, payeeIdentifier),
+  );
+  const hashedPayload = await createSha256Hash(encodedPayload);
+
+  for (const backingSignature of complianceData.backingSignatures) {
+    const backingVaspPubKeyResponse = await fetchPublicKeyForVasp({
+      cache,
+      vaspDomain: backingSignature.domain,
+    });
+    const isSignatureValid = verifySignature(
+      hashedPayload,
+      backingSignature.signature,
+      backingVaspPubKeyResponse.getSigningPubKey(),
+    );
+    if (!isSignatureValid) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 export async function verifyPostTransactionCallbackSignature(
   callback: PostTransactionCallback,
   otherVaspPubKeyResponse: PubKeyResponse,
@@ -1104,8 +1304,9 @@ export async function verifyPostTransactionCallbackSignature(
     callback.signatureTimestamp,
   );
   if (!isNonceValid) {
-    throw new Error(
+    throw new UmaError(
       "Invalid response nonce. Already seen this nonce or the timestamp is too old.",
+      ErrorCode.INVALID_NONCE,
     );
   }
   const encoder = new TextEncoder();

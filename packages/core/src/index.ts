@@ -1,4 +1,6 @@
 export * from "./createHash.js";
+export * from "./errors.js";
+export * from "./generated/errorCodes.js";
 export * from "./NonceValidator.js";
 export * from "./protocol/CounterPartyData.js";
 export * from "./protocol/Currency.js";
@@ -13,6 +15,7 @@ export * from "./protocol/PayRequest.js";
 export * from "./protocol/PostTransactionCallback.js";
 export * from "./protocol/PubKeyResponse.js";
 export * from "./PublicKeyCache.js";
+export * from "./signingUtils.js";
 export * from "./uma.js";
 export * from "./UmaInvoiceCreator.js";
 export * from "./version.js";

@@ -1,6 +1,7 @@
 // Adapted from Alby's NWC sdk: https://github.com/getAlby/js-sdk/blob/master/src/NWCClient.ts
 import {
   type Event,
+  type Filter,
   finalizeEvent,
   getPublicKey,
   nip04,
@@ -8,6 +9,7 @@ import {
   Relay,
   type UnsignedEvent,
 } from "nostr-tools";
+import { NWCWalletInfo } from "nostr-tools/kinds";
 import * as Nip47 from "./Nip47Types";
 
 export interface NwcConnection {
@@ -24,6 +26,7 @@ export class NwcRequester {
   secret!: Uint8Array;
   lud16: string | undefined;
   useNip44: boolean;
+  cachedWalletInfoEvent: Event | undefined;
   clearUserAuth: () => void;
   tokenRefresh?: () => Promise<{ nwcConnectionUri: string }>;
 
@@ -62,6 +65,7 @@ export class NwcRequester {
     this.secret = nwcConnection.secret;
     this.lud16 = nwcConnection.lud16;
     this.walletPubkey = nwcConnection.walletPubkey;
+    this.cachedWalletInfoEvent = undefined;
 
     if (globalThis.WebSocket === undefined) {
       console.error(
@@ -347,7 +351,10 @@ export class NwcRequester {
         const unsignedEvent: UnsignedEvent = {
           kind: 23194,
           created_at: Math.floor(Date.now() / 1000),
-          tags: [["p", this.walletPubkey]],
+          tags: [
+            ["p", this.walletPubkey],
+            ["encryption", this.useNip44 ? "nip44_v2" : "nip04"],
+          ],
           content: encryptedCommand,
           pubkey: this.publicKey,
         };
@@ -468,12 +475,49 @@ export class NwcRequester {
 
       const nwcConnection =
         NwcRequester.parseWalletConnectUrl(nwcConnectionUri);
-      if (nwcConnection.secret !== this.secret) {
+      if (!byteArraysEqual(nwcConnection.secret, this.secret)) {
         this.initNwcConnection(nwcConnection);
       }
     }
 
     await this.relay.connect();
+
+    if (!this.cachedWalletInfoEvent) {
+      this.cachedWalletInfoEvent = await this.fetchExistingEvent([
+        {
+          kinds: [NWCWalletInfo],
+          authors: [this.walletPubkey],
+        },
+      ]);
+      const encryptionTag = this.cachedWalletInfoEvent.tags.find(
+        (tag) => tag[0] === "encryption",
+      );
+      this.useNip44 = encryptionTag?.[1].includes("nip44_v2") || false;
+    }
+  }
+
+  private async fetchExistingEvent(filters: Filter[]) {
+    return await new Promise<Event>((resolve, reject) => {
+      const sub = this.relay.subscribe(filters, {
+        onevent(event) {
+          clearTimeout(timeout);
+          resolve(event);
+        },
+        oneose() {
+          clearTimeout(timeout);
+          sub.close();
+        },
+      });
+      const timeout = setTimeout(() => {
+        sub.close();
+        reject(
+          new Nip47.Nip47ReplyTimeoutError(
+            `timeout fetching info event.`,
+            "INTERNAL",
+          ),
+        );
+      }, 5000);
+    });
   }
 }
 
@@ -485,3 +529,6 @@ const hexToBytes = (hex: string): Uint8Array => {
     hex.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16)),
   );
 };
+
+const byteArraysEqual = (a: Uint8Array, b: Uint8Array): boolean =>
+  a.length === b.length && a.every((v, i) => v === b[i]);

@@ -1,5 +1,7 @@
 import * as crypto from "crypto";
 import { getPublicKey } from "../certUtils.js";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
 
 type X509Certificate = crypto.X509Certificate;
 
@@ -32,7 +34,10 @@ export class PubKeyResponse {
     } else if (this.signingPubKey) {
       return Buffer.from(this.signingPubKey, "hex");
     } else {
-      throw new Error("No signing public key");
+      throw new UmaError(
+        "No signing public key",
+        ErrorCode.INVALID_PUBKEY_FORMAT,
+      );
     }
   }
 
@@ -42,7 +47,10 @@ export class PubKeyResponse {
     } else if (this.encryptionPubKey) {
       return Buffer.from(this.encryptionPubKey, "hex");
     } else {
-      throw new Error("No encryption public key");
+      throw new UmaError(
+        "No encryption public key",
+        ErrorCode.INVALID_PUBKEY_FORMAT,
+      );
     }
   }
 
@@ -60,11 +68,18 @@ export class PubKeyResponse {
     });
   }
 
+  toJSON(): string {
+    return this.toJsonString();
+  }
+
   static fromJson(jsonStr: string): PubKeyResponse {
     const jsonObject = JSON.parse(jsonStr);
 
     if (!crypto.X509Certificate) {
-      throw new Error("X509Certificate is only available in Node.js");
+      throw new UmaError(
+        "X509Certificate is only available in Node.js",
+        ErrorCode.INTERNAL_ERROR,
+      );
     }
 
     return new PubKeyResponse(

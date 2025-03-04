@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { UmaError } from "../errors.js";
+import { ErrorCode } from "../generated/errorCodes.js";
+import { signPayload } from "../signingUtils.js";
 import { MAJOR_VERSION } from "../version.js";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import {
@@ -182,18 +185,82 @@ export class PayRequest {
     return JSON.stringify(this.toJsonSchemaObject());
   }
 
+  toJSON(): string {
+    return JSON.stringify(this.toJsonSchemaObject());
+  }
+
   signablePayload(): string {
     const complianceData = this.payerData?.compliance;
     if (!complianceData) {
-      throw new Error("compliance is required, but not present in payerData");
+      throw new UmaError(
+        "compliance is required, but not present in payerData",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     const payerIdentifier = this.payerData?.identifier;
     if (!payerIdentifier) {
-      throw new Error("payer identifier is missing");
+      throw new UmaError(
+        "payer identifier is missing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     return `${payerIdentifier}|${
       complianceData.signatureNonce
     }|${complianceData.signatureTimestamp.toString()}`;
+  }
+
+  /**
+   * Appends a backing signature to the PayRequest.
+   *
+   * @param signingPrivateKey The private key used to sign the payload
+   * @param domain The domain of the VASP that is signing the payload
+   * @returns A new PayRequest with the additional backing signature
+   */
+  async appendBackingSignature(
+    signingPrivateKey: Uint8Array,
+    domain: string,
+  ): Promise<PayRequest> {
+    if (!this.isUma()) {
+      return this;
+    }
+
+    if (!this.payerData?.compliance) {
+      throw new UmaError(
+        "compliance is required for signing",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
+    }
+
+    const signablePayload = this.signablePayload();
+    const signature = await signPayload(signablePayload, signingPrivateKey);
+
+    const newBackingSignatures = [
+      ...(this.payerData.compliance.backingSignatures || []),
+      {
+        domain,
+        signature,
+      },
+    ];
+
+    const updatedCompliance = {
+      ...this.payerData.compliance,
+      backingSignatures: newBackingSignatures,
+    };
+
+    const updatedPayerData = {
+      ...this.payerData,
+      compliance: updatedCompliance,
+    };
+
+    return new PayRequest(
+      this.amount,
+      this.receivingCurrencyCode,
+      this.sendingAmountCurrencyCode,
+      this.umaMajorVersion,
+      updatedPayerData,
+      this.requestedPayeeData,
+      this.comment,
+    );
   }
 
   static fromSchema(schema: z.infer<typeof PayRequestSchema>): PayRequest {
@@ -204,8 +271,9 @@ export class PayRequest {
       amount = z.coerce.number().int().parse(amountFieldStr);
       sendingAmountCurrencyCode = undefined;
     } else if (amountFieldStr.split(".").length > 2) {
-      throw new Error(
+      throw new UmaError(
         "invalid amount string. Cannot contain more than one period. Example: '5000' for SAT or '5.USD' for USD.",
+        ErrorCode.INTERNAL_ERROR,
       );
     } else {
       const [amountStr, currencyCode] = amountFieldStr.split(".");
@@ -229,7 +297,10 @@ export class PayRequest {
     try {
       validated = PayRequestSchema.parse(data);
     } catch (e) {
-      throw new Error("invalid pay request", { cause: e });
+      throw new UmaError(
+        `invalid pay request ${e}`,
+        ErrorCode.PARSE_PAYREQ_REQUEST_ERROR,
+      );
     }
     return this.fromSchema(validated);
   }
@@ -250,7 +321,10 @@ export class PayRequest {
     const payeeData = params.get("payeeData");
     const comment = params.get("comment");
     if (amountParam === null) {
-      throw new Error("amount is required");
+      throw new UmaError(
+        "amount is required",
+        ErrorCode.MISSING_REQUIRED_UMA_PARAMETERS,
+      );
     }
     let validated: z.infer<typeof PayRequestSchema>;
     try {
@@ -263,7 +337,10 @@ export class PayRequest {
         comment,
       });
     } catch (e) {
-      throw new Error("invalid pay request", { cause: e });
+      throw new UmaError(
+        `invalid pay request ${e}`,
+        ErrorCode.PARSE_PAYREQ_REQUEST_ERROR,
+      );
     }
     return this.fromSchema(validated);
   }
