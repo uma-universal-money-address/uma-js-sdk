@@ -1,5 +1,12 @@
 # react-demo
 
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [d96de35]
+  - @uma-sdk/uma-auth-client@0.0.8
+
 ## 0.0.6
 
 ### Patch Changes

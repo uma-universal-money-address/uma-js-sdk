@@ -1,5 +1,12 @@
 # @uma-sdk/core
 
+## 1.3.0
+
+### Minor Changes
+
+- d96de35: \* Add backing signature support
+  - Use generic, standardized error codes
+
 ## 1.2.3
 
 ### Patch Changes
