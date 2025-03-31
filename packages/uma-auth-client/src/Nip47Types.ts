@@ -149,7 +149,7 @@ export type LookupUserRequest = {
 };
 
 export type LookupUserResponse = {
-  currencies: Currency[];
+  currencies: CurrencyPreference[];
 };
 
 export type FetchQuoteRequest = {
