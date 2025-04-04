@@ -9,6 +9,7 @@ import {
 } from "@uma-sdk/uma-auth-client";
 import { useEffect, useState } from "react";
 import { LookupUserResponse, Quote } from "@uma-sdk/uma-auth-client";
+import { LoadingDots, LoadingText } from "./components/Loading";
 
 type AppState =
   | "CONNECT"
@@ -76,6 +77,16 @@ function App() {
       setSenderInfo(null);
     }
   }, [nwcConnectionUri, appState, nwcRequester, senderInfo]);
+
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // If the value doesn't start with $, add it
+    if (!value.startsWith("$")) {
+      setRecipientAddress("$" + value);
+    } else {
+      setRecipientAddress(value);
+    }
+  };
 
   const handleAddressSubmit = async () => {
     if (!nwcRequester) return;
@@ -210,14 +221,14 @@ function App() {
             <TerminalInput
               type="text"
               value={recipientAddress}
-              onChange={(e) => setRecipientAddress(e.target.value)}
-              placeholder="example@uma.com"
+              onChange={handleAddressChange}
+              placeholder="$example@uma.com"
             />
-            <ActionButton
-              onClick={handleAddressSubmit}
-              disabled={isLoading.lookup}
-            >
-              {isLoading.lookup ? "Looking up..." : "Lookup"}
+            <ActionButton onClick={handleAddressSubmit} disabled={isLoading.lookup}>
+              <LoadingText>
+                {isLoading.lookup ? "Looking up" : "Lookup"}
+                {isLoading.lookup && <LoadingDots />}
+              </LoadingText>
             </ActionButton>
           </AddressScreen>
         )}
@@ -246,7 +257,10 @@ function App() {
               onClick={handleAmountSubmit}
               disabled={isLoading.quote || !amount || parseFloat(amount) <= 0}
             >
-              {isLoading.quote ? "Getting Quote..." : "Get Quote"}
+              <LoadingText>
+                {isLoading.quote ? "Getting quote" : "Get Quote"}
+                {isLoading.quote && <LoadingDots />}
+              </LoadingText>
             </ActionButton>
           </AmountScreen>
         )}
@@ -285,7 +299,10 @@ function App() {
                 )}
               </TerminalText>
               <ActionButton onClick={handleConfirmQuote} disabled={isLoading.send}>
-                {isLoading.send ? "Sending..." : "Confirm & Send"}
+                <LoadingText>
+                  {isLoading.send ? "Sending" : "Confirm & Send"}
+                  {isLoading.send && <LoadingDots />}
+                </LoadingText>
               </ActionButton>
             </QuoteScreen>
           )}
@@ -326,7 +343,7 @@ const TerminalHeader = styled.div`
 const TerminalTitle = styled.h1`
   color: #fff;
   margin: 0;
-  font-family: "Courier New", monospace;
+  font-family: "IBM Plex Mono", monospace;
 `;
 
 const HeaderControls = styled.div`
@@ -362,7 +379,7 @@ const TerminalContent = styled.div`
 
 const TerminalText = styled.p`
   color: #00ff00;
-  font-family: "Courier New", monospace;
+  font-family: "IBM Plex Mono", monospace;
   margin: 0.5rem 0;
 `;
 
@@ -371,7 +388,7 @@ const TerminalInput = styled.input`
   border: 1px solid #00ff00;
   color: #00ff00;
   padding: 0.5rem;
-  font-family: "Courier New", monospace;
+  font-family: "IBM Plex Mono", monospace;
   width: 100%;
   max-width: 300px;
   margin: 1rem auto;
@@ -389,7 +406,7 @@ const ActionButton = styled.button`
   border: 1px solid #00ff00;
   color: #00ff00;
   padding: 0.5rem;
-  font-family: "Courier New", monospace;
+  font-family: "IBM Plex Mono", monospace;
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s ease-in-out;
