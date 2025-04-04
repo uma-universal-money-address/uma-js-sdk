@@ -16,7 +16,7 @@ yarn add @uma-sdk/uma-auth-client
 
 ## Quick Start
 
-See the full UMA Auth documentation [here](https://docs.uma.me/uma-ux-design-guide/uma-auth/client-quick-start).
+See the full UMA Auth documentation [here](https://docs.uma.me/uma-auth/uma-auth-client/client-quick-start).
 
 ### Connecting
 
