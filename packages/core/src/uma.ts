@@ -8,6 +8,7 @@ import { ErrorCode } from "./generated/errorCodes.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type BackingSignature } from "./protocol/BackingSignature.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
+import { CounterPartyDataKeys } from "./protocol/CounterPartyDataKeys.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
   InvoiceSerializer,
@@ -29,7 +30,10 @@ import {
   type CompliancePayeeData,
   type PayeeData,
 } from "./protocol/PayeeData.js";
-import { type CompliancePayerData } from "./protocol/PayerData.js";
+import {
+  type CompliancePayerData,
+  type PayerData,
+} from "./protocol/PayerData.js";
 import { PayReqResponse } from "./protocol/PayReqResponse.js";
 import { PayRequest } from "./protocol/PayRequest.js";
 import {
@@ -440,9 +444,9 @@ type GetPayRequestArgs = {
   isAmountInReceivingCurrency: boolean;
   /** The identifier of the sender. For example, $alice@vasp1.com */
   payerIdentifier: string;
-  /** The name of the sender (optional). */
+  /** The name of the sender (optional). Deprecated. Use payerData instead. */
   payerName?: string | undefined;
-  /** The email of the sender (optional). */
+  /** The email of the sender (optional). Deprecated. Use payerData instead. */
   payerEmail?: string | undefined;
   /** The travel rule information. This will be encrypted before sending to the receiver. */
   trInfo?: string | undefined;
@@ -489,6 +493,12 @@ type GetPayRequestArgs = {
    * associated invoice id, for PayRequest version1+
    */
   invoiceUUID?: string | undefined;
+
+  /**
+   *  The data that the sender must send to the receiver to identify themselves. This should
+   *  include the mandatory fields requested by the receiver in the `LnurlpResponse`
+   */
+  payerData?: PayerData | undefined;
 };
 
 /**
@@ -513,6 +523,7 @@ export async function getPayRequest({
   comment,
   umaMajorVersion,
   invoiceUUID,
+  payerData,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -535,10 +546,11 @@ export async function getPayRequest({
     sendingAmountCurrencyCode,
     umaMajorVersion,
     {
-      name: payerName,
-      email: payerEmail,
-      identifier: payerIdentifier,
-      compliance: complianceData,
+      [CounterPartyDataKeys.NAME]: payerName,
+      [CounterPartyDataKeys.EMAIL]: payerEmail,
+      [CounterPartyDataKeys.IDENTIFIER]: payerIdentifier,
+      [CounterPartyDataKeys.COMPLIANCE]: complianceData,
+      ...payerData,
     },
     requestedPayeeData,
     comment,
@@ -764,7 +776,10 @@ export async function getPayReqResponse({
 
   return new PayReqResponse(
     encodedInvoice,
-    Object.assign({ compliance: complianceData }, payeeData || {}),
+    Object.assign(
+      { [CounterPartyDataKeys.COMPLIANCE]: complianceData },
+      payeeData || {},
+    ),
     !!receivingCurrencyCode
       ? {
           amount: receivingAmount,
