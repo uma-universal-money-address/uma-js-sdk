@@ -5,6 +5,7 @@ import { getX509CertChain } from "../certUtils.js";
 import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
+import { CounterPartyDataKeys } from "../protocol/CounterPartyDataKeys.js";
 import { Currency } from "../protocol/Currency.js";
 import { InvoiceSerializer, type Invoice } from "../protocol/Invoice.js";
 import { KycStatus } from "../protocol/KycStatus.js";
@@ -130,13 +131,13 @@ function createTestUmaInvoice(): Invoice {
     expiration: 1000000,
     isSubjectToTravelRule: true,
     requiredPayerData: {
-      name: {
+      [CounterPartyDataKeys.NAME]: {
         mandatory: false,
       },
-      email: {
+      [CounterPartyDataKeys.EMAIL]: {
         mandatory: false,
       },
-      compliance: {
+      [CounterPartyDataKeys.COMPLIANCE]: {
         mandatory: true,
       },
     },
@@ -595,8 +596,12 @@ describe("uma", () => {
     );
     expect(verified).toBeTruthy();
     expect(parsedResponse.payerData).toBeDefined();
-    expect(parsedResponse.payerData!["compliance"].mandatory).toBe(true);
-    expect(parsedResponse.payerData!["identifier"].mandatory).toBe(true);
+    expect(
+      parsedResponse.payerData![CounterPartyDataKeys.COMPLIANCE].mandatory,
+    ).toBe(true);
+    expect(
+      parsedResponse.payerData![CounterPartyDataKeys.IDENTIFIER].mandatory,
+    ).toBe(true);
   });
 
   it("should sign and verify lnurlp response with backing signature", async () => {
@@ -612,16 +617,16 @@ describe("uma", () => {
       minSendableSats: 1,
       maxSendableSats: 10_000_000,
       payerDataOptions: {
-        name: {
+        [CounterPartyDataKeys.NAME]: {
           mandatory: false,
         },
-        email: {
+        [CounterPartyDataKeys.EMAIL]: {
           mandatory: false,
         },
-        identifier: {
+        [CounterPartyDataKeys.IDENTIFIER]: {
           mandatory: true,
         },
-        compliance: {
+        [CounterPartyDataKeys.COMPLIANCE]: {
           mandatory: true,
         },
       },
@@ -879,6 +884,11 @@ describe("uma", () => {
       payerKycStatus: KycStatus.Verified,
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
       umaMajorVersion: 1,
+      payerEmail: "alice@vasp1.com",
+      payerData: {
+        [CounterPartyDataKeys.NAME]: "Alice Full Name",
+        [CounterPartyDataKeys.NATIONALITY]: "US",
+      },
     });
 
     const payreqJson = payreq.toJsonString();
@@ -913,6 +923,11 @@ describe("uma", () => {
       encryptedTrInfoBytes,
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
+
+    expect(parsedPayreq.payerData?.name).toBe("Alice Full Name");
+    expect(parsedPayreq.payerData?.email).toBe("alice@vasp1.com");
+    expect(parsedPayreq.payerData?.identifier).toBe("$alice@vasp1.com");
+    expect(parsedPayreq.payerData?.nationality).toBe("US");
   });
 
   it("should sign and verify pay request with backing signature", async () => {
@@ -1073,13 +1088,13 @@ describe("uma", () => {
         expiration: 1000000,
         isSubjectToTravelRule: true,
         requiredPayerData: {
-          name: {
+          [CounterPartyDataKeys.NAME]: {
             mandatory: false,
           },
-          email: {
+          [CounterPartyDataKeys.EMAIL]: {
             mandatory: false,
           },
-          compliance: {
+          [CounterPartyDataKeys.COMPLIANCE]: {
             mandatory: true,
           },
         },

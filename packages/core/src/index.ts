@@ -3,6 +3,7 @@ export * from "./errors.js";
 export * from "./generated/errorCodes.js";
 export * from "./NonceValidator.js";
 export * from "./protocol/CounterPartyData.js";
+export * from "./protocol/CounterPartyDataKeys.js";
 export * from "./protocol/Currency.js";
 export * from "./protocol/Invoice.js";
 export * from "./protocol/KycStatus.js";
