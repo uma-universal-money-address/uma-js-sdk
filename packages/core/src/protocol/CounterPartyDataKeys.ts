@@ -19,6 +19,12 @@ export const CounterPartyDataKeys = {
 
   /** The counterparty's nationality, in ISO 3166-1 alpha-2 format */
   NATIONALITY: "nationality",
+
+  /** The counterparty's country of residence, in ISO 3166-1 alpha-2 format */
+  COUNTRY_OF_RESIDENCE: "countryOfResidence",
+
+  /** The counterparty's phone number, in E.164 format */
+  PHONE_NUMBER: "phoneNumber",
 } as const;
 
 export type CounterPartyDataKey =
