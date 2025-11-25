@@ -10,6 +10,7 @@ import {
 } from "./CounterPartyData.js";
 import { Currency, CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
+import { SettlementOptionSchema, type SettlementOption } from "./Settlement.js";
 /** The response to the LnurlpRequest. It is sent by the VASP that is receiving the payment to provide information to the sender about the receiver. */
 export class LnurlpResponse {
   public tag: string = "payRequest";
@@ -47,6 +48,11 @@ export class LnurlpResponse {
      * Should be set to true if the receiving VASP allows nostr zaps (NIP-57).
      */
     public allowsNostr?: boolean,
+    /**
+     * The list of settlement options that the receiver supports. If not specified,
+     * the payment will be settled on Lightning using BTC as the settlement asset.
+     */
+    public settlementOptions?: SettlementOption[],
   ) {}
 
   isUma(): this is {
@@ -91,6 +97,7 @@ export class LnurlpResponse {
       commentAllowed: this.commentAllowed,
       nostrPubkey: this.nostrPubkey,
       allowsNostr: this.allowsNostr,
+      settlementOptions: this.settlementOptions,
     };
   }
 
@@ -147,6 +154,7 @@ export class LnurlpResponse {
       this.commentAllowed,
       this.nostrPubkey,
       this.allowsNostr,
+      this.settlementOptions,
     );
   }
 
@@ -185,6 +193,7 @@ export class LnurlpResponse {
       validated.commentAllowed,
       validated.nostrPubkey,
       validated.allowsNostr,
+      validated.settlementOptions,
     );
   }
 }
@@ -224,4 +233,5 @@ const LnurlpResponseSchema = z.object({
   commentAllowed: optionalIgnoringNull(z.number()),
   nostrPubkey: optionalIgnoringNull(z.string()),
   allowsNostr: optionalIgnoringNull(z.boolean()),
+  settlementOptions: optionalIgnoringNull(z.array(SettlementOptionSchema)),
 });
