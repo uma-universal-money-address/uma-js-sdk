@@ -15,6 +15,7 @@ export * from "./protocol/PayReqResponse.js";
 export * from "./protocol/PayRequest.js";
 export * from "./protocol/PostTransactionCallback.js";
 export * from "./protocol/PubKeyResponse.js";
+export * from "./protocol/Settlement.js";
 export * from "./PublicKeyCache.js";
 export * from "./signingUtils.js";
 export * from "./uma.js";
