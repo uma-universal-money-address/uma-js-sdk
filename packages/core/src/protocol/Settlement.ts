@@ -2,8 +2,8 @@ import { z } from "zod";
 
 export const SettlementAssetSchema = z.object({
   /**
-   * The identifier of the asset. For Spark, this is the token public key.
-   * For Lightning/BTC, this should be "BTC".
+   * The identifier of the asset. For Lightning, this should be "BTC".
+   * For Spark, this is the token identifier.
    */
   identifier: z.string(),
   /**

@@ -1223,8 +1223,7 @@ describe("uma", () => {
         settlementLayer: "spark",
         assets: [
           {
-            identifier:
-              "0226ec76414bcf3f87e37882912a595f1d6701b609b97d0ed464284b418a395dba",
+            identifier: "btkn1...",
             multipliers: {
               USD: 1234,
               PHP: 5678,
@@ -1271,7 +1270,7 @@ describe("uma", () => {
     expect(lnurlpResponse.settlementOptions?.[0].settlementLayer).toBe("spark");
     expect(lnurlpResponse.settlementOptions?.[0].assets).toHaveLength(1);
     expect(lnurlpResponse.settlementOptions?.[0].assets[0].identifier).toBe(
-      "0226ec76414bcf3f87e37882912a595f1d6701b609b97d0ed464284b418a395dba",
+      "btkn1...",
     );
 
     const serialized = lnurlpResponse.toJsonString();
@@ -1294,16 +1293,13 @@ describe("uma", () => {
       umaMajorVersion: 1,
       settlement: {
         layer: "spark",
-        assetIdentifier:
-          "0226ec76414bcf3f87e37882912a595f1d6701b609b97d0ed464284b418a395dba",
+        assetIdentifier: "btkn1...",
       },
     });
 
     expect(payRequest.settlement).toBeDefined();
     expect(payRequest.settlement?.layer).toBe("spark");
-    expect(payRequest.settlement?.assetIdentifier).toBe(
-      "0226ec76414bcf3f87e37882912a595f1d6701b609b97d0ed464284b418a395dba",
-    );
+    expect(payRequest.settlement?.assetIdentifier).toBe("btkn1...");
 
     const serialized = payRequest.toJsonString();
     const deserialized = PayRequest.fromJson(serialized);
@@ -1325,8 +1321,7 @@ describe("uma", () => {
       umaMajorVersion: 1,
       settlement: {
         layer: "spark",
-        assetIdentifier:
-          "0226ec76414bcf3f87e37882912a595f1d6701b609b97d0ed464284b418a395dba",
+        assetIdentifier: "btkn1...",
       },
     });
 
