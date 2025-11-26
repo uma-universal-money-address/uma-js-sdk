@@ -1329,6 +1329,11 @@ describe("uma", () => {
       createUmaInvoice: async () => {
         return "lnbc1000n1pj9x3z0pp5";
       },
+
+      createInvoiceForSettlementLayer: async () => {
+        // assuming spark is the settlement layer
+        return "spark1000n1pj9x3z0pp5";
+      },
     };
 
     const payReqResponse = await getPayReqResponseForSettlementLayer({
@@ -1348,6 +1353,7 @@ describe("uma", () => {
     expect(payReqResponse.converted?.multiplier).toBe(1234);
     expect(payReqResponse.converted?.fee).toBe(50);
     expect(payReqResponse.converted?.currencyCode).toBe("USD");
+    expect(payReqResponse.pr).toBe("spark1000n1pj9x3z0pp5");
 
     const serialized = payReqResponse.toJsonString();
     const deserialized = PayReqResponse.fromJson(serialized);
