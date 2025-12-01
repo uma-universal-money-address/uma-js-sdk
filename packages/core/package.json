@@ -1,6 +1,6 @@
 {
   "name": "@uma-sdk/core",
-  "version": "1.2.3",
+  "version": "1.4.0",
   "description": "UMA SDK for JavaScript",
   "keywords": [
     "bitcoin",
