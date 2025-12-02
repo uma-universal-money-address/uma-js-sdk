@@ -11,6 +11,7 @@ import {
 import { Currency, CurrencySchema } from "./Currency.js";
 import { KycStatus } from "./KycStatus.js";
 import { SettlementOptionSchema, type SettlementOption } from "./Settlement.js";
+
 /** The response to the LnurlpRequest. It is sent by the VASP that is receiving the payment to provide information to the sender about the receiver. */
 export class LnurlpResponse {
   public tag: string = "payRequest";
