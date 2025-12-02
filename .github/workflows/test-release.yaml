@@ -10,6 +10,10 @@ on:
     paths:
       - "**"
 
+permissions:
+  id-token: write  # Required for OIDC
+  contents: read
+
 jobs:
   update-lock-file:
     if: github.head_ref != 'changeset-release/main'
@@ -166,7 +170,6 @@ jobs:
           publish: yarn release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       # If the Version Packages PR has been created in the changesets step we should check if our workspace
       # package.json files have been updated from dependency bumps and update the lock file if so:
