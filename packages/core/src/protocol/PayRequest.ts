@@ -9,6 +9,7 @@ import {
   type CounterPartyDataOptions,
 } from "./CounterPartyData.js";
 import { PayerDataSchema, type PayerData } from "./PayerData.js";
+import { SettlementInfoSchema, type SettlementInfo } from "./Settlement.js";
 
 const V1PayRequestSchema = z
   .object({
@@ -35,6 +36,12 @@ const V1PayRequestSchema = z
      * This only exists in the v1 pay request since the v0 SDK won't support invoices.
      */
     invoiceUUID: optionalIgnoringNull(z.string().uuid()),
+    /**
+     * Settlement information including the layer and asset chosen by the sender.
+     * Must be one of the options provided by the receiver in the lnurlp response.
+     * If not specified, defaults to Lightning with BTC.
+     */
+    settlement: optionalIgnoringNull(SettlementInfoSchema),
   })
   .passthrough()
   .refine((data) => {
@@ -94,10 +101,11 @@ export class PayRequest {
      */
     public readonly receivingCurrencyCode: string | undefined,
     /**
-     * The currency code of the `amount` field. `None` indicates that `amount` is in millisatoshis
-     * as in LNURL without LUD-21. If this is not `None`, then `amount` is in the smallest unit of
-     * the specified currency (e.g. cents for USD). This currency code can be any currency which
-     * the receiver can quote. However, there are two most common scenarios for UMA:
+     * The currency code of the `amount` field. `None` indicates that `amount` is in the smallest
+     * unit of the settlement asset. For lightning, this is millisatoshis as in LNURL without LUD-21.
+     * If this is not `None`, then `amount` is in the smallest unit of the specified currency
+     * (e.g. cents for USD). This currency code can be any currency which the receiver can quote.
+     * However, there are two most common scenarios for UMA:
      *
      * 1. If the sender wants the receiver wants to receive a specific amount in their receiving
      * currency, then this field should be the same as `receiving_currency_code`. This is useful
@@ -106,12 +114,14 @@ export class PayRequest {
      * for some goods or services in a foreign currency.
      *
      * 2. If the sender has a specific amount in their own currency that they would like to send,
-     * then this field should be left as `None` to indicate that the amount is in millisatoshis.
+     * then this field should be left as `None` to indicate that the amount is in the smallest
+     * unit of the settlement asset (ie. msats by default).
      * This will lock the sent amount on the sender side, and the receiver will receive the
      * equivalent amount in their receiving currency. NOTE: In this scenario, the sending VASP
      * *should not* pass the sending currency code here, as it is not relevant to the receiver.
-     * Rather, by specifying an invoice amount in msats, the sending VASP can ensure that their
-     * user will be sending a fixed amount, regardless of the exchange rate on the receiving side.
+     * Rather, by specifying an invoice amount in the settlement asset (for example, msats for
+     * lightning), the sending VASP can ensure that their user will be sending a fixed amount,
+     * regardless of the exchange rate on the receiving side.
      */
     public readonly sendingAmountCurrencyCode: string | undefined,
     /**
@@ -138,6 +148,12 @@ export class PayRequest {
      * Associated UMA Invoice UUID
      */
     public readonly invoiceUUID?: string | undefined,
+    /**
+     * Settlement information including the layer and asset chosen by the sender.
+     * Must be one of the options provided by the receiver in the lnurlp response.
+     * If not specified, defaults to Lightning with BTC.
+     */
+    public readonly settlement?: SettlementInfo | undefined,
   ) {}
 
   /**
@@ -173,6 +189,8 @@ export class PayRequest {
       payerData: this.payerData,
       payeeData: this.requestedPayeeData,
       comment: this.comment,
+      invoiceUUID: this.invoiceUUID,
+      settlement: this.settlement,
     };
   }
 
@@ -260,6 +278,8 @@ export class PayRequest {
       updatedPayerData,
       this.requestedPayeeData,
       this.comment,
+      this.invoiceUUID,
+      this.settlement,
     );
   }
 
@@ -289,6 +309,8 @@ export class PayRequest {
       schema.payerData as PayerData | undefined,
       schema.payeeData,
       schema.comment,
+      schema.invoiceUUID,
+      schema.settlement,
     );
   }
 

@@ -233,9 +233,18 @@ const V1PayReqResponsePaymentInfoSchema = z.object({
    * details, edge cases, and examples.
    */
   decimals: z.number(),
-  /** The conversion rate. It is the number of millisatoshis that the receiver will receive for 1 unit of the specified currency. */
+  /**
+   * The conversion rate. In the default case (Lightning/BTC), it is the number of millisatoshis that the
+   * receiver will receive for 1 unit of the specified currency (eg: cents in USD). For other settlement
+   * layers, this is the number of the smallest unit of the settlement asset that the receiver will
+   * receive for 1 unit of the specified currency.
+   */
   multiplier: z.number(),
-  /**  The fees charged (in millisats) by the receiving VASP for this transaction. This is separate from the multiplier. */
+  /**
+   * The fees charged by the receiving VASP for this transaction. In the default case (Lightning/BTC),
+   * this is in millisatoshis. For other settlement layers, this is in the smallest unit of the
+   * settlement asset. This is separate from the `multiplier`.
+   */
   fee: z.number(),
 });
 

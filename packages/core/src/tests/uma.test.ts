@@ -5,6 +5,7 @@ import { getX509CertChain } from "../certUtils.js";
 import { dateToUnixSeconds } from "../datetimeUtils.js";
 import { isError } from "../errors.js";
 import { InMemoryNonceValidator } from "../NonceValidator.js";
+import { CounterPartyDataKeys } from "../protocol/CounterPartyDataKeys.js";
 import { Currency } from "../protocol/Currency.js";
 import { InvoiceSerializer, type Invoice } from "../protocol/Invoice.js";
 import { KycStatus } from "../protocol/KycStatus.js";
@@ -19,11 +20,13 @@ import { PayReqResponse } from "../protocol/PayReqResponse.js";
 import { PayRequest } from "../protocol/PayRequest.js";
 import { parsePostTransactionCallback } from "../protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "../protocol/PubKeyResponse.js";
+import { type SettlementOption } from "../protocol/Settlement.js";
 import { InMemoryPublicKeyCache } from "../PublicKeyCache.js";
 import {
   createUmaInvoice,
   getLnurlpResponse,
   getPayReqResponse,
+  getPayReqResponseForSettlementLayer,
   getPayRequest,
   getPostTransactionCallback,
   getPubKeyResponse,
@@ -130,13 +133,13 @@ function createTestUmaInvoice(): Invoice {
     expiration: 1000000,
     isSubjectToTravelRule: true,
     requiredPayerData: {
-      name: {
+      [CounterPartyDataKeys.NAME]: {
         mandatory: false,
       },
-      email: {
+      [CounterPartyDataKeys.EMAIL]: {
         mandatory: false,
       },
-      compliance: {
+      [CounterPartyDataKeys.COMPLIANCE]: {
         mandatory: true,
       },
     },
@@ -595,8 +598,231 @@ describe("uma", () => {
     );
     expect(verified).toBeTruthy();
     expect(parsedResponse.payerData).toBeDefined();
-    expect(parsedResponse.payerData!["compliance"].mandatory).toBe(true);
-    expect(parsedResponse.payerData!["identifier"].mandatory).toBe(true);
+    expect(
+      parsedResponse.payerData![CounterPartyDataKeys.COMPLIANCE].mandatory,
+    ).toBe(true);
+    expect(
+      parsedResponse.payerData![CounterPartyDataKeys.IDENTIFIER].mandatory,
+    ).toBe(true);
+  });
+
+  it("should sign and verify lnurlp response with backing signature", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    const request = await createLnurlpRequest(senderSigningPrivateKey);
+    const metadata = createMetadataForBob();
+    const response = await getLnurlpResponse({
+      request,
+      privateKeyBytes: certPrivKeyBytes,
+      requiresTravelRuleInfo: true,
+      callback: "https://vasp2.com/api/lnurl/payreq/$bob",
+      encodedMetadata: metadata,
+      minSendableSats: 1,
+      maxSendableSats: 10_000_000,
+      payerDataOptions: {
+        [CounterPartyDataKeys.NAME]: {
+          mandatory: false,
+        },
+        [CounterPartyDataKeys.EMAIL]: {
+          mandatory: false,
+        },
+        [CounterPartyDataKeys.IDENTIFIER]: {
+          mandatory: true,
+        },
+        [CounterPartyDataKeys.COMPLIANCE]: {
+          mandatory: true,
+        },
+      },
+      currencyOptions: [
+        Currency.parse({
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          multiplier: 34_150,
+          convertible: {
+            min: 1,
+            max: 10_000_000,
+          },
+          decimals: 2,
+        }),
+      ],
+      receiverKycStatus: KycStatus.Verified,
+    });
+
+    const parsedResponse = LnurlpResponse.parse(response);
+    const backingDomain = "backingvasp.com";
+    const responseWithBackingSignature =
+      await parsedResponse.appendBackingSignature(
+        certPrivKeyBytes,
+        backingDomain,
+      );
+    const responseJson = responseWithBackingSignature.toJsonSchemaObject();
+    const parsedResponseWithSignature = LnurlpResponse.parse(responseJson);
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures,
+    ).toBeDefined();
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures?.length,
+    ).toBe(1);
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyUmaLnurlpResponseBackingSignatures(
+      parsedResponseWithSignature,
+      cache,
+    );
+    expect(verified).toBe(true);
+  });
+
+  it("should sign and verify lnurlp response with backing signature", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    const request = await createLnurlpRequest(senderSigningPrivateKey);
+    const metadata = createMetadataForBob();
+    const response = await getLnurlpResponse({
+      request,
+      privateKeyBytes: certPrivKeyBytes,
+      requiresTravelRuleInfo: true,
+      callback: "https://vasp2.com/api/lnurl/payreq/$bob",
+      encodedMetadata: metadata,
+      minSendableSats: 1,
+      maxSendableSats: 10_000_000,
+      payerDataOptions: {
+        name: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+        identifier: {
+          mandatory: true,
+        },
+        compliance: {
+          mandatory: true,
+        },
+      },
+      currencyOptions: [
+        Currency.parse({
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          multiplier: 34_150,
+          convertible: {
+            min: 1,
+            max: 10_000_000,
+          },
+          decimals: 2,
+        }),
+      ],
+      receiverKycStatus: KycStatus.Verified,
+    });
+
+    const parsedResponse = LnurlpResponse.parse(response);
+    const backingDomain = "backingvasp.com";
+    const responseWithBackingSignature =
+      await parsedResponse.appendBackingSignature(
+        certPrivKeyBytes,
+        backingDomain,
+      );
+    const responseJson = responseWithBackingSignature.toJsonSchemaObject();
+    const parsedResponseWithSignature = LnurlpResponse.parse(responseJson);
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures,
+    ).toBeDefined();
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures?.length,
+    ).toBe(1);
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyUmaLnurlpResponseBackingSignatures(
+      parsedResponseWithSignature,
+      cache,
+    );
+    expect(verified).toBe(true);
+  });
+
+  it("should sign and verify lnurlp response with backing signature", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    const request = await createLnurlpRequest(senderSigningPrivateKey);
+    const metadata = createMetadataForBob();
+    const response = await getLnurlpResponse({
+      request,
+      privateKeyBytes: certPrivKeyBytes,
+      requiresTravelRuleInfo: true,
+      callback: "https://vasp2.com/api/lnurl/payreq/$bob",
+      encodedMetadata: metadata,
+      minSendableSats: 1,
+      maxSendableSats: 10_000_000,
+      payerDataOptions: {
+        name: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+        identifier: {
+          mandatory: true,
+        },
+        compliance: {
+          mandatory: true,
+        },
+      },
+      currencyOptions: [
+        Currency.parse({
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          multiplier: 34_150,
+          convertible: {
+            min: 1,
+            max: 10_000_000,
+          },
+          decimals: 2,
+        }),
+      ],
+      receiverKycStatus: KycStatus.Verified,
+    });
+
+    const parsedResponse = LnurlpResponse.parse(response);
+    const backingDomain = "backingvasp.com";
+    const responseWithBackingSignature =
+      await parsedResponse.appendBackingSignature(
+        certPrivKeyBytes,
+        backingDomain,
+      );
+    const responseJson = responseWithBackingSignature.toJsonSchemaObject();
+    const parsedResponseWithSignature = LnurlpResponse.parse(responseJson);
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures,
+    ).toBeDefined();
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures?.length,
+    ).toBe(1);
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyUmaLnurlpResponseBackingSignatures(
+      parsedResponseWithSignature,
+      cache,
+    );
+    expect(verified).toBe(true);
   });
 
   it("should sign and verify lnurlp response with backing signature", async () => {
@@ -879,6 +1105,11 @@ describe("uma", () => {
       payerKycStatus: KycStatus.Verified,
       utxoCallback: "/api/lnurl/utxocallback?txid=1234",
       umaMajorVersion: 1,
+      payerEmail: "alice@vasp1.com",
+      payerData: {
+        [CounterPartyDataKeys.NAME]: "Alice Full Name",
+        [CounterPartyDataKeys.NATIONALITY]: "US",
+      },
     });
 
     const payreqJson = payreq.toJsonString();
@@ -913,6 +1144,134 @@ describe("uma", () => {
       encryptedTrInfoBytes,
     ).toString();
     expect(decryptedTrInfo).toBe(trInfo);
+
+    expect(parsedPayreq.payerData?.name).toBe("Alice Full Name");
+    expect(parsedPayreq.payerData?.email).toBe("alice@vasp1.com");
+    expect(parsedPayreq.payerData?.identifier).toBe("$alice@vasp1.com");
+    expect(parsedPayreq.payerData?.nationality).toBe("US");
+  });
+
+  it("should sign and verify pay request with backing signature", async () => {
+    const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const payreq = await getPayRequest({
+      receiverEncryptionPubKey: receiverEncryptionPublicKey,
+      sendingVaspPrivateKey: certPrivKeyBytes,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 1000,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
+    });
+
+    const backingDomain = "backingvasp.com";
+    const payreqWithBackingSignature = await payreq.appendBackingSignature(
+      certPrivKeyBytes,
+      backingDomain,
+    );
+
+    const payreqJson = payreqWithBackingSignature.toJsonSchemaObject();
+    const parsedPayreq = PayRequest.parse(payreqJson);
+
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures).toBeDefined();
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures?.length).toBe(
+      1,
+    );
+
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyPayReqBackingSignatures(parsedPayreq, cache);
+    expect(verified).toBe(true);
+  });
+
+  it("should sign and verify pay request with backing signature", async () => {
+    const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const payreq = await getPayRequest({
+      receiverEncryptionPubKey: receiverEncryptionPublicKey,
+      sendingVaspPrivateKey: certPrivKeyBytes,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 1000,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
+    });
+
+    const backingDomain = "backingvasp.com";
+    const payreqWithBackingSignature = await payreq.appendBackingSignature(
+      certPrivKeyBytes,
+      backingDomain,
+    );
+
+    const payreqJson = payreqWithBackingSignature.toJsonSchemaObject();
+    const parsedPayreq = PayRequest.parse(payreqJson);
+
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures).toBeDefined();
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures?.length).toBe(
+      1,
+    );
+
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyPayReqBackingSignatures(parsedPayreq, cache);
+    expect(verified).toBe(true);
+  });
+
+  it("should sign and verify pay request with backing signature", async () => {
+    const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const payreq = await getPayRequest({
+      receiverEncryptionPubKey: receiverEncryptionPublicKey,
+      sendingVaspPrivateKey: certPrivKeyBytes,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 1000,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
+    });
+
+    const backingDomain = "backingvasp.com";
+    const payreqWithBackingSignature = await payreq.appendBackingSignature(
+      certPrivKeyBytes,
+      backingDomain,
+    );
+
+    const payreqJson = payreqWithBackingSignature.toJsonSchemaObject();
+    const parsedPayreq = PayRequest.parse(payreqJson);
+
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures).toBeDefined();
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures?.length).toBe(
+      1,
+    );
+
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyPayReqBackingSignatures(parsedPayreq, cache);
+    expect(verified).toBe(true);
   });
 
   it("should sign and verify pay request with backing signature", async () => {
@@ -1073,13 +1432,13 @@ describe("uma", () => {
         expiration: 1000000,
         isSubjectToTravelRule: true,
         requiredPayerData: {
-          name: {
+          [CounterPartyDataKeys.NAME]: {
             mandatory: false,
           },
-          email: {
+          [CounterPartyDataKeys.EMAIL]: {
             mandatory: false,
           },
-          compliance: {
+          [CounterPartyDataKeys.COMPLIANCE]: {
             mandatory: true,
           },
         },
@@ -1185,5 +1544,161 @@ describe("uma", () => {
     expect(parsedPubKeyResponse.getEncryptionPubKey()).toEqual(
       Buffer.from(certPubKey, "hex"),
     );
+  });
+
+  it("should include settlement options in lnurlp response", async () => {
+    const senderKeyPair = await generateKeypair();
+    const receiverKeyPair = await generateKeypair();
+    const receiverAddress = "bob@vasp2.com";
+
+    const lnurlpRequestUrl = await getSignedLnurlpRequestUrl({
+      signingPrivateKey: senderKeyPair.privateKey,
+      receiverAddress,
+      senderVaspDomain: "vasp1.com",
+      isSubjectToTravelRule: true,
+    });
+
+    const lnurlpRequest = await parseLnurlpRequest(lnurlpRequestUrl);
+
+    const settlementOptions: SettlementOption[] = [
+      {
+        settlementLayer: "spark",
+        assets: [
+          {
+            identifier: "btkn1...",
+            multipliers: {
+              USD: 1234,
+              PHP: 5678,
+            },
+          },
+        ],
+      },
+      {
+        settlementLayer: "ln",
+        assets: [
+          {
+            identifier: "BTC",
+            multipliers: {
+              USD: 1234,
+            },
+          },
+        ],
+      },
+    ];
+
+    const lnurlpResponse = await getLnurlpResponse({
+      request: lnurlpRequest,
+      privateKeyBytes: receiverKeyPair.privateKey,
+      requiresTravelRuleInfo: true,
+      callback: "https://vasp2.com/api/lnurl/payreq",
+      encodedMetadata: '[["text/plain", "Pay to vasp2.com user $bob"]]',
+      minSendableSats: 1000,
+      maxSendableSats: 100000,
+      payerDataOptions: {
+        identifier: { mandatory: true },
+        name: { mandatory: false },
+        email: { mandatory: false },
+        compliance: { mandatory: true },
+      },
+      currencyOptions: [
+        new Currency("USD", "US Dollar", "$", 1000, 1, 100000000, 2),
+      ],
+      receiverKycStatus: KycStatus.Verified,
+      settlementOptions,
+    });
+
+    expect(lnurlpResponse.settlementOptions).toBeDefined();
+    expect(lnurlpResponse.settlementOptions).toHaveLength(2);
+    expect(lnurlpResponse.settlementOptions?.[0].settlementLayer).toBe("spark");
+    expect(lnurlpResponse.settlementOptions?.[0].assets).toHaveLength(1);
+    expect(lnurlpResponse.settlementOptions?.[0].assets[0].identifier).toBe(
+      "btkn1...",
+    );
+
+    const serialized = lnurlpResponse.toJsonString();
+    const deserialized = LnurlpResponse.fromJson(serialized);
+    expect(deserialized.settlementOptions).toEqual(settlementOptions);
+  });
+
+  it("should include settlement info in pay request", async () => {
+    const senderKeyPair = await generateKeypair();
+    const receiverKeyPair = await generateKeypair();
+
+    const payRequest = await getPayRequest({
+      receiverEncryptionPubKey: receiverKeyPair.publicKey,
+      sendingVaspPrivateKey: senderKeyPair.privateKey,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 100,
+      payerIdentifier: "alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      umaMajorVersion: 1,
+      settlement: {
+        layer: "spark",
+        assetIdentifier: "btkn1...",
+      },
+    });
+
+    expect(payRequest.settlement).toBeDefined();
+    expect(payRequest.settlement?.layer).toBe("spark");
+    expect(payRequest.settlement?.assetIdentifier).toBe("btkn1...");
+
+    const serialized = payRequest.toJsonString();
+    const deserialized = PayRequest.fromJson(serialized);
+    expect(deserialized.settlement).toEqual(payRequest.settlement);
+  });
+
+  it("should handle settlement layer pay response", async () => {
+    const senderKeyPair = await generateKeypair();
+    const receiverKeyPair = await generateKeypair();
+
+    const payRequest = await getPayRequest({
+      receiverEncryptionPubKey: receiverKeyPair.publicKey,
+      sendingVaspPrivateKey: senderKeyPair.privateKey,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 100,
+      payerIdentifier: "alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      umaMajorVersion: 1,
+      settlement: {
+        layer: "spark",
+        assetIdentifier: "btkn1...",
+      },
+    });
+
+    const invoiceCreator = {
+      createUmaInvoice: async () => {
+        return "lnbc1000n1pj9x3z0pp5";
+      },
+
+      createInvoiceForSettlementLayer: async () => {
+        // assuming spark is the settlement layer
+        return "spark1000n1pj9x3z0pp5";
+      },
+    };
+
+    const payReqResponse = await getPayReqResponseForSettlementLayer({
+      request: payRequest,
+      invoiceCreator,
+      metadata: '[["text/plain", "Pay to vasp2.com user $bob"]]',
+      receivingCurrencyCode: "USD",
+      receivingCurrencyDecimals: 2,
+      conversionRate: 1234,
+      receiverFees: 50,
+      receivingVaspPrivateKey: receiverKeyPair.privateKey,
+      payeeIdentifier: "bob@vasp2.com",
+    });
+
+    expect(payReqResponse).toBeDefined();
+    expect(payReqResponse.converted).toBeDefined();
+    expect(payReqResponse.converted?.multiplier).toBe(1234);
+    expect(payReqResponse.converted?.fee).toBe(50);
+    expect(payReqResponse.converted?.currencyCode).toBe("USD");
+    expect(payReqResponse.pr).toBe("spark1000n1pj9x3z0pp5");
+
+    const serialized = payReqResponse.toJsonString();
+    const deserialized = PayReqResponse.fromJson(serialized);
+    expect(deserialized.converted).toEqual(payReqResponse.converted);
   });
 });

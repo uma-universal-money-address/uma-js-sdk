@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { optionalIgnoringNull } from "../zodUtils.js";
 import { BackingSignatureSchema } from "./BackingSignature.js";
+import { CounterPartyDataKeys } from "./CounterPartyDataKeys.js";
 
 export const CompliancePayeeDataSchema = z.object({
   /** nodePubKey is the public key of the receiver's node if known. */
@@ -35,10 +36,12 @@ export type CompliancePayeeData = z.infer<typeof CompliancePayeeDataSchema>;
 
 export const PayeeDataSchema = z
   .object({
-    name: optionalIgnoringNull(z.string()),
-    email: optionalIgnoringNull(z.string()),
-    identifier: optionalIgnoringNull(z.string()),
-    compliance: optionalIgnoringNull(CompliancePayeeDataSchema),
+    [CounterPartyDataKeys.NAME]: optionalIgnoringNull(z.string()),
+    [CounterPartyDataKeys.EMAIL]: optionalIgnoringNull(z.string()),
+    [CounterPartyDataKeys.IDENTIFIER]: optionalIgnoringNull(z.string()),
+    [CounterPartyDataKeys.COMPLIANCE]: optionalIgnoringNull(
+      CompliancePayeeDataSchema,
+    ),
   })
   .passthrough();
 

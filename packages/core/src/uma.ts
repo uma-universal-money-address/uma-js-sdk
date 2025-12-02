@@ -8,6 +8,7 @@ import { ErrorCode } from "./generated/errorCodes.js";
 import { type NonceValidator } from "./NonceValidator.js";
 import { type BackingSignature } from "./protocol/BackingSignature.js";
 import { type CounterPartyDataOptions } from "./protocol/CounterPartyData.js";
+import { CounterPartyDataKeys } from "./protocol/CounterPartyDataKeys.js";
 import { type Currency } from "./protocol/Currency.js";
 import {
   InvoiceSerializer,
@@ -29,7 +30,10 @@ import {
   type CompliancePayeeData,
   type PayeeData,
 } from "./protocol/PayeeData.js";
-import { type CompliancePayerData } from "./protocol/PayerData.js";
+import {
+  type CompliancePayerData,
+  type PayerData,
+} from "./protocol/PayerData.js";
 import { PayReqResponse } from "./protocol/PayReqResponse.js";
 import { PayRequest } from "./protocol/PayRequest.js";
 import {
@@ -38,6 +42,10 @@ import {
   type UtxoWithAmount,
 } from "./protocol/PostTransactionCallback.js";
 import { PubKeyResponse } from "./protocol/PubKeyResponse.js";
+import {
+  type SettlementInfo,
+  type SettlementOption,
+} from "./protocol/Settlement.js";
 import { type PublicKeyCache } from "./PublicKeyCache.js";
 import {
   signBytePayload,
@@ -45,6 +53,7 @@ import {
   uint8ArrayToHexString,
 } from "./signingUtils.js";
 import type UmaInvoiceCreator from "./UmaInvoiceCreator.js";
+import { createInvoiceWithSettlement } from "./UmaInvoiceCreator.js";
 import { isDomainLocalhost } from "./urlUtils.js";
 import {
   getMajorVersion,
@@ -435,14 +444,15 @@ type GetPayRequestArgs = {
   /** The amount of the payment in the smallest unit of the specified currency (i.e. cents for USD). */
   amount: number;
   /**
-   * Whether the amount field is specified in the smallest unit of the receiving currency or in msats (if false).
+   * Whether the amount field is specified in the smallest unit of the receiving currency (if
+   * is_amount_in_receiving_currency is True), or in the smallest unit of the settlement asset (if false).
    */
   isAmountInReceivingCurrency: boolean;
   /** The identifier of the sender. For example, $alice@vasp1.com */
   payerIdentifier: string;
-  /** The name of the sender (optional). */
+  /** The name of the sender (optional). Deprecated. Use payerData instead. */
   payerName?: string | undefined;
-  /** The email of the sender (optional). */
+  /** The email of the sender (optional). Deprecated. Use payerData instead. */
   payerEmail?: string | undefined;
   /** The travel rule information. This will be encrypted before sending to the receiver. */
   trInfo?: string | undefined;
@@ -489,6 +499,18 @@ type GetPayRequestArgs = {
    * associated invoice id, for PayRequest version1+
    */
   invoiceUUID?: string | undefined;
+
+  /**
+   *  The data that the sender must send to the receiver to identify themselves. This should
+   *  include the mandatory fields requested by the receiver in the `LnurlpResponse`
+   */
+  payerData?: PayerData | undefined;
+
+  /**
+   * The settlement layer and asset that the sender wants to use for this payment.
+   * If not specified, the payment will be settled on Lightning using BTC.
+   */
+  settlement?: SettlementInfo | undefined;
 };
 
 /**
@@ -513,6 +535,8 @@ export async function getPayRequest({
   comment,
   umaMajorVersion,
   invoiceUUID,
+  payerData,
+  settlement,
 }: GetPayRequestArgs): Promise<PayRequest> {
   const complianceData = await getSignedCompliancePayerData(
     receiverEncryptionPubKey,
@@ -535,14 +559,16 @@ export async function getPayRequest({
     sendingAmountCurrencyCode,
     umaMajorVersion,
     {
-      name: payerName,
-      email: payerEmail,
-      identifier: payerIdentifier,
-      compliance: complianceData,
+      [CounterPartyDataKeys.NAME]: payerName,
+      [CounterPartyDataKeys.EMAIL]: payerEmail,
+      [CounterPartyDataKeys.IDENTIFIER]: payerIdentifier,
+      [CounterPartyDataKeys.COMPLIANCE]: complianceData,
+      ...payerData,
     },
     requestedPayeeData,
     comment,
     invoiceUUID,
+    settlement,
   );
 }
 
@@ -726,10 +752,12 @@ export async function getPayReqResponse({
 
   const encodedPayerData =
     request.payerData && JSON.stringify(request.payerData);
-  const encodedInvoice = await invoiceCreator.createUmaInvoice(
+  const encodedInvoice = await createInvoiceWithSettlement(
+    invoiceCreator,
     msatsAmount,
     encodedMetadataWithInvoiceUUID + (encodedPayerData || ""),
     payeeIdentifier,
+    request.settlement,
   );
   if (!encodedInvoice) {
     throw new UmaError("failed to create invoice", ErrorCode.INTERNAL_ERROR);
@@ -764,7 +792,10 @@ export async function getPayReqResponse({
 
   return new PayReqResponse(
     encodedInvoice,
-    Object.assign({ compliance: complianceData }, payeeData || {}),
+    Object.assign(
+      { [CounterPartyDataKeys.COMPLIANCE]: complianceData },
+      payeeData || {},
+    ),
     !!receivingCurrencyCode
       ? {
           amount: receivingAmount,
@@ -778,6 +809,104 @@ export async function getPayReqResponse({
     successAction,
     request.umaMajorVersion,
   );
+}
+
+type PayReqResponseForSettlementLayerArgs = {
+  /** The uma pay request. */
+  request: PayRequest;
+  /**
+   * The metadata that will be added to the invoice's metadata hash field. Note that this should not include the
+   * extra payer data. That will be appended automatically.
+   */
+  metadata: string;
+  /** UmaInvoiceCreator that calls createInvoiceForSettlementLayer using your provider. */
+  invoiceCreator: UmaInvoiceCreator;
+  /**
+   * The conversion rate - how many of the smallest units of the settlement asset equal one unit of the receiving currency.
+   * For example:
+   * - Lightning/BTC: If 1 USD cent = 34,150 millisatoshis, then multiplier = 34150
+   * - Spark USDC: If 1 USD cent = 100 token units, then multiplier = 100
+   */
+  conversionRate: number | undefined;
+  /** The code of the currency that the receiver will receive for this payment. */
+  receivingCurrencyCode: string | undefined;
+  /**
+   * Number of digits after the decimal point for the receiving currency. For example, in USD, by
+   * convention, there are 2 digits for cents - $5.95. In this case, `decimals` would be 2. This should align with
+   * the currency's `decimals` field in the LNURLP response. It is included here for convenience. See
+   * [UMAD-04](https://github.com/uma-universal-money-address/protocol/blob/main/umad-04-lnurlp-response.md) for
+   * details, edge cases, and examples.
+   */
+  receivingCurrencyDecimals: number | undefined;
+  /**
+   * The fees charged (in the smallest unit of the settlement asset, ie. msats for Lightning) by the receiving VASP
+   * to convert to the target currency. This is separate from the conversion rate.
+   */
+  receiverFees: number | undefined;
+  /**
+   * If known, the public key of the receiver's node. If supported by the sending VASP's compliance provider, this
+   * will be used to pre-screen the receiver's UTXOs for compliance purposes. Only applicable to Lightning.
+   */
+  receiverNodePubKey?: string | undefined;
+  /**
+   * The URL that the receiving VASP will call to send UTXOs of the channel that the receiver used to receive the
+   * payment once it completes.
+   */
+  utxoCallback?: string | undefined;
+  /**
+   * The data requested by the sending VASP about the receiver.
+   */
+  payeeData?: PayeeData | undefined;
+  /** The private key of the VASP that is receiving the payment. This will be used to sign the request. */
+  receivingVaspPrivateKey: Uint8Array | undefined;
+  /** The identifier of the receiver. For example, $bob@vasp2.com */
+  payeeIdentifier: string | undefined;
+  /**
+   * This field may be used by a WALLET to decide whether the initial LNURL link will
+   * be stored locally for later reuse or erased. If disposable is null, it should be
+   * interpreted as true, so if SERVICE intends its LNURL links to be stored it must
+   * return `disposable: false`. UMA should always return `disposable: false`. See LUD-11.
+   */
+  disposable?: boolean | undefined;
+  /**
+   * Defines a struct which can be stored and shown to the user on payment success. See LUD-09.
+   */
+  successAction?: { [key: string]: string } | undefined;
+};
+
+export async function getPayReqResponseForSettlementLayer({
+  request,
+  conversionRate,
+  receivingCurrencyCode,
+  receivingCurrencyDecimals,
+  invoiceCreator,
+  metadata,
+  receiverFees,
+  receiverNodePubKey,
+  utxoCallback,
+  payeeData,
+  receivingVaspPrivateKey,
+  payeeIdentifier,
+  disposable,
+  successAction,
+}: PayReqResponseForSettlementLayerArgs): Promise<PayReqResponse> {
+  return getPayReqResponse({
+    request,
+    invoiceCreator,
+    metadata,
+    receivingCurrencyCode,
+    receivingCurrencyDecimals,
+    conversionRate,
+    receiverFeesMillisats: receiverFees,
+    receiverChannelUtxos: [],
+    receiverNodePubKey,
+    receivingVaspPrivateKey,
+    payeeIdentifier,
+    payeeData,
+    utxoCallback,
+    disposable,
+    successAction,
+  });
 }
 
 /**
@@ -911,6 +1040,7 @@ type GetSignedLnurlpResponseArgs = {
   receiverKycStatus?: KycStatus | undefined;
   commentCharsAllowed?: number | undefined;
   nostrPubkey?: string | undefined;
+  settlementOptions?: SettlementOption[] | undefined;
 };
 
 export async function getLnurlpResponse({
@@ -926,6 +1056,7 @@ export async function getLnurlpResponse({
   receiverKycStatus,
   commentCharsAllowed,
   nostrPubkey,
+  settlementOptions,
 }: GetSignedLnurlpResponseArgs): Promise<LnurlpResponse> {
   if (!isLnurlpRequestForUma(request)) {
     return new LnurlpResponse(
@@ -940,6 +1071,7 @@ export async function getLnurlpResponse({
       commentCharsAllowed,
       nostrPubkey,
       !!nostrPubkey,
+      settlementOptions,
     );
   }
   const requiredUmaFields = {
@@ -1001,6 +1133,7 @@ export async function getLnurlpResponse({
     commentCharsAllowed,
     nostrPubkey,
     !!nostrPubkey,
+    settlementOptions,
   );
 }
 
