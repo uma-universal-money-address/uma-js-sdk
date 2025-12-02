@@ -825,6 +825,79 @@ describe("uma", () => {
     expect(verified).toBe(true);
   });
 
+  it("should sign and verify lnurlp response with backing signature", async () => {
+    const { privateKey: senderSigningPrivateKey } = await generateKeypair();
+    const request = await createLnurlpRequest(senderSigningPrivateKey);
+    const metadata = createMetadataForBob();
+    const response = await getLnurlpResponse({
+      request,
+      privateKeyBytes: certPrivKeyBytes,
+      requiresTravelRuleInfo: true,
+      callback: "https://vasp2.com/api/lnurl/payreq/$bob",
+      encodedMetadata: metadata,
+      minSendableSats: 1,
+      maxSendableSats: 10_000_000,
+      payerDataOptions: {
+        name: {
+          mandatory: false,
+        },
+        email: {
+          mandatory: false,
+        },
+        identifier: {
+          mandatory: true,
+        },
+        compliance: {
+          mandatory: true,
+        },
+      },
+      currencyOptions: [
+        Currency.parse({
+          code: "USD",
+          name: "US Dollar",
+          symbol: "$",
+          multiplier: 34_150,
+          convertible: {
+            min: 1,
+            max: 10_000_000,
+          },
+          decimals: 2,
+        }),
+      ],
+      receiverKycStatus: KycStatus.Verified,
+    });
+
+    const parsedResponse = LnurlpResponse.parse(response);
+    const backingDomain = "backingvasp.com";
+    const responseWithBackingSignature =
+      await parsedResponse.appendBackingSignature(
+        certPrivKeyBytes,
+        backingDomain,
+      );
+    const responseJson = responseWithBackingSignature.toJsonSchemaObject();
+    const parsedResponseWithSignature = LnurlpResponse.parse(responseJson);
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures,
+    ).toBeDefined();
+    expect(
+      parsedResponseWithSignature.compliance?.backingSignatures?.length,
+    ).toBe(1);
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyUmaLnurlpResponseBackingSignatures(
+      parsedResponseWithSignature,
+      cache,
+    );
+    expect(verified).toBe(true);
+  });
+
   it("should handle a pay request response", async () => {
     const { privateKey: senderSigningPrivateKey } = await generateKeypair();
     const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
@@ -1076,6 +1149,47 @@ describe("uma", () => {
     expect(parsedPayreq.payerData?.email).toBe("alice@vasp1.com");
     expect(parsedPayreq.payerData?.identifier).toBe("$alice@vasp1.com");
     expect(parsedPayreq.payerData?.nationality).toBe("US");
+  });
+
+  it("should sign and verify pay request with backing signature", async () => {
+    const { publicKey: receiverEncryptionPublicKey } = await generateKeypair();
+    const payreq = await getPayRequest({
+      receiverEncryptionPubKey: receiverEncryptionPublicKey,
+      sendingVaspPrivateKey: certPrivKeyBytes,
+      receivingCurrencyCode: "USD",
+      isAmountInReceivingCurrency: true,
+      amount: 1000,
+      payerIdentifier: "$alice@vasp1.com",
+      payerKycStatus: KycStatus.Verified,
+      utxoCallback: "/api/lnurl/utxocallback?txid=1234",
+      umaMajorVersion: 1,
+    });
+
+    const backingDomain = "backingvasp.com";
+    const payreqWithBackingSignature = await payreq.appendBackingSignature(
+      certPrivKeyBytes,
+      backingDomain,
+    );
+
+    const payreqJson = payreqWithBackingSignature.toJsonSchemaObject();
+    const parsedPayreq = PayRequest.parse(payreqJson);
+
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures).toBeDefined();
+    expect(parsedPayreq.payerData?.compliance?.backingSignatures?.length).toBe(
+      1,
+    );
+
+    const cache = new InMemoryPublicKeyCache();
+    cache.addPublicKeyForVasp(
+      backingDomain,
+      getPubKeyResponse({
+        signingCertChainPem: certString,
+        encryptionCertChainPem: certString,
+      }),
+    );
+
+    const verified = await verifyPayReqBackingSignatures(parsedPayreq, cache);
+    expect(verified).toBe(true);
   });
 
   it("should sign and verify pay request with backing signature", async () => {
