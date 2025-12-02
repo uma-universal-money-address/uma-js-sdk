@@ -1,5 +1,12 @@
 # @uma-sdk/uma-auth-client
 
+## 0.0.10
+
+### Patch Changes
+
+- 286e29f: \* Add UMA username to auth url
+  - Use the new encryption tag scheme to decide on nip44 vs nip04
+
 ## 0.0.9
 
 ### Patch Changes

@@ -1,5 +1,14 @@
 # @uma-sdk/core
 
+## 1.5.0
+
+### Minor Changes
+
+- 286e29f: \* Add support for alternate settlement layers/assets
+  - Add counterparty data keys
+- 286e29f: \* Add backing signature support
+  - Use generic, standardized error codes
+
 ## 1.4.0
 
 ### Minor Changes
